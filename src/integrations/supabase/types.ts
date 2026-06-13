@@ -222,7 +222,7 @@ export type Database = {
           data: string
           data_pagamento: string | null
           emitente_id: string
-          empresa_id: string
+          empresa_id: string | null
           faturado_em: string | null
           faturado_por: string | null
           fechado_em: string | null
@@ -266,7 +266,7 @@ export type Database = {
           data: string
           data_pagamento?: string | null
           emitente_id: string
-          empresa_id: string
+          empresa_id?: string | null
           faturado_em?: string | null
           faturado_por?: string | null
           fechado_em?: string | null
@@ -312,7 +312,7 @@ export type Database = {
           data?: string
           data_pagamento?: string | null
           emitente_id?: string
-          empresa_id?: string
+          empresa_id?: string | null
           faturado_em?: string | null
           faturado_por?: string | null
           fechado_em?: string | null

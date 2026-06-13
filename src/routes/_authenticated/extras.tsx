@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,15 +37,13 @@ function Page() {
   const [vals, setVals] = useState<any>(empty());
 
   function empty() {
-    return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", empresa_id: "", funcao_id: "",
+    return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
       hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", motivo: "", observacoes: "" };
   }
 
   const colabs = useQuery({ queryKey: ["colaboradores"], queryFn: async () => (await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: async () => (await supabase.from("clientes").select("*").eq("situacao", "ativo").order("nome_fantasia")).data ?? [] });
-  const empresas = useQuery({ queryKey: ["empresas"], queryFn: async () => (await supabase.from("empresas").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
   const funcoes = useQuery({ queryKey: ["funcoes"], queryFn: async () => (await supabase.from("funcoes").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
-  const vinculos = useQuery({ queryKey: ["cliente_empresas_all"], queryFn: async () => (await supabase.from("cliente_empresas").select("*").eq("situacao", "ativo")).data ?? [] });
 
   const extras = useQuery({
     queryKey: ["extras", filtroStatus, filtroSemana],
@@ -59,11 +57,6 @@ function Page() {
     },
   });
 
-  const empresasDoCliente = useMemo(() => {
-    if (!vals.cliente_id) return [];
-    const empIds = (vinculos.data ?? []).filter((v: any) => v.cliente_id === vals.cliente_id).map((v: any) => v.empresa_id);
-    return (empresas.data ?? []).filter((e: any) => empIds.includes(e.id));
-  }, [vals.cliente_id, vinculos.data, empresas.data]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -152,23 +145,16 @@ function Page() {
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
               <Label>Colaborador</Label>
-              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, empresa_id: c?.empresa_id ?? "", funcao_id: c?.funcao_id ?? "" }); }}>
+              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" }); }}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{(colabs.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label>Cliente</Label>
-              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v, empresa_id: "" })}>
+              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{(clientes.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Empresa Responsável</Label>
-              <Select value={vals.empresa_id} onValueChange={(v) => setVals({ ...vals, empresa_id: v })}>
-                <SelectTrigger><SelectValue placeholder={vals.cliente_id ? "Selecionar" : "Escolha cliente primeiro"} /></SelectTrigger>
-                <SelectContent>{empresasDoCliente.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
