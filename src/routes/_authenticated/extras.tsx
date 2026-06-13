@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
 import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_REQUEREM_COBERTO, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
+import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Pencil, Ban } from "lucide-react";
@@ -161,17 +162,34 @@ function Page() {
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
               <Label>Colaborador</Label>
-              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" }); }}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{(colabs.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>)}</SelectContent>
-              </Select>
+              <SearchableSelect
+                placeholder="Selecionar"
+                searchPlaceholder="Digite nome ou matrícula..."
+                options={(colabs.data ?? []).map((c: any) => ({
+                  value: c.id,
+                  label: `${c.matricula} - ${c.nome}`,
+                  keywords: `${c.nome} ${c.matricula}`,
+                }))}
+                value={vals.colaborador_id}
+                onChange={(v) => {
+                  const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
+                  setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" });
+                }}
+              />
             </div>
             <div>
               <Label>Cliente</Label>
-              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{(clientes.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
-              </Select>
+              <SearchableSelect
+                placeholder="Selecionar"
+                searchPlaceholder="Digite o nome do cliente..."
+                options={(clientes.data ?? []).map((c: any) => ({
+                  value: c.id,
+                  label: c.nome_fantasia,
+                  keywords: `${c.nome_fantasia} ${c.razao_social ?? ""}`,
+                }))}
+                value={vals.cliente_id}
+                onChange={(v) => setVals({ ...vals, cliente_id: v })}
+              />
             </div>
             <div>
               <Label>Função</Label>
@@ -190,14 +208,17 @@ function Page() {
             {SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico) && (
               <div className="md:col-span-2">
                 <Label>Colaborador Coberto *</Label>
-                <Select value={vals.colaborador_coberto_id} onValueChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pesquisar colaborador coberto" /></SelectTrigger>
-                  <SelectContent>
-                    {(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  placeholder="Pesquisar colaborador coberto"
+                  searchPlaceholder="Digite nome ou matrícula..."
+                  options={(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => ({
+                    value: c.id,
+                    label: `${c.matricula} - ${c.nome}`,
+                    keywords: `${c.nome} ${c.matricula}`,
+                  }))}
+                  value={vals.colaborador_coberto_id}
+                  onChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}
+                />
               </div>
             )}
             <div>
