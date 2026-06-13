@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/pagamentos")({ component: 
 
 function Page() {
   const [pagarId, setPagarId] = useState<string | null>(null);
+  const aCobrar = useMarcarACobrar();
   const list = useQuery({
     queryKey: ["extras", "pagamentos"],
     queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia)")
