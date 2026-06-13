@@ -98,7 +98,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-card">
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-card print:hidden">
         <div className="px-5 py-4 border-b">
           <h1 className="text-lg font-bold">Horas Extras</h1>
           <p className="text-xs text-muted-foreground">Gestão MVP</p>
@@ -116,7 +116,7 @@ export function AppShell() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden print:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="relative w-72 max-w-[80vw] h-full bg-card flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b">
@@ -134,12 +134,12 @@ export function AppShell() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden flex items-center justify-between border-b bg-card px-4 py-3">
+        <header className="md:hidden flex items-center justify-between border-b bg-card px-4 py-3 print:hidden">
           <Button size="icon" variant="ghost" onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></Button>
           <h1 className="text-sm font-bold">Horas Extras</h1>
           <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/" })}><Home className="h-5 w-5" /></Button>
         </header>
-        <main className="flex-1 p-4 md:p-6 overflow-x-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-x-auto print:p-0 print:overflow-visible">
           <Outlet />
         </main>
       </div>
