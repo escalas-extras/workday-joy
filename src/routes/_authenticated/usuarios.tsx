@@ -27,18 +27,21 @@ const ROLES = [
 
 function Page() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const list = useServerFn(listUsuarios);
   const invite = useServerFn(inviteUsuario);
   const updateRoles = useServerFn(updateUsuarioRoles);
   const setAtivo = useServerFn(setUsuarioAtivo);
   const resetPwd = useServerFn(sendPasswordResetByAdmin);
   const resend = useServerFn(resendInvite);
+  const remove = useServerFn(deleteUsuario);
 
   const { data, isLoading } = useQuery({ queryKey: ["usuarios"], queryFn: () => list() });
 
   const [openNew, setOpenNew] = useState(false);
   const [novo, setNovo] = useState<{ email: string; nome: string; roles: string[] }>({ email: "", nome: "", roles: [] });
   const [rolesEdit, setRolesEdit] = useState<{ userId: string; roles: string[] } | null>(null);
+  const [confirmDel, setConfirmDel] = useState<{ id: string; nome: string; email: string } | null>(null);
 
   const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
 
@@ -51,6 +54,11 @@ function Page() {
   const mAtivo = useMutation({ mutationFn: (d: any) => setAtivo({ data: d }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); toast.success("Atualizado"); }, onError: (e: any) => toast.error(e.message) });
   const mPwd = useMutation({ mutationFn: (d: any) => resetPwd({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("E-mail de redefinição enviado"), onError: (e: any) => toast.error(e.message) });
   const mResend = useMutation({ mutationFn: (d: any) => resend({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("Convite reenviado"), onError: (e: any) => toast.error(e.message) });
+  const mDel = useMutation({
+    mutationFn: (d: { userId: string }) => remove({ data: d }),
+    onSuccess: () => { toast.success("Usuário excluído"); qc.invalidateQueries({ queryKey: ["usuarios"] }); setConfirmDel(null); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const toggleRole = (set: (v: any) => void, curr: string[], role: string) => {
     set(curr.includes(role) ? curr.filter((r) => r !== role) : [...curr, role]);
