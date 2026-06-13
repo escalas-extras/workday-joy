@@ -41,9 +41,9 @@ function Page() {
       hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", classificacao_comercial: "contrato", motivo: "", observacoes: "" };
   }
 
-  const colabs = useQuery({ queryKey: ["colaboradores"], queryFn: async () => (await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
-  const clientes = useQuery({ queryKey: ["clientes"], queryFn: async () => (await supabase.from("clientes").select("*").eq("situacao", "ativo").order("nome_fantasia")).data ?? [] });
-  const funcoes = useQuery({ queryKey: ["funcoes"], queryFn: async () => (await supabase.from("funcoes").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
+  const colabs = useQuery({ enabled: !!user, queryKey: ["colaboradores", user?.id], queryFn: async () => { const { data, error } = await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
+  const clientes = useQuery({ enabled: !!user, queryKey: ["clientes", user?.id], queryFn: async () => { const { data, error } = await supabase.from("clientes").select("*").eq("situacao", "ativo").order("nome_fantasia"); if (error) throw error; return data ?? []; } });
+  const funcoes = useQuery({ enabled: !!user, queryKey: ["funcoes", user?.id], queryFn: async () => { const { data, error } = await supabase.from("funcoes").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
 
   const extras = useQuery({
     queryKey: ["extras", filtroStatus, filtroSemana],
