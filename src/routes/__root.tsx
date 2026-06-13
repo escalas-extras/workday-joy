@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useLocation,
   useRouter,
   HeadContent,
   Scripts,
@@ -39,9 +40,11 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const location = useLocation();
+  const componentHint = location.pathname === "/extras" ? "src/routes/_authenticated/extras.tsx" : "TanStack route boundary";
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+    reportLovableError(error, { boundary: "tanstack_root_error_component", pathname: location.pathname, componentHint });
+  }, [error, location.pathname, componentHint]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -52,6 +55,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        <div className="mt-4 max-h-80 overflow-auto rounded-md border border-input bg-muted p-3 text-left font-mono text-xs text-foreground">
+          <div><strong>route:</strong> {location.pathname}</div>
+          <div><strong>component:</strong> {componentHint}</div>
+          <div><strong>message:</strong> {error.message}</div>
+          <pre className="mt-2 whitespace-pre-wrap">{error.stack}</pre>
+        </div>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
