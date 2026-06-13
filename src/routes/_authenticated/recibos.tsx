@@ -58,6 +58,7 @@ function Page() {
       const { data } = await supabase
         .from("recibos")
         .select("*, colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
+        .is("arquivado_em", null)
         .order("gerado_em", { ascending: false });
       return (data ?? []) as ReciboRow[];
     },
