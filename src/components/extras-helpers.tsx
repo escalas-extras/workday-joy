@@ -45,7 +45,6 @@ export const STATUS_LABEL: Record<string, string> = {
 export const SIT_FIN_LABEL: Record<string, string> = {
   pendente_pagamento: "Pendente Pagamento",
   pago: "Pago",
-  a_cobrar: "À Cobrar",
   faturado: "Faturado",
   cancelado: "Cancelado",
 };
