@@ -135,7 +135,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {(extras.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
+            {(extras.data ?? []).length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
