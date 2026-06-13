@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/recibos")({ component: Pag
 type ReciboRow = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
   valor_total: number; ativo: boolean; colaborador_id: string;
+  arquivado_em?: string | null;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
     empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
 };
