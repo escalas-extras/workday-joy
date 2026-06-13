@@ -657,6 +657,7 @@ export type Database = {
         | "pago"
         | "faturado"
         | "cancelado"
+        | "a_cobrar"
       situacao_servico:
         | "contrato"
         | "cobertura_ferias"
@@ -810,6 +811,7 @@ export const Constants = {
         "pago",
         "faturado",
         "cancelado",
+        "a_cobrar",
       ],
       situacao_servico: [
         "contrato",
