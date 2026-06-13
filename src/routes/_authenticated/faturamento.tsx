@@ -15,9 +15,9 @@ function Page() {
   const list = useQuery({
     queryKey: ["extras", "faturamento"],
     queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome), clientes(nome_fantasia)")
-      .eq("status", "aprovado_financeiro").in("situacao_financeira", ["a_cobrar", "faturado"]).order("data", { ascending: false })).data ?? [],
+      .eq("status", "aprovado_financeiro").eq("classificacao_comercial", "a_cobrar").order("data", { ascending: false })).data ?? [],
   });
-  const a_faturar = (list.data ?? []).filter((e: any) => e.situacao_financeira === "a_cobrar");
+  const a_faturar = (list.data ?? []).filter((e: any) => e.situacao_financeira !== "faturado" && e.situacao_financeira !== "cancelado");
   const faturados = (list.data ?? []).filter((e: any) => e.situacao_financeira === "faturado");
 
   const faturar = useMutation({
@@ -31,7 +31,7 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Faturamento" description="Marcar extras como faturados ao cliente" />
+      <PageHeader title="Faturamento" description="Lançamentos classificados como À Cobrar" />
 
       <h2 className="text-sm font-semibold mb-2">A faturar ({a_faturar.length})</h2>
       <div className="rounded-md border bg-card overflow-x-auto mb-6">
