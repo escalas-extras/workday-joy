@@ -97,7 +97,7 @@ export type Database = {
       }
       clientes: {
         Row: {
-          cnpj: string
+          cnpj: string | null
           created_at: string
           id: string
           nome_fantasia: string
@@ -107,7 +107,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cnpj: string
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome_fantasia: string
@@ -117,7 +117,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          cnpj?: string
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome_fantasia?: string
@@ -128,9 +128,52 @@ export type Database = {
         }
         Relationships: []
       }
+      colaborador_clientes: {
+        Row: {
+          cliente_id: string
+          colaborador_id: string
+          created_at: string
+          id: string
+          situacao: Database["public"]["Enums"]["entity_status"]
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          colaborador_id: string
+          created_at?: string
+          id?: string
+          situacao?: Database["public"]["Enums"]["entity_status"]
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          colaborador_id?: string
+          created_at?: string
+          id?: string
+          situacao?: Database["public"]["Enums"]["entity_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaborador_clientes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "colaborador_clientes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaboradores: {
         Row: {
           codigo_ponto: string | null
+          cpf: string | null
           created_at: string
           empresa_id: string
           funcao_id: string
@@ -143,6 +186,7 @@ export type Database = {
         }
         Insert: {
           codigo_ponto?: string | null
+          cpf?: string | null
           created_at?: string
           empresa_id: string
           funcao_id: string
@@ -155,6 +199,7 @@ export type Database = {
         }
         Update: {
           codigo_ponto?: string | null
+          cpf?: string | null
           created_at?: string
           empresa_id?: string
           funcao_id?: string
@@ -453,6 +498,45 @@ export type Database = {
           nome?: string
           situacao?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      importacoes_lotacao: {
+        Row: {
+          arquivo_nome: string | null
+          atualizadas: number
+          created_at: string
+          criadas: number
+          erros: number
+          id: string
+          ignoradas: number
+          resumo: Json | null
+          total_linhas: number
+          usuario_id: string | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          atualizadas?: number
+          created_at?: string
+          criadas?: number
+          erros?: number
+          id?: string
+          ignoradas?: number
+          resumo?: Json | null
+          total_linhas?: number
+          usuario_id?: string | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          atualizadas?: number
+          created_at?: string
+          criadas?: number
+          erros?: number
+          id?: string
+          ignoradas?: number
+          resumo?: Json | null
+          total_linhas?: number
+          usuario_id?: string | null
         }
         Relationships: []
       }
