@@ -37,7 +37,7 @@ function Page() {
   const [vals, setVals] = useState<any>(empty());
 
   function empty() {
-    return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", empresa_id: "", funcao_id: "",
+    return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
       hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", motivo: "", observacoes: "" };
   }
 
