@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   Building2, Briefcase, Users, UserCog, ListChecks, FileText, LogOut, Menu, Home,
   ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Banknote, ShieldCheck, X,
+  BarChart3, FileSpreadsheet, FileBarChart,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
