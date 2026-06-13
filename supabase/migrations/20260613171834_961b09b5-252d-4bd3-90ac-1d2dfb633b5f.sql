@@ -1,0 +1,11 @@
+revoke execute on function public.has_role(uuid, public.app_role) from public, anon;
+revoke execute on function public.is_admin(uuid) from public, anon;
+revoke execute on function public.is_admin_or_gestor(uuid) from public, anon;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke execute on function public.tg_audit() from public, anon, authenticated;
+revoke execute on function public.tg_audit_fech() from public, anon, authenticated;
+revoke execute on function public.proximo_numero_recibo() from public, anon;
+grant execute on function public.has_role(uuid, public.app_role) to authenticated;
+grant execute on function public.is_admin(uuid) to authenticated;
+grant execute on function public.is_admin_or_gestor(uuid) to authenticated;
+grant execute on function public.proximo_numero_recibo() to authenticated;

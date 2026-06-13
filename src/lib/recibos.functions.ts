@@ -1,0 +1,63 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+export const gerarRecibosSemana = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { semana_ref: string; data_pagamento: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Verifica papel
+    const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
+    if (!isAdm && !isFin) throw new Error("Sem permissão");
+
+    // Busca extras elegíveis: aprovado_financeiro + pago, sem recibo ativo
+    const { data: extras, error } = await supabase
+      .from("extras")
+      .select("id, colaborador_id, valor")
+      .eq("semana_ref", data.semana_ref)
+      .eq("status", "aprovado_financeiro")
+      .eq("situacao_financeira", "pago");
+    if (error) throw error;
+    if (!extras?.length) return { criados: 0, mensagem: "Nenhum extra elegível" };
+
+    // Agrupa por colaborador
+    const grupos = new Map<string, { ids: string[]; total: number }>();
+    for (const e of extras) {
+      const g = grupos.get(e.colaborador_id) ?? { ids: [], total: 0 };
+      g.ids.push(e.id);
+      g.total += Number(e.valor);
+      grupos.set(e.colaborador_id, g);
+    }
+
+    let criados = 0;
+    const erros: string[] = [];
+    for (const [colab, grupo] of grupos) {
+      // Verifica se já tem recibo ativo
+      const { data: existente } = await supabase.from("recibos").select("id").eq("colaborador_id", colab).eq("semana_ref", data.semana_ref).eq("ativo", true).maybeSingle();
+      if (existente) continue;
+      const { data: rec, error: e1 } = await supabase.from("recibos").insert({
+        colaborador_id: colab, semana_ref: data.semana_ref, gerado_por: userId, data_pagamento: data.data_pagamento, valor_total: grupo.total,
+      }).select("id").single();
+      if (e1) { erros.push(e1.message); continue; }
+      const itens = grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: 0 }));
+      // valor_snapshot will be filled by trigger if 0/null? trigger sets to e.valor when null; we pass 0 but trigger checks `is null`. Use null:
+      const { error: e2 } = await supabase.from("recibos_itens").insert(grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any })));
+      if (e2) { erros.push(e2.message); continue; }
+      criados++;
+    }
+    return { criados, erros };
+  });
+
+export const cancelarRecibo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { reciboId: string; motivo: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { error } = await supabase.from("recibos").update({
+      ativo: false, cancelado_em: new Date().toISOString(), cancelado_por: userId, motivo_cancelamento: data.motivo,
+    }).eq("id", data.reciboId);
+    if (error) throw error;
+    return { ok: true };
+  });

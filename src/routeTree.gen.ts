@@ -9,38 +9,275 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticated/recibos'
+import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
+import { Route as AuthenticatedMotivosRejeicaoRouteImport } from './routes/_authenticated/motivos-rejeicao'
+import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
+import { Route as AuthenticatedFuncoesRouteImport } from './routes/_authenticated/funcoes'
+import { Route as AuthenticatedFechamentoRouteImport } from './routes/_authenticated/fechamento'
+import { Route as AuthenticatedFaturamentoRouteImport } from './routes/_authenticated/faturamento'
+import { Route as AuthenticatedExtrasRouteImport } from './routes/_authenticated/extras'
+import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticated/empresas'
+import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authenticated/colaboradores'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedAprovacoesOperacionalRouteImport } from './routes/_authenticated/aprovacoes.operacional'
+import { Route as AuthenticatedAprovacoesFinanceiroRouteImport } from './routes/_authenticated/aprovacoes.financeiro'
+import { Route as AuthenticatedClientesIdEmpresasRouteImport } from './routes/_authenticated/clientes.$id.empresas'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecibosRoute = AuthenticatedRecibosRouteImport.update({
+  id: '/recibos',
+  path: '/recibos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
+  id: '/pagamentos',
+  path: '/pagamentos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMotivosRejeicaoRoute =
+  AuthenticatedMotivosRejeicaoRouteImport.update({
+    id: '/motivos-rejeicao',
+    path: '/motivos-rejeicao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInicioRoute = AuthenticatedInicioRouteImport.update({
+  id: '/inicio',
+  path: '/inicio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFuncoesRoute = AuthenticatedFuncoesRouteImport.update({
+  id: '/funcoes',
+  path: '/funcoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFechamentoRoute = AuthenticatedFechamentoRouteImport.update({
+  id: '/fechamento',
+  path: '/fechamento',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFaturamentoRoute =
+  AuthenticatedFaturamentoRouteImport.update({
+    id: '/faturamento',
+    path: '/faturamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExtrasRoute = AuthenticatedExtrasRouteImport.update({
+  id: '/extras',
+  path: '/extras',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEmpresasRoute = AuthenticatedEmpresasRouteImport.update({
+  id: '/empresas',
+  path: '/empresas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedColaboradoresRoute =
+  AuthenticatedColaboradoresRouteImport.update({
+    id: '/colaboradores',
+    path: '/colaboradores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAprovacoesOperacionalRoute =
+  AuthenticatedAprovacoesOperacionalRouteImport.update({
+    id: '/aprovacoes/operacional',
+    path: '/aprovacoes/operacional',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAprovacoesFinanceiroRoute =
+  AuthenticatedAprovacoesFinanceiroRouteImport.update({
+    id: '/aprovacoes/financeiro',
+    path: '/aprovacoes/financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClientesIdEmpresasRoute =
+  AuthenticatedClientesIdEmpresasRouteImport.update({
+    id: '/$id/empresas',
+    path: '/$id/empresas',
+    getParentRoute: () => AuthenticatedClientesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/clientes': typeof AuthenticatedClientesRouteWithChildren
+  '/colaboradores': typeof AuthenticatedColaboradoresRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
+  '/extras': typeof AuthenticatedExtrasRoute
+  '/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/fechamento': typeof AuthenticatedFechamentoRoute
+  '/funcoes': typeof AuthenticatedFuncoesRoute
+  '/inicio': typeof AuthenticatedInicioRoute
+  '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
+  '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/recibos': typeof AuthenticatedRecibosRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
+  '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
+  '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/clientes': typeof AuthenticatedClientesRouteWithChildren
+  '/colaboradores': typeof AuthenticatedColaboradoresRoute
+  '/empresas': typeof AuthenticatedEmpresasRoute
+  '/extras': typeof AuthenticatedExtrasRoute
+  '/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/fechamento': typeof AuthenticatedFechamentoRoute
+  '/funcoes': typeof AuthenticatedFuncoesRoute
+  '/inicio': typeof AuthenticatedInicioRoute
+  '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
+  '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/recibos': typeof AuthenticatedRecibosRoute
+  '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
+  '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
+  '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
+  '/_authenticated/colaboradores': typeof AuthenticatedColaboradoresRoute
+  '/_authenticated/empresas': typeof AuthenticatedEmpresasRoute
+  '/_authenticated/extras': typeof AuthenticatedExtrasRoute
+  '/_authenticated/faturamento': typeof AuthenticatedFaturamentoRoute
+  '/_authenticated/fechamento': typeof AuthenticatedFechamentoRoute
+  '/_authenticated/funcoes': typeof AuthenticatedFuncoesRoute
+  '/_authenticated/inicio': typeof AuthenticatedInicioRoute
+  '/_authenticated/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
+  '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/_authenticated/recibos': typeof AuthenticatedRecibosRoute
+  '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
+  '/_authenticated/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
+  '/_authenticated/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/auditoria'
+    | '/clientes'
+    | '/colaboradores'
+    | '/empresas'
+    | '/extras'
+    | '/faturamento'
+    | '/fechamento'
+    | '/funcoes'
+    | '/inicio'
+    | '/motivos-rejeicao'
+    | '/pagamentos'
+    | '/recibos'
+    | '/usuarios'
+    | '/aprovacoes/financeiro'
+    | '/aprovacoes/operacional'
+    | '/clientes/$id/empresas'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/auditoria'
+    | '/clientes'
+    | '/colaboradores'
+    | '/empresas'
+    | '/extras'
+    | '/faturamento'
+    | '/fechamento'
+    | '/funcoes'
+    | '/inicio'
+    | '/motivos-rejeicao'
+    | '/pagamentos'
+    | '/recibos'
+    | '/usuarios'
+    | '/aprovacoes/financeiro'
+    | '/aprovacoes/operacional'
+    | '/clientes/$id/empresas'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/auditoria'
+    | '/_authenticated/clientes'
+    | '/_authenticated/colaboradores'
+    | '/_authenticated/empresas'
+    | '/_authenticated/extras'
+    | '/_authenticated/faturamento'
+    | '/_authenticated/fechamento'
+    | '/_authenticated/funcoes'
+    | '/_authenticated/inicio'
+    | '/_authenticated/motivos-rejeicao'
+    | '/_authenticated/pagamentos'
+    | '/_authenticated/recibos'
+    | '/_authenticated/usuarios'
+    | '/_authenticated/aprovacoes/financeiro'
+    | '/_authenticated/aprovacoes/operacional'
+    | '/_authenticated/clientes/$id/empresas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +285,190 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/usuarios': {
+      id: '/_authenticated/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recibos': {
+      id: '/_authenticated/recibos'
+      path: '/recibos'
+      fullPath: '/recibos'
+      preLoaderRoute: typeof AuthenticatedRecibosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pagamentos': {
+      id: '/_authenticated/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/pagamentos'
+      preLoaderRoute: typeof AuthenticatedPagamentosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/motivos-rejeicao': {
+      id: '/_authenticated/motivos-rejeicao'
+      path: '/motivos-rejeicao'
+      fullPath: '/motivos-rejeicao'
+      preLoaderRoute: typeof AuthenticatedMotivosRejeicaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inicio': {
+      id: '/_authenticated/inicio'
+      path: '/inicio'
+      fullPath: '/inicio'
+      preLoaderRoute: typeof AuthenticatedInicioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/funcoes': {
+      id: '/_authenticated/funcoes'
+      path: '/funcoes'
+      fullPath: '/funcoes'
+      preLoaderRoute: typeof AuthenticatedFuncoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fechamento': {
+      id: '/_authenticated/fechamento'
+      path: '/fechamento'
+      fullPath: '/fechamento'
+      preLoaderRoute: typeof AuthenticatedFechamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/faturamento': {
+      id: '/_authenticated/faturamento'
+      path: '/faturamento'
+      fullPath: '/faturamento'
+      preLoaderRoute: typeof AuthenticatedFaturamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/extras': {
+      id: '/_authenticated/extras'
+      path: '/extras'
+      fullPath: '/extras'
+      preLoaderRoute: typeof AuthenticatedExtrasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/empresas': {
+      id: '/_authenticated/empresas'
+      path: '/empresas'
+      fullPath: '/empresas'
+      preLoaderRoute: typeof AuthenticatedEmpresasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/colaboradores': {
+      id: '/_authenticated/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/colaboradores'
+      preLoaderRoute: typeof AuthenticatedColaboradoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes': {
+      id: '/_authenticated/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AuthenticatedClientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/aprovacoes/operacional': {
+      id: '/_authenticated/aprovacoes/operacional'
+      path: '/aprovacoes/operacional'
+      fullPath: '/aprovacoes/operacional'
+      preLoaderRoute: typeof AuthenticatedAprovacoesOperacionalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/aprovacoes/financeiro': {
+      id: '/_authenticated/aprovacoes/financeiro'
+      path: '/aprovacoes/financeiro'
+      fullPath: '/aprovacoes/financeiro'
+      preLoaderRoute: typeof AuthenticatedAprovacoesFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes/$id/empresas': {
+      id: '/_authenticated/clientes/$id/empresas'
+      path: '/$id/empresas'
+      fullPath: '/clientes/$id/empresas'
+      preLoaderRoute: typeof AuthenticatedClientesIdEmpresasRouteImport
+      parentRoute: typeof AuthenticatedClientesRoute
+    }
   }
 }
 
+interface AuthenticatedClientesRouteChildren {
+  AuthenticatedClientesIdEmpresasRoute: typeof AuthenticatedClientesIdEmpresasRoute
+}
+
+const AuthenticatedClientesRouteChildren: AuthenticatedClientesRouteChildren = {
+  AuthenticatedClientesIdEmpresasRoute: AuthenticatedClientesIdEmpresasRoute,
+}
+
+const AuthenticatedClientesRouteWithChildren =
+  AuthenticatedClientesRoute._addFileChildren(
+    AuthenticatedClientesRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
+  AuthenticatedColaboradoresRoute: typeof AuthenticatedColaboradoresRoute
+  AuthenticatedEmpresasRoute: typeof AuthenticatedEmpresasRoute
+  AuthenticatedExtrasRoute: typeof AuthenticatedExtrasRoute
+  AuthenticatedFaturamentoRoute: typeof AuthenticatedFaturamentoRoute
+  AuthenticatedFechamentoRoute: typeof AuthenticatedFechamentoRoute
+  AuthenticatedFuncoesRoute: typeof AuthenticatedFuncoesRoute
+  AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
+  AuthenticatedMotivosRejeicaoRoute: typeof AuthenticatedMotivosRejeicaoRoute
+  AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
+  AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRoute
+  AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedAprovacoesFinanceiroRoute: typeof AuthenticatedAprovacoesFinanceiroRoute
+  AuthenticatedAprovacoesOperacionalRoute: typeof AuthenticatedAprovacoesOperacionalRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
+  AuthenticatedColaboradoresRoute: AuthenticatedColaboradoresRoute,
+  AuthenticatedEmpresasRoute: AuthenticatedEmpresasRoute,
+  AuthenticatedExtrasRoute: AuthenticatedExtrasRoute,
+  AuthenticatedFaturamentoRoute: AuthenticatedFaturamentoRoute,
+  AuthenticatedFechamentoRoute: AuthenticatedFechamentoRoute,
+  AuthenticatedFuncoesRoute: AuthenticatedFuncoesRoute,
+  AuthenticatedInicioRoute: AuthenticatedInicioRoute,
+  AuthenticatedMotivosRejeicaoRoute: AuthenticatedMotivosRejeicaoRoute,
+  AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
+  AuthenticatedRecibosRoute: AuthenticatedRecibosRoute,
+  AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedAprovacoesFinanceiroRoute:
+    AuthenticatedAprovacoesFinanceiroRoute,
+  AuthenticatedAprovacoesOperacionalRoute:
+    AuthenticatedAprovacoesOperacionalRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
