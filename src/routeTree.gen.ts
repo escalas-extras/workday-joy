@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticated/recibos'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedMotivosRejeicaoRouteImport } from './routes/_authenticated/motivos-rejeicao'
 import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
@@ -35,6 +37,11 @@ import { Route as AuthenticatedAprovacoesFinanceiroRouteImport } from './routes/
 import { Route as AuthenticatedAdminImportarLotacaoRouteImport } from './routes/_authenticated/admin.importar-lotacao'
 import { Route as AuthenticatedClientesIdEmpresasRouteImport } from './routes/_authenticated/clientes.$id.empresas'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -57,6 +64,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
 const AuthenticatedRecibosRoute = AuthenticatedRecibosRouteImport.update({
   id: '/recibos',
   path: '/recibos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
@@ -175,6 +187,7 @@ const AuthenticatedClientesIdEmpresasRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -186,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/inicio': typeof AuthenticatedInicioRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -201,6 +215,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -212,6 +227,7 @@ export interface FileRoutesByTo {
   '/inicio': typeof AuthenticatedInicioRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -229,6 +245,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -240,6 +257,7 @@ export interface FileRoutesById {
   '/_authenticated/inicio': typeof AuthenticatedInicioRoute
   '/_authenticated/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -257,6 +275,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -268,6 +287,7 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/motivos-rejeicao'
     | '/pagamentos'
+    | '/perfil'
     | '/recibos'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -283,6 +303,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/reset-password'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -294,6 +315,7 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/motivos-rejeicao'
     | '/pagamentos'
+    | '/perfil'
     | '/recibos'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -310,6 +332,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/reset-password'
     | '/_authenticated/auditoria'
     | '/_authenticated/clientes'
     | '/_authenticated/colaboradores'
@@ -321,6 +344,7 @@ export interface FileRouteTypes {
     | '/_authenticated/inicio'
     | '/_authenticated/motivos-rejeicao'
     | '/_authenticated/pagamentos'
+    | '/_authenticated/perfil'
     | '/_authenticated/recibos'
     | '/_authenticated/usuarios'
     | '/_authenticated/admin/importar-lotacao'
@@ -338,10 +362,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -375,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/recibos'
       fullPath: '/recibos'
       preLoaderRoute: typeof AuthenticatedRecibosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pagamentos': {
@@ -556,6 +595,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
   AuthenticatedMotivosRejeicaoRoute: typeof AuthenticatedMotivosRejeicaoRoute
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRouteWithChildren
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedAdminImportarLotacaoRoute: typeof AuthenticatedAdminImportarLotacaoRoute
@@ -579,6 +619,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInicioRoute: AuthenticatedInicioRoute,
   AuthenticatedMotivosRejeicaoRoute: AuthenticatedMotivosRejeicaoRoute,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedRecibosRoute: AuthenticatedRecibosRouteWithChildren,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedAdminImportarLotacaoRoute:
@@ -603,6 +644,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
