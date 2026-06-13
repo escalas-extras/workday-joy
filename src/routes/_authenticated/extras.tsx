@@ -43,9 +43,7 @@ function Page() {
 
   const colabs = useQuery({ queryKey: ["colaboradores"], queryFn: async () => (await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
   const clientes = useQuery({ queryKey: ["clientes"], queryFn: async () => (await supabase.from("clientes").select("*").eq("situacao", "ativo").order("nome_fantasia")).data ?? [] });
-  const empresas = useQuery({ queryKey: ["empresas"], queryFn: async () => (await supabase.from("empresas").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
   const funcoes = useQuery({ queryKey: ["funcoes"], queryFn: async () => (await supabase.from("funcoes").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
-  const vinculos = useQuery({ queryKey: ["cliente_empresas_all"], queryFn: async () => (await supabase.from("cliente_empresas").select("*").eq("situacao", "ativo")).data ?? [] });
 
   const extras = useQuery({
     queryKey: ["extras", filtroStatus, filtroSemana],
