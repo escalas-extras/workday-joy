@@ -174,14 +174,3 @@ export function CancelarExtraDialog({ extraId, open, onOpenChange }: { extraId: 
   );
 }
 
-export function useMarcarACobrar() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("extras").update({ situacao_financeira: "a_cobrar" as any }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries(); toast.success("Marcado como À Cobrar"); },
-    onError: (e: any) => toast.error(e.message),
-  });
-}
