@@ -147,12 +147,21 @@ function Page() {
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
+    arquivar({ data: { ids } })
+      .then((r) => {
+        if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
+        qc.invalidateQueries({ queryKey: ["recibos"] });
+      })
+      .catch((e: Error) => toast.error(e.message));
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
       const views = await loadReciboViews(ids);
       gerarPdfRecibos(views, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const r = await arquivar({ data: { ids } });
+      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
+      qc.invalidateQueries({ queryKey: ["recibos"] });
     } catch (e) {
       toast.error((e as Error).message);
     }
