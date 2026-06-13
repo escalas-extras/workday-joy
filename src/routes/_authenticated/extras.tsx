@@ -38,7 +38,7 @@ function Page() {
 
   function empty() {
     return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
-      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", motivo: "", observacoes: "" };
+      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", classificacao_comercial: "contrato", motivo: "", observacoes: "" };
   }
 
   const colabs = useQuery({ queryKey: ["colaboradores"], queryFn: async () => (await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
