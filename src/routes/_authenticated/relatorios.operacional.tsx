@@ -79,6 +79,8 @@ function Page() {
       valor: Number(r.valor),
       valor_fmt: formatBRL(r.valor),
       classificacao: r.classificacao_comercial === "a_cobrar" ? "À Cobrar" : "Contrato",
+      situacao: SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "",
+      coberto: r.coberto?.nome ?? "",
       empresa: empNome || "—",
     };
   }), [q.data, empPorCliente, empresa]);
