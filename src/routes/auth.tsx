@@ -1,11 +1,10 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
@@ -19,9 +18,9 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -40,17 +39,18 @@ function AuthPage() {
     else navigate({ to: "/inicio" });
   };
 
-  const signUp = async (e: React.FormEvent) => {
+  const forgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/inicio`, data: { nome } },
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) toast.error(error.message);
-    else toast.success("Conta criada! Aguarde o Admin atribuir um papel.");
+    else {
+      toast.success("Se o e-mail estiver cadastrado, você receberá as instruções para redefinir a senha.");
+      setMode("signin");
+    }
   };
 
   return (
@@ -58,31 +58,32 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Gestão de Horas Extras</CardTitle>
-          <CardDescription>Acesse sua conta para continuar</CardDescription>
+          <CardDescription>
+            {mode === "signin" ? "Acesse sua conta para continuar" : "Recuperação de senha"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin">
-              <form onSubmit={signIn} className="space-y-3 mt-4">
-                <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-                <div><Label>Senha</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
-                <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="signup">
-              <form onSubmit={signUp} className="space-y-3 mt-4">
-                <div><Label>Nome completo</Label><Input value={nome} onChange={(e) => setNome(e.target.value)} required /></div>
-                <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
-                <div><Label>Senha</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} /></div>
-                <Button type="submit" className="w-full" disabled={loading}>{loading ? "Criando..." : "Criar conta"}</Button>
-                <p className="text-xs text-muted-foreground text-center">Após o cadastro, um Admin deve atribuir seu papel.</p>
-              </form>
-            </TabsContent>
-          </Tabs>
+          {mode === "signin" ? (
+            <form onSubmit={signIn} className="space-y-3">
+              <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+              <div><Label>Senha</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
+              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
+              <button type="button" className="text-xs text-primary hover:underline w-full text-center mt-2" onClick={() => setMode("forgot")}>
+                Esqueci minha senha
+              </button>
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                Acesso somente por convite. Solicite ao administrador.
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={forgot} className="space-y-3">
+              <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Enviando..." : "Enviar link de redefinição"}</Button>
+              <button type="button" className="text-xs text-muted-foreground hover:underline w-full text-center mt-2" onClick={() => setMode("signin")}>
+                Voltar para login
+              </button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

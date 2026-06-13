@@ -8,6 +8,20 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Apenas administradores podem executar esta ação");
 }
 
+async function audit(
+  supabaseAdmin: any,
+  params: { tabela: string; registro_id: string; usuario_id: string; acao: string; valor_novo?: any; justificativa?: string },
+) {
+  await supabaseAdmin.from("auditoria").insert({
+    tabela: params.tabela,
+    registro_id: params.registro_id,
+    usuario_id: params.usuario_id,
+    acao: params.acao,
+    valor_novo: params.valor_novo ? JSON.stringify(params.valor_novo) : null,
+    justificativa: params.justificativa ?? null,
+  });
+}
+
 export const listUsuarios = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -27,27 +41,38 @@ export const listUsuarios = createServerFn({ method: "GET" })
         ativo: p?.ativo ?? true,
         roles: userRoles,
         created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        confirmed_at: (u as any).confirmed_at ?? u.email_confirmed_at ?? null,
       };
     });
   });
 
-export const createUsuario = createServerFn({ method: "POST" })
+export const inviteUsuario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { email: string; password: string; nome: string; roles: AppRole[] }) => d)
+  .inputValidator((d: { email: string; nome: string; roles: AppRole[]; redirectTo?: string }) => d)
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: { nome: data.nome },
+    const { data: invited, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
+      data: { nome: data.nome },
+      redirectTo: data.redirectTo,
     });
     if (error) throw error;
+    const newId = invited.user!.id;
+    // garante profile com nome atualizado (trigger handle_new_user já cria)
+    await supabaseAdmin.from("profiles").upsert({ id: newId, nome: data.nome, email: data.email });
     if (data.roles.length) {
-      await supabaseAdmin.from("user_roles").insert(data.roles.map((r) => ({ user_id: created.user!.id, role: r })));
+      await supabaseAdmin.from("user_roles").insert(data.roles.map((r) => ({ user_id: newId, role: r })));
     }
-    return { id: created.user!.id };
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: newId,
+      usuario_id: context.userId,
+      acao: "INVITE",
+      valor_novo: { email: data.email, nome: data.nome, roles: data.roles },
+      justificativa: `Convite de ativação enviado para ${data.email}`,
+    });
+    return { id: newId };
   });
 
 export const updateUsuarioRoles = createServerFn({ method: "POST" })
@@ -60,6 +85,14 @@ export const updateUsuarioRoles = createServerFn({ method: "POST" })
     if (data.roles.length) {
       await supabaseAdmin.from("user_roles").insert(data.roles.map((r) => ({ user_id: data.userId, role: r })));
     }
+    await audit(supabaseAdmin, {
+      tabela: "user_roles",
+      registro_id: data.userId,
+      usuario_id: context.userId,
+      acao: "UPDATE",
+      valor_novo: { roles: data.roles },
+      justificativa: "Atualização de papéis",
+    });
     return { ok: true };
   });
 
@@ -78,12 +111,60 @@ export const setUsuarioAtivo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const resetUsuarioPassword = createServerFn({ method: "POST" })
+export const sendPasswordResetByAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { userId: string; password: string }) => d)
+  .inputValidator((d: { userId: string; email: string; redirectTo?: string }) => d)
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.auth.admin.updateUserById(data.userId, { password: data.password });
+    // Usa o fluxo padrão do Supabase: gera link de recuperação enviado por e-mail
+    const { error } = await supabaseAdmin.auth.resetPasswordForEmail(data.email, {
+      redirectTo: data.redirectTo,
+    });
+    if (error) throw error;
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: data.userId,
+      usuario_id: context.userId,
+      acao: "PASSWORD_RESET_REQUEST",
+      valor_novo: { email: data.email, origem: "admin" },
+      justificativa: `Administrador solicitou redefinição de senha para ${data.email}`,
+    });
+    return { ok: true };
+  });
+
+export const resendInvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; email: string; redirectTo?: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
+      redirectTo: data.redirectTo,
+    });
+    if (error) throw error;
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: data.userId,
+      usuario_id: context.userId,
+      acao: "INVITE_RESEND",
+      valor_novo: { email: data.email },
+      justificativa: `Reenvio de convite de ativação para ${data.email}`,
+    });
+    return { ok: true };
+  });
+
+export const logPasswordChange = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: context.userId,
+      usuario_id: context.userId,
+      acao: "PASSWORD_CHANGE",
+      valor_novo: { at: new Date().toISOString() },
+      justificativa: "Usuário alterou a própria senha",
+    });
     return { ok: true };
   });
