@@ -168,3 +168,30 @@ export const logPasswordChange = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+export const deleteUsuario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.userId === context.userId) {
+      throw new Error("Você não pode excluir a própria conta");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    const email = target?.user?.email ?? null;
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: data.userId,
+      usuario_id: context.userId,
+      acao: "DELETE",
+      valor_novo: { email },
+      justificativa: `Exclusão de usuário ${email ?? data.userId}`,
+    });
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
