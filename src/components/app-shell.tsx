@@ -48,6 +48,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Sistema",
     items: [
+      { to: "/admin/importar-lotacao", label: "Importar Lotação", icon: Upload, roles: ["admin"] },
       { to: "/auditoria", label: "Auditoria", icon: ShieldCheck, roles: ["admin"] },
     ],
   },
