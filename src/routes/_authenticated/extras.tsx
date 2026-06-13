@@ -120,6 +120,7 @@ function Page() {
                 <TableCell className="whitespace-nowrap">{e.data}</TableCell>
                 <TableCell>{e.colaboradores?.nome}<div className="text-xs text-muted-foreground">{e.colaboradores?.matricula}</div></TableCell>
                 <TableCell>{e.clientes?.nome_fantasia}</TableCell>
+                <TableCell><span className={`text-xs px-2 py-0.5 rounded ${e.classificacao_comercial === 'a_cobrar' ? 'bg-purple-500/15 text-purple-700' : 'bg-slate-500/15 text-slate-700'}`}>{CLASSIFICACAO_COMERCIAL_LABEL[e.classificacao_comercial]}</span></TableCell>
                 <TableCell className="whitespace-nowrap">{e.hora_inicio} → {e.hora_termino}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
                 <TableCell>{SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l}</TableCell>
