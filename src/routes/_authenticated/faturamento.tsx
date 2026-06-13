@@ -15,9 +15,9 @@ function Page() {
   const list = useQuery({
     queryKey: ["extras", "faturamento"],
     queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome), clientes(nome_fantasia)")
-      .eq("status", "aprovado_financeiro").in("situacao_financeira", ["pendente_pagamento", "pago", "faturado"]).order("data", { ascending: false })).data ?? [],
+      .eq("status", "aprovado_financeiro").in("situacao_financeira", ["a_cobrar", "faturado"]).order("data", { ascending: false })).data ?? [],
   });
-  const a_faturar = (list.data ?? []).filter((e: any) => e.situacao_financeira !== "faturado");
+  const a_faturar = (list.data ?? []).filter((e: any) => e.situacao_financeira === "a_cobrar");
   const faturados = (list.data ?? []).filter((e: any) => e.situacao_financeira === "faturado");
 
   const faturar = useMutation({
