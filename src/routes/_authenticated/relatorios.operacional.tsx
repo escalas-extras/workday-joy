@@ -89,13 +89,15 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "data", label: "Data", width: 22 },
-    { key: "cliente", label: "Cliente", width: 45 },
-    { key: "empresa", label: "Empresa", width: 35 },
-    { key: "colaborador", label: "Colaborador", width: 40 },
-    { key: "funcao", label: "Função", width: 30 },
-    { key: "horario", label: "Horário", width: 25 },
-    { key: "valor_fmt", label: "Valor", align: "right", width: 25 },
-    { key: "classificacao", label: "Classificação", width: 25 },
+    { key: "cliente", label: "Cliente", width: 40 },
+    { key: "empresa", label: "Empresa", width: 30 },
+    { key: "colaborador", label: "Colaborador", width: 35 },
+    { key: "funcao", label: "Função", width: 25 },
+    { key: "horario", label: "Horário", width: 22 },
+    { key: "situacao", label: "Situação", width: 28 },
+    { key: "coberto", label: "Coberto", width: 30 },
+    { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
+    { key: "classificacao", label: "Classif.", width: 20 },
   ];
 
   return (
