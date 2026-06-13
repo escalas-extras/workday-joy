@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
+import { SITUACAO_SERVICO_LABEL } from "@/components/extras-helpers";
 import { formatBRL } from "@/lib/extenso";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 
@@ -50,7 +51,7 @@ function Page() {
     enabled: !empresa || !!vincs.data,
     queryFn: async () => {
       let qb = supabase.from("extras")
-        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,cliente_id,clientes(nome_fantasia),colaboradores(nome),funcoes(nome)")
+        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,cliente_id,clientes(nome_fantasia),colaboradores!colaborador_id(nome),coberto:colaboradores!colaborador_coberto_id(nome),funcoes(nome)")
         .gte("data", de).lte("data", ate)
         .order("data");
       if (cliente) qb = qb.eq("cliente_id", cliente);
@@ -78,6 +79,8 @@ function Page() {
       valor: Number(r.valor),
       valor_fmt: formatBRL(r.valor),
       classificacao: r.classificacao_comercial === "a_cobrar" ? "À Cobrar" : "Contrato",
+      situacao: SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "",
+      coberto: r.coberto?.nome ?? "",
       empresa: empNome || "—",
     };
   }), [q.data, empPorCliente, empresa]);
@@ -86,13 +89,15 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "data", label: "Data", width: 22 },
-    { key: "cliente", label: "Cliente", width: 45 },
-    { key: "empresa", label: "Empresa", width: 35 },
-    { key: "colaborador", label: "Colaborador", width: 40 },
-    { key: "funcao", label: "Função", width: 30 },
-    { key: "horario", label: "Horário", width: 25 },
-    { key: "valor_fmt", label: "Valor", align: "right", width: 25 },
-    { key: "classificacao", label: "Classificação", width: 25 },
+    { key: "cliente", label: "Cliente", width: 40 },
+    { key: "empresa", label: "Empresa", width: 30 },
+    { key: "colaborador", label: "Colaborador", width: 35 },
+    { key: "funcao", label: "Função", width: 25 },
+    { key: "horario", label: "Horário", width: 22 },
+    { key: "situacao", label: "Situação", width: 28 },
+    { key: "coberto", label: "Coberto", width: 30 },
+    { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
+    { key: "classificacao", label: "Classif.", width: 20 },
   ];
 
   return (
@@ -123,7 +128,7 @@ function Page() {
           <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rows)}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rows, ["", "", "", "", "", "TOTAL", formatBRL(total), ""])}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rows, ["", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
@@ -134,17 +139,19 @@ function Page() {
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
             <TableHead>Colaborador</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
-            <TableHead className="text-right">Valor</TableHead><TableHead>Classificação</TableHead>
+            <TableHead>Situação</TableHead><TableHead>Coberto</TableHead>
+            <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
                 <TableCell>{r.colaborador}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
+                <TableCell>{r.situacao}</TableCell><TableCell>{r.coberto || "—"}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

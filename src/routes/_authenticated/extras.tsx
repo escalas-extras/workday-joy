@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge, SITUACAO_SERVICO_OPTS, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
+import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_REQUEREM_COBERTO, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Pencil, Ban } from "lucide-react";
@@ -38,7 +38,7 @@ function Page() {
 
   function empty() {
     return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
-      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", classificacao_comercial: "contrato", motivo: "", observacoes: "" };
+      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "extra_normal", classificacao_comercial: "contrato", motivo: "", observacoes: "", colaborador_coberto_id: "" };
   }
 
   const colabs = useQuery({ enabled: !!user, queryKey: ["colaboradores", user?.id], queryFn: async () => { const { data, error } = await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
@@ -48,7 +48,7 @@ function Page() {
   const extras = useQuery({
     queryKey: ["extras", filtroStatus, filtroSemana],
     queryFn: async () => {
-      const q = supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia), empresas(nome), funcoes(nome)").order("data", { ascending: false });
+      const q = supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), coberto:colaboradores!colaborador_coberto_id(nome,matricula), clientes(nome_fantasia), empresas(nome), funcoes(nome)").order("data", { ascending: false });
       if (filtroStatus !== "todos") q.eq("status", filtroStatus as any);
       if (filtroSemana) q.eq("semana_ref", filtroSemana);
       const { data, error } = await q;
@@ -60,12 +60,18 @@ function Page() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const requerCoberto = SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico);
+      if (requerCoberto && !vals.colaborador_coberto_id) {
+        throw new Error("Selecione o colaborador coberto");
+      }
       const payload: any = {
         ...vals,
         valor: parseFloat(vals.valor),
         semana_ref: vals.data, // será sobrescrito pelo trigger
         emitente_id: user!.id,
+        colaborador_coberto_id: requerCoberto ? vals.colaborador_coberto_id : null,
       };
+
       if (editing) {
         const { error } = await supabase.from("extras").update(payload).eq("id", editing.id);
         if (error) throw error;
@@ -79,7 +85,12 @@ function Page() {
   });
 
   const openNew = () => { setEditing(null); setVals(empty()); setOpen(true); };
-  const openEdit = (e: any) => { setEditing(e); setVals({ ...e, valor: String(e.valor) }); setOpen(true); };
+  const openEdit = (e: any) => {
+    setEditing(e);
+    const { colaboradores, coberto, clientes, empresas, funcoes, ...rest } = e;
+    setVals({ ...rest, valor: String(e.valor), colaborador_coberto_id: e.colaborador_coberto_id ?? "" });
+    setOpen(true);
+  };
 
   const podeEditar = (e: any) => isAdmin || (isSupervisor && e.emitente_id === user?.id && e.status === "pendente");
 
@@ -123,7 +134,10 @@ function Page() {
                 <TableCell><span className={`text-xs px-2 py-0.5 rounded ${e.classificacao_comercial === 'a_cobrar' ? 'bg-purple-500/15 text-purple-700' : 'bg-slate-500/15 text-slate-700'}`}>{CLASSIFICACAO_COMERCIAL_LABEL[e.classificacao_comercial]}</span></TableCell>
                 <TableCell className="whitespace-nowrap">{e.hora_inicio} → {e.hora_termino}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
-                <TableCell>{SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l}</TableCell>
+                <TableCell>
+                  <div>{SITUACAO_SERVICO_LABEL[e.situacao_servico] ?? e.situacao_servico}</div>
+                  {e.coberto && <div className="text-xs text-muted-foreground">Cobre: {e.coberto.nome}</div>}
+                </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -173,6 +187,19 @@ function Page() {
                 <SelectContent>{SITUACAO_SERVICO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico) && (
+              <div className="md:col-span-2">
+                <Label>Colaborador Coberto *</Label>
+                <Select value={vals.colaborador_coberto_id} onValueChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pesquisar colaborador coberto" /></SelectTrigger>
+                  <SelectContent>
+                    {(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Classificação Comercial *</Label>
               <Select value={vals.classificacao_comercial} onValueChange={(v) => setVals({ ...vals, classificacao_comercial: v })}>
