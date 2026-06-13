@@ -32,6 +32,7 @@ import { Route as AuthenticatedRelatoriosFaturamentoRouteImport } from './routes
 import { Route as AuthenticatedRecibosImprimirRouteImport } from './routes/_authenticated/recibos.imprimir'
 import { Route as AuthenticatedAprovacoesOperacionalRouteImport } from './routes/_authenticated/aprovacoes.operacional'
 import { Route as AuthenticatedAprovacoesFinanceiroRouteImport } from './routes/_authenticated/aprovacoes.financeiro'
+import { Route as AuthenticatedAdminImportarLotacaoRouteImport } from './routes/_authenticated/admin.importar-lotacao'
 import { Route as AuthenticatedClientesIdEmpresasRouteImport } from './routes/_authenticated/clientes.$id.empresas'
 
 const AuthRoute = AuthRouteImport.update({
@@ -158,6 +159,12 @@ const AuthenticatedAprovacoesFinanceiroRoute =
     path: '/aprovacoes/financeiro',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminImportarLotacaoRoute =
+  AuthenticatedAdminImportarLotacaoRouteImport.update({
+    id: '/admin/importar-lotacao',
+    path: '/admin/importar-lotacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedClientesIdEmpresasRoute =
   AuthenticatedClientesIdEmpresasRouteImport.update({
     id: '/$id/empresas',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
@@ -206,6 +214,7 @@ export interface FileRoutesByTo {
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
+  '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
@@ -233,6 +242,7 @@ export interface FileRoutesById {
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/_authenticated/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
+  '/_authenticated/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/_authenticated/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/_authenticated/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/_authenticated/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/pagamentos'
     | '/recibos'
     | '/usuarios'
+    | '/admin/importar-lotacao'
     | '/aprovacoes/financeiro'
     | '/aprovacoes/operacional'
     | '/recibos/imprimir'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/pagamentos'
     | '/recibos'
     | '/usuarios'
+    | '/admin/importar-lotacao'
     | '/aprovacoes/financeiro'
     | '/aprovacoes/operacional'
     | '/recibos/imprimir'
@@ -311,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pagamentos'
     | '/_authenticated/recibos'
     | '/_authenticated/usuarios'
+    | '/_authenticated/admin/importar-lotacao'
     | '/_authenticated/aprovacoes/financeiro'
     | '/_authenticated/aprovacoes/operacional'
     | '/_authenticated/recibos/imprimir'
@@ -490,6 +503,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAprovacoesFinanceiroRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/importar-lotacao': {
+      id: '/_authenticated/admin/importar-lotacao'
+      path: '/admin/importar-lotacao'
+      fullPath: '/admin/importar-lotacao'
+      preLoaderRoute: typeof AuthenticatedAdminImportarLotacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes/$id/empresas': {
       id: '/_authenticated/clientes/$id/empresas'
       path: '/$id/empresas'
@@ -538,6 +558,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
   AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRouteWithChildren
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
+  AuthenticatedAdminImportarLotacaoRoute: typeof AuthenticatedAdminImportarLotacaoRoute
   AuthenticatedAprovacoesFinanceiroRoute: typeof AuthenticatedAprovacoesFinanceiroRoute
   AuthenticatedAprovacoesOperacionalRoute: typeof AuthenticatedAprovacoesOperacionalRoute
   AuthenticatedRelatoriosFaturamentoRoute: typeof AuthenticatedRelatoriosFaturamentoRoute
@@ -560,6 +581,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
   AuthenticatedRecibosRoute: AuthenticatedRecibosRouteWithChildren,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
+  AuthenticatedAdminImportarLotacaoRoute:
+    AuthenticatedAdminImportarLotacaoRoute,
   AuthenticatedAprovacoesFinanceiroRoute:
     AuthenticatedAprovacoesFinanceiroRoute,
   AuthenticatedAprovacoesOperacionalRoute:
