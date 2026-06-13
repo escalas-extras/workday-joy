@@ -208,14 +208,17 @@ function Page() {
             {SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico) && (
               <div className="md:col-span-2">
                 <Label>Colaborador Coberto *</Label>
-                <Select value={vals.colaborador_coberto_id} onValueChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Pesquisar colaborador coberto" /></SelectTrigger>
-                  <SelectContent>
-                    {(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  placeholder="Pesquisar colaborador coberto"
+                  searchPlaceholder="Digite nome ou matrícula..."
+                  options={(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => ({
+                    value: c.id,
+                    label: `${c.matricula} - ${c.nome}`,
+                    keywords: `${c.nome} ${c.matricula}`,
+                  }))}
+                  value={vals.colaborador_coberto_id}
+                  onChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}
+                />
               </div>
             )}
             <div>
