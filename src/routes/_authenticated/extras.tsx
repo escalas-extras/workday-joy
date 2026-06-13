@@ -179,6 +179,19 @@ function Page() {
                 <SelectContent>{SITUACAO_SERVICO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico) && (
+              <div className="md:col-span-2">
+                <Label>Colaborador Coberto *</Label>
+                <Select value={vals.colaborador_coberto_id} onValueChange={(v) => setVals({ ...vals, colaborador_coberto_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pesquisar colaborador coberto" /></SelectTrigger>
+                  <SelectContent>
+                    {(colabs.data ?? []).filter((c: any) => c.id !== vals.colaborador_id).map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Classificação Comercial *</Label>
               <Select value={vals.classificacao_comercial} onValueChange={(v) => setVals({ ...vals, classificacao_comercial: v })}>
