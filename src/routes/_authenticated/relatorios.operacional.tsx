@@ -128,7 +128,7 @@ function Page() {
           <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rows)}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rows, ["", "", "", "", "", "TOTAL", formatBRL(total), ""])}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rows, ["", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
@@ -139,13 +139,15 @@ function Page() {
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
             <TableHead>Colaborador</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
-            <TableHead className="text-right">Valor</TableHead><TableHead>Classificação</TableHead>
+            <TableHead>Situação</TableHead><TableHead>Coberto</TableHead>
+            <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
                 <TableCell>{r.colaborador}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
+                <TableCell>{r.situacao}</TableCell><TableCell>{r.coberto || "—"}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
