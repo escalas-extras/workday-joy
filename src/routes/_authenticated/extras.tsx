@@ -18,7 +18,7 @@ import { Plus, Pencil, Ban } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/extras")({ component: Page });
 
 interface Extra {
-  id: string; data: string; colaborador_id: string; cliente_id: string; empresa_id: string; funcao_id: string;
+  id: string; data: string; colaborador_id: string; cliente_id: string; empresa_id: string | null; funcao_id: string;
   hora_inicio: string; hora_termino: string; valor: number; motivo?: string; observacoes?: string;
   status: string; situacao_financeira: string | null; situacao_servico: string;
   emitente_id: string; semana_ref: string;
