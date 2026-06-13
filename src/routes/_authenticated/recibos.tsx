@@ -35,6 +35,7 @@ function Page() {
   const navigate = useNavigate();
   const gerar = useServerFn(gerarRecibosSemana);
   const cancelar = useServerFn(cancelarRecibo);
+  const arquivar = useServerFn(arquivarRecibos);
 
   const [semana, setSemana] = useState("");
   const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10));
