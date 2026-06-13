@@ -57,11 +57,6 @@ function Page() {
     },
   });
 
-  const empresasDoCliente = useMemo(() => {
-    if (!vals.cliente_id) return [];
-    const empIds = (vinculos.data ?? []).filter((v: any) => v.cliente_id === vals.cliente_id).map((v: any) => v.empresa_id);
-    return (empresas.data ?? []).filter((e: any) => empIds.includes(e.id));
-  }, [vals.cliente_id, vinculos.data, empresas.data]);
 
   const save = useMutation({
     mutationFn: async () => {
