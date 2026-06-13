@@ -214,6 +214,7 @@ export type Database = {
           aprovado_operacional_por: string | null
           cancelado_em: string | null
           cancelado_por: string | null
+          classificacao_comercial: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id: string
           colaborador_id: string
           comprovante_url: string | null
@@ -258,6 +259,7 @@ export type Database = {
           aprovado_operacional_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
+          classificacao_comercial?: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id: string
           colaborador_id: string
           comprovante_url?: string | null
@@ -304,6 +306,7 @@ export type Database = {
           aprovado_operacional_por?: string | null
           cancelado_em?: string | null
           cancelado_por?: string | null
+          classificacao_comercial?: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id?: string
           colaborador_id?: string
           comprovante_url?: string | null
@@ -645,6 +648,7 @@ export type Database = {
         | "gestor_operacional"
         | "gestor_financeiro"
         | "supervisor"
+      classificacao_comercial: "contrato" | "a_cobrar"
       entity_status: "ativo" | "inativo"
       extra_status:
         | "pendente"
@@ -657,7 +661,6 @@ export type Database = {
         | "pago"
         | "faturado"
         | "cancelado"
-        | "a_cobrar"
       situacao_servico:
         | "contrato"
         | "cobertura_ferias"
@@ -798,6 +801,7 @@ export const Constants = {
         "gestor_financeiro",
         "supervisor",
       ],
+      classificacao_comercial: ["contrato", "a_cobrar"],
       entity_status: ["ativo", "inativo"],
       extra_status: [
         "pendente",
@@ -811,7 +815,6 @@ export const Constants = {
         "pago",
         "faturado",
         "cancelado",
-        "a_cobrar",
       ],
       situacao_servico: [
         "contrato",

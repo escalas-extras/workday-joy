@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge } from "@/components/extras-helpers";
+import { StatusBadge, CLASSIFICACAO_COMERCIAL_OPTS } from "@/components/extras-helpers";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
 
@@ -24,13 +25,21 @@ function Page() {
     onSuccess: () => { qc.invalidateQueries(); toast.success("Aprovado financeiramente"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const setClass = useMutation({
+    mutationFn: async ({ id, v }: { id: string; v: string }) => {
+      const { error } = await supabase.from("extras").update({ classificacao_comercial: v as any }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries(); toast.success("Classificação atualizada"); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   return (
     <div>
       <PageHeader title="Aprovação Financeira" description="Liberar para pagamento" />
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {(list.data ?? []).map((e: any) => (
               <TableRow key={e.id}>
@@ -39,11 +48,17 @@ function Page() {
                 <TableCell>{e.clientes?.nome_fantasia}</TableCell>
                 <TableCell className="whitespace-nowrap">{e.hora_inicio} → {e.hora_termino}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
+                <TableCell>
+                  <Select value={e.classificacao_comercial} onValueChange={(v) => setClass.mutate({ id: e.id, v })}>
+                    <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>{CLASSIFICACAO_COMERCIAL_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+                  </Select>
+                </TableCell>
                 <TableCell><StatusBadge status={e.status} /></TableCell>
                 <TableCell><Button size="sm" onClick={() => aprovar.mutate(e.id)}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
               </TableRow>
             ))}
-            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}
+            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

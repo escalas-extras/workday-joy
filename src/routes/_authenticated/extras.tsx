@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge, SITUACAO_SERVICO_OPTS, CancelarExtraDialog } from "@/components/extras-helpers";
+import { StatusBadge, SITUACAO_SERVICO_OPTS, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Plus, Pencil, Ban } from "lucide-react";
@@ -38,7 +38,7 @@ function Page() {
 
   function empty() {
     return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
-      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", motivo: "", observacoes: "" };
+      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "contrato", classificacao_comercial: "contrato", motivo: "", observacoes: "" };
   }
 
   const colabs = useQuery({ queryKey: ["colaboradores"], queryFn: async () => (await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome")).data ?? [] });
@@ -109,6 +109,7 @@ function Page() {
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead>
+              <TableHead>Class.</TableHead>
               <TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead>
               <TableHead>Status / Situação</TableHead><TableHead></TableHead>
             </TableRow>
@@ -119,6 +120,7 @@ function Page() {
                 <TableCell className="whitespace-nowrap">{e.data}</TableCell>
                 <TableCell>{e.colaboradores?.nome}<div className="text-xs text-muted-foreground">{e.colaboradores?.matricula}</div></TableCell>
                 <TableCell>{e.clientes?.nome_fantasia}</TableCell>
+                <TableCell><span className={`text-xs px-2 py-0.5 rounded ${e.classificacao_comercial === 'a_cobrar' ? 'bg-purple-500/15 text-purple-700' : 'bg-slate-500/15 text-slate-700'}`}>{CLASSIFICACAO_COMERCIAL_LABEL[e.classificacao_comercial]}</span></TableCell>
                 <TableCell className="whitespace-nowrap">{e.hora_inicio} → {e.hora_termino}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
                 <TableCell>{SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l}</TableCell>
@@ -133,7 +135,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {(extras.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
+            {(extras.data ?? []).length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -169,6 +171,13 @@ function Page() {
               <Select value={vals.situacao_servico} onValueChange={(v) => setVals({ ...vals, situacao_servico: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{SITUACAO_SERVICO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Classificação Comercial *</Label>
+              <Select value={vals.classificacao_comercial} onValueChange={(v) => setVals({ ...vals, classificacao_comercial: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CLASSIFICACAO_COMERCIAL_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Hora Início</Label><Input type="time" value={vals.hora_inicio} onChange={(e) => setVals({ ...vals, hora_inicio: e.target.value })} required /></div>
