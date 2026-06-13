@@ -109,6 +109,7 @@ function Page() {
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead>
+              <TableHead>Class.</TableHead>
               <TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead>
               <TableHead>Status / Situação</TableHead><TableHead></TableHead>
             </TableRow>
