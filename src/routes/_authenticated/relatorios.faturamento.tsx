@@ -93,7 +93,7 @@ function Page() {
     { key: "situacao", label: "Situação", width: 25 },
   ];
 
-  const excelRows = rows.map((r) => ({ empresa: r.empresa, ...r }));
+  const excelRows = rows.map((r) => ({ ...r, empresa: r.empresa }));
   const excelCols: ColunaRelatorio[] = [{ key: "empresa", label: "Empresa", width: 35 }, ...cols];
 
   const gerarPdf = () => {
