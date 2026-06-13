@@ -25,6 +25,9 @@ import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authenticated/colaboradores'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedRelatoriosOperacionalRouteImport } from './routes/_authenticated/relatorios.operacional'
+import { Route as AuthenticatedRelatoriosFinanceiroRouteImport } from './routes/_authenticated/relatorios.financeiro'
+import { Route as AuthenticatedRelatoriosFaturamentoRouteImport } from './routes/_authenticated/relatorios.faturamento'
 import { Route as AuthenticatedRecibosImprimirRouteImport } from './routes/_authenticated/recibos.imprimir'
 import { Route as AuthenticatedAprovacoesOperacionalRouteImport } from './routes/_authenticated/aprovacoes.operacional'
 import { Route as AuthenticatedAprovacoesFinanceiroRouteImport } from './routes/_authenticated/aprovacoes.financeiro'
@@ -112,6 +115,24 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatoriosOperacionalRoute =
+  AuthenticatedRelatoriosOperacionalRouteImport.update({
+    id: '/relatorios/operacional',
+    path: '/relatorios/operacional',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatoriosFinanceiroRoute =
+  AuthenticatedRelatoriosFinanceiroRouteImport.update({
+    id: '/relatorios/financeiro',
+    path: '/relatorios/financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatoriosFaturamentoRoute =
+  AuthenticatedRelatoriosFaturamentoRouteImport.update({
+    id: '/relatorios/faturamento',
+    path: '/relatorios/faturamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRecibosImprimirRoute =
   AuthenticatedRecibosImprimirRouteImport.update({
     id: '/imprimir',
@@ -156,6 +177,9 @@ export interface FileRoutesByFullPath {
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
+  '/relatorios/faturamento': typeof AuthenticatedRelatoriosFaturamentoRoute
+  '/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
+  '/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesByTo {
@@ -177,6 +201,9 @@ export interface FileRoutesByTo {
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
+  '/relatorios/faturamento': typeof AuthenticatedRelatoriosFaturamentoRoute
+  '/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
+  '/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesById {
@@ -200,6 +227,9 @@ export interface FileRoutesById {
   '/_authenticated/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
   '/_authenticated/aprovacoes/operacional': typeof AuthenticatedAprovacoesOperacionalRoute
   '/_authenticated/recibos/imprimir': typeof AuthenticatedRecibosImprimirRoute
+  '/_authenticated/relatorios/faturamento': typeof AuthenticatedRelatoriosFaturamentoRoute
+  '/_authenticated/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
+  '/_authenticated/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/_authenticated/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRouteTypes {
@@ -223,6 +253,9 @@ export interface FileRouteTypes {
     | '/aprovacoes/financeiro'
     | '/aprovacoes/operacional'
     | '/recibos/imprimir'
+    | '/relatorios/faturamento'
+    | '/relatorios/financeiro'
+    | '/relatorios/operacional'
     | '/clientes/$id/empresas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -244,6 +277,9 @@ export interface FileRouteTypes {
     | '/aprovacoes/financeiro'
     | '/aprovacoes/operacional'
     | '/recibos/imprimir'
+    | '/relatorios/faturamento'
+    | '/relatorios/financeiro'
+    | '/relatorios/operacional'
     | '/clientes/$id/empresas'
   id:
     | '__root__'
@@ -266,6 +302,9 @@ export interface FileRouteTypes {
     | '/_authenticated/aprovacoes/financeiro'
     | '/_authenticated/aprovacoes/operacional'
     | '/_authenticated/recibos/imprimir'
+    | '/_authenticated/relatorios/faturamento'
+    | '/_authenticated/relatorios/financeiro'
+    | '/_authenticated/relatorios/operacional'
     | '/_authenticated/clientes/$id/empresas'
   fileRoutesById: FileRoutesById
 }
@@ -389,6 +428,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/relatorios/operacional': {
+      id: '/_authenticated/relatorios/operacional'
+      path: '/relatorios/operacional'
+      fullPath: '/relatorios/operacional'
+      preLoaderRoute: typeof AuthenticatedRelatoriosOperacionalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios/financeiro': {
+      id: '/_authenticated/relatorios/financeiro'
+      path: '/relatorios/financeiro'
+      fullPath: '/relatorios/financeiro'
+      preLoaderRoute: typeof AuthenticatedRelatoriosFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios/faturamento': {
+      id: '/_authenticated/relatorios/faturamento'
+      path: '/relatorios/faturamento'
+      fullPath: '/relatorios/faturamento'
+      preLoaderRoute: typeof AuthenticatedRelatoriosFaturamentoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/recibos/imprimir': {
       id: '/_authenticated/recibos/imprimir'
       path: '/imprimir'
@@ -460,6 +520,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedAprovacoesFinanceiroRoute: typeof AuthenticatedAprovacoesFinanceiroRoute
   AuthenticatedAprovacoesOperacionalRoute: typeof AuthenticatedAprovacoesOperacionalRoute
+  AuthenticatedRelatoriosFaturamentoRoute: typeof AuthenticatedRelatoriosFaturamentoRoute
+  AuthenticatedRelatoriosFinanceiroRoute: typeof AuthenticatedRelatoriosFinanceiroRoute
+  AuthenticatedRelatoriosOperacionalRoute: typeof AuthenticatedRelatoriosOperacionalRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -480,6 +543,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAprovacoesFinanceiroRoute,
   AuthenticatedAprovacoesOperacionalRoute:
     AuthenticatedAprovacoesOperacionalRoute,
+  AuthenticatedRelatoriosFaturamentoRoute:
+    AuthenticatedRelatoriosFaturamentoRoute,
+  AuthenticatedRelatoriosFinanceiroRoute:
+    AuthenticatedRelatoriosFinanceiroRoute,
+  AuthenticatedRelatoriosOperacionalRoute:
+    AuthenticatedRelatoriosOperacionalRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
