@@ -31,6 +31,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/relatorios/operacional", label: "Rel. Operacional", icon: BarChart3, roles: ["admin", "gestor_operacional", "gestor_financeiro", "supervisor"] },
       { to: "/relatorios/financeiro", label: "Rel. Financeiro", icon: FileBarChart, roles: ["admin", "gestor_financeiro"] },
       { to: "/relatorios/faturamento", label: "Rel. Faturamento", icon: FileSpreadsheet, roles: ["admin", "gestor_financeiro"] },
+      { to: "/relatorios/recibos", label: "Rel. Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
     ],
   },
   {
