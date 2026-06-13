@@ -162,17 +162,34 @@ function Page() {
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
               <Label>Colaborador</Label>
-              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" }); }}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{(colabs.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>)}</SelectContent>
-              </Select>
+              <SearchableSelect
+                placeholder="Selecionar"
+                searchPlaceholder="Digite nome ou matrícula..."
+                options={(colabs.data ?? []).map((c: any) => ({
+                  value: c.id,
+                  label: `${c.matricula} - ${c.nome}`,
+                  keywords: `${c.nome} ${c.matricula}`,
+                }))}
+                value={vals.colaborador_id}
+                onChange={(v) => {
+                  const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
+                  setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" });
+                }}
+              />
             </div>
             <div>
               <Label>Cliente</Label>
-              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>{(clientes.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
-              </Select>
+              <SearchableSelect
+                placeholder="Selecionar"
+                searchPlaceholder="Digite o nome do cliente..."
+                options={(clientes.data ?? []).map((c: any) => ({
+                  value: c.id,
+                  label: c.nome_fantasia,
+                  keywords: `${c.nome_fantasia} ${c.razao_social ?? ""}`,
+                }))}
+                value={vals.cliente_id}
+                onChange={(v) => setVals({ ...vals, cliente_id: v })}
+              />
             </div>
             <div>
               <Label>Função</Label>
