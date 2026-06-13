@@ -50,7 +50,7 @@ function Page() {
     enabled: !empresa || !!vincs.data,
     queryFn: async () => {
       let qb = supabase.from("extras")
-        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,cliente_id,clientes(nome_fantasia),colaboradores(nome),funcoes(nome)")
+        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,cliente_id,clientes(nome_fantasia),colaboradores!colaborador_id(nome),funcoes(nome)")
         .gte("data", de).lte("data", ate)
         .order("data");
       if (cliente) qb = qb.eq("cliente_id", cliente);

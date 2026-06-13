@@ -16,7 +16,7 @@ function Page() {
   const [rejId, setRejId] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ["extras", "pendente"],
-    queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia)").eq("status", "pendente").order("data", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia)").eq("status", "pendente").order("data", { ascending: false })).data ?? [],
   });
   const aprovar = useMutation({
     mutationFn: async (id: string) => {

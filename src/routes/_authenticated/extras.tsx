@@ -48,7 +48,7 @@ function Page() {
   const extras = useQuery({
     queryKey: ["extras", filtroStatus, filtroSemana],
     queryFn: async () => {
-      const q = supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia), empresas(nome), funcoes(nome)").order("data", { ascending: false });
+      const q = supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome), funcoes(nome)").order("data", { ascending: false });
       if (filtroStatus !== "todos") q.eq("status", filtroStatus as any);
       if (filtroSemana) q.eq("semana_ref", filtroSemana);
       const { data, error } = await q;

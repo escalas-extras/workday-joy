@@ -14,7 +14,7 @@ function Page() {
   const qc = useQueryClient();
   const list = useQuery({
     queryKey: ["extras", "faturamento"],
-    queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome), clientes(nome_fantasia)")
+    queryFn: async () => (await supabase.from("extras").select("*, colaboradores!colaborador_id(nome), clientes(nome_fantasia)")
       .eq("status", "aprovado_financeiro").eq("classificacao_comercial", "a_cobrar").order("data", { ascending: false })).data ?? [],
   });
   const a_faturar = (list.data ?? []).filter((e: any) => e.situacao_financeira !== "faturado" && e.situacao_financeira !== "cancelado");

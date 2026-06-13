@@ -14,7 +14,7 @@ function Page() {
   const [pagarId, setPagarId] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ["extras", "pagamentos"],
-    queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia)")
+    queryFn: async () => (await supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia)")
       .eq("status", "aprovado_financeiro").order("data", { ascending: false })).data ?? [],
   });
   const pendentes = (list.data ?? []).filter((e: any) => e.situacao_financeira === "pendente_pagamento");

@@ -15,7 +15,7 @@ function Page() {
   const qc = useQueryClient();
   const list = useQuery({
     queryKey: ["extras", "aprovado_operacional"],
-    queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia)").eq("status", "aprovado_operacional").order("data", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia)").eq("status", "aprovado_operacional").order("data", { ascending: false })).data ?? [],
   });
   const aprovar = useMutation({
     mutationFn: async (id: string) => {

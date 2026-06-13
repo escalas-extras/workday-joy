@@ -30,7 +30,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),colaboradores(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),colaboradores!colaborador_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       return (data ?? []).map((r): Linha => ({
