@@ -18,6 +18,16 @@ export const SITUACAO_SERVICO_OPTS = [
   { v: "outro", l: "Outro" },
 ];
 
+export const CLASSIFICACAO_COMERCIAL_OPTS = [
+  { v: "contrato", l: "Contrato" },
+  { v: "a_cobrar", l: "À Cobrar" },
+];
+
+export const CLASSIFICACAO_COMERCIAL_LABEL: Record<string, string> = {
+  contrato: "Contrato",
+  a_cobrar: "À Cobrar",
+};
+
 export const FORMA_PGTO_OPTS = [
   { v: "pix", l: "PIX" },
   { v: "transferencia", l: "Transferência" },
