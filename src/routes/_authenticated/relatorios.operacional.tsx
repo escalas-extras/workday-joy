@@ -26,34 +26,61 @@ function Page() {
   const clientes = useQuery({ queryKey: ["op-clientes"], queryFn: async () => (await supabase.from("clientes").select("id,nome_fantasia").order("nome_fantasia")).data ?? [] });
   const empresas = useQuery({ queryKey: ["op-empresas"], queryFn: async () => (await supabase.from("empresas").select("id,nome").order("nome")).data ?? [] });
   const colabs = useQuery({ queryKey: ["op-colabs"], queryFn: async () => (await supabase.from("colaboradores").select("id,nome").order("nome")).data ?? [] });
+  const vincs = useQuery({ queryKey: ["op-cliente-empresas"], queryFn: async () => (await supabase.from("cliente_empresas").select("cliente_id,empresa_id,situacao,empresas(nome)").eq("situacao", "ativo")).data ?? [] });
+
+  // cliente_id -> empresas[]
+  const empPorCliente = useMemo(() => {
+    const m = new Map<string, { id: string; nome: string }[]>();
+    for (const v of (vincs.data ?? []) as any[]) {
+      const arr = m.get(v.cliente_id) ?? [];
+      arr.push({ id: v.empresa_id, nome: v.empresas?.nome ?? "" });
+      m.set(v.cliente_id, arr);
+    }
+    return m;
+  }, [vincs.data]);
+
+  // Clientes pertencentes à empresa selecionada
+  const clienteIdsPorEmpresa = useMemo(() => {
+    if (!empresa) return null;
+    return new Set((vincs.data ?? []).filter((v: any) => v.empresa_id === empresa).map((v: any) => v.cliente_id));
+  }, [vincs.data, empresa]);
 
   const q = useQuery({
-    queryKey: ["rel-operacional", de, ate, cliente, empresa, colab],
+    queryKey: ["rel-operacional", de, ate, cliente, empresa, colab, !!clienteIdsPorEmpresa],
+    enabled: !empresa || !!vincs.data,
     queryFn: async () => {
       let qb = supabase.from("extras")
-        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,clientes(nome_fantasia),colaboradores(nome),empresas(nome),funcoes(nome)")
+        .select("id,data,hora_inicio,hora_termino,valor,classificacao_comercial,cliente_id,clientes(nome_fantasia),colaboradores(nome),funcoes(nome)")
         .gte("data", de).lte("data", ate)
         .order("data");
       if (cliente) qb = qb.eq("cliente_id", cliente);
-      if (empresa) qb = qb.eq("empresa_id", empresa);
       if (colab) qb = qb.eq("colaborador_id", colab);
+      if (empresa) {
+        const ids = [...(clienteIdsPorEmpresa ?? new Set<string>())];
+        if (!ids.length) return [];
+        qb = qb.in("cliente_id", ids);
+      }
       const { data, error } = await qb;
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const rows = useMemo(() => (q.data ?? []).map((r) => ({
-    data: r.data,
-    cliente: r.clientes?.nome_fantasia ?? "",
-    colaborador: r.colaboradores?.nome ?? "",
-    funcao: r.funcoes?.nome ?? "",
-    horario: `${r.hora_inicio?.slice(0, 5) ?? ""} - ${r.hora_termino?.slice(0, 5) ?? ""}`,
-    valor: Number(r.valor),
-    valor_fmt: formatBRL(r.valor),
-    classificacao: r.classificacao_comercial === "a_cobrar" ? "À Cobrar" : "Contrato",
-    empresa: r.empresas?.nome ?? "",
-  })), [q.data]);
+  const rows = useMemo(() => (q.data ?? []).map((r: any) => {
+    const emps = empPorCliente.get(r.cliente_id) ?? [];
+    const empNome = empresa ? (emps.find((e) => e.id === empresa)?.nome ?? "") : emps.map((e) => e.nome).join(", ");
+    return {
+      data: r.data,
+      cliente: r.clientes?.nome_fantasia ?? "",
+      colaborador: r.colaboradores?.nome ?? "",
+      funcao: r.funcoes?.nome ?? "",
+      horario: `${r.hora_inicio?.slice(0, 5) ?? ""} - ${r.hora_termino?.slice(0, 5) ?? ""}`,
+      valor: Number(r.valor),
+      valor_fmt: formatBRL(r.valor),
+      classificacao: r.classificacao_comercial === "a_cobrar" ? "À Cobrar" : "Contrato",
+      empresa: empNome || "—",
+    };
+  }), [q.data, empPorCliente, empresa]);
 
   const total = rows.reduce((s, r) => s + r.valor, 0);
 
@@ -77,19 +104,19 @@ function Page() {
         <div><Label className="text-xs">Cliente</Label>
           <Select value={cliente || "_all"} onValueChange={(v) => setCliente(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent><SelectItem value="_all">Todos</SelectItem>{(clientes.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="_all">Todos</SelectItem>{(clientes.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div><Label className="text-xs">Empresa</Label>
           <Select value={empresa || "_all"} onValueChange={(v) => setEmpresa(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-            <SelectContent><SelectItem value="_all">Todas</SelectItem>{(empresas.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="_all">Todas</SelectItem>{(empresas.data ?? []).map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div><Label className="text-xs">Colaborador</Label>
           <Select value={colab || "_all"} onValueChange={(v) => setColab(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent><SelectItem value="_all">Todos</SelectItem>{(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="_all">Todos</SelectItem>{(colabs.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div className="flex items-end gap-1">
