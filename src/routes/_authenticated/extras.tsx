@@ -173,6 +173,13 @@ function Page() {
                 <SelectContent>{SITUACAO_SERVICO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Classificação Comercial *</Label>
+              <Select value={vals.classificacao_comercial} onValueChange={(v) => setVals({ ...vals, classificacao_comercial: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{CLASSIFICACAO_COMERCIAL_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><Label>Hora Início</Label><Input type="time" value={vals.hora_inicio} onChange={(e) => setVals({ ...vals, hora_inicio: e.target.value })} required /></div>
             <div><Label>Hora Término</Label><Input type="time" value={vals.hora_termino} onChange={(e) => setVals({ ...vals, hora_termino: e.target.value })} required /></div>
             <div><Label>Valor (R$)</Label><Input type="number" step="0.01" min="0" value={vals.valor} onChange={(e) => setVals({ ...vals, valor: e.target.value })} required /></div>
