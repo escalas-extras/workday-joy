@@ -34,70 +34,81 @@ function ReciboBloco({ r }: { r: ReciboView }) {
   return (
     <div
       className="relative grid grid-cols-2 gap-0 border-2 border-blue-600 rounded-lg overflow-hidden bg-white text-black"
-      style={{ height: "92mm", pageBreakInside: "avoid", breakInside: "avoid" }}
+      style={{ height: "50mm", pageBreakInside: "avoid", breakInside: "avoid" }}
     >
       {!r.ativo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <span className="text-red-500/30 text-7xl font-black rotate-[-25deg] border-4 border-red-500/30 px-6 py-2 rounded">
+          <span className="text-red-500/20 text-4xl font-black rotate-[-15deg] border-2 border-red-500/20 px-3 py-1 rounded">
             CANCELADO
           </span>
         </div>
       )}
       {/* Esquerda: dados do recibo */}
-      <div className="p-4 border-r border-blue-600 flex flex-col justify-between text-sm">
+      <div className="p-2 border-r border-blue-600 flex flex-col justify-between text-[11px] leading-tight">
         <div>
           <div className="flex justify-between items-baseline">
-            <h2 className="text-xl font-bold tracking-wide">RECIBO</h2>
-            <span className="text-sm font-mono">Nº {String(r.numero).padStart(6, "0")}</span>
+            <h2 className="text-sm font-bold tracking-wide">RECIBO</h2>
+            <span className="text-[9px] font-mono">Nº {String(r.numero).padStart(6, "0")}</span>
           </div>
-          <div className="mt-2 border border-blue-300 bg-blue-50 rounded p-2">
-            <div className="text-[10px] uppercase text-blue-700">Valor</div>
-            <div className="text-lg font-bold">{formatBRL(r.valor_total)}</div>
+          <div className="mt-1 flex items-center gap-2 border border-blue-300 bg-blue-50 rounded p-1">
+            <div className="text-[8px] uppercase text-blue-700 font-bold">Valor</div>
+            <div className="text-xs font-bold">{formatBRL(r.valor_total)}</div>
           </div>
-          <p className="mt-2 italic text-[11px] leading-tight">
+          <p className="mt-1 italic text-[9px] leading-none text-gray-700">
             ({valorPorExtenso(r.valor_total)})
           </p>
-          <p className="mt-2 text-[11px]">
-            <span className="font-semibold">Ref.: </span>
-            {semanaDescricao(r.semana_ref)}
-          </p>
-          <p className="mt-1 text-[11px]">
-            <span className="font-semibold">Colaborador: </span>
-            {r.colaborador}
-          </p>
-          <p className="text-[11px]">
-            <span className="font-semibold">Pagamento: </span>
-            {fmtDate(r.data_pagamento)}
-          </p>
+          <div className="mt-1 space-y-0.5 text-[9px]">
+            <p>
+              <span className="font-semibold">Ref.: </span>
+              {semanaDescricao(r.semana_ref)}
+            </p>
+            <p className="truncate">
+              <span className="font-semibold">Colaborador: </span>
+              {r.colaborador}
+            </p>
+            <p>
+              <span className="font-semibold">Pagamento: </span>
+              {fmtDate(r.data_pagamento)}
+            </p>
+          </div>
         </div>
-        <div className="mt-3">
-          <p className="text-[11px]">Londrina/PR, {fmtDate(r.data_pagamento)}</p>
-          <div className="border-t border-black mt-6 pt-1 text-center text-[10px]">Assinatura</div>
+        <div className="flex justify-between items-end mt-1 text-[8px]">
+          <div>Londrina/PR, {fmtDate(r.data_pagamento)}</div>
+          <div className="w-1/2">
+            <div className="border-t border-black text-center pt-0.5">Assinatura</div>
+          </div>
         </div>
       </div>
       {/* Direita: detalhamento */}
-      <div className="p-4 flex flex-col text-sm">
-        <table className="w-full text-[11px] border-collapse">
+      <div className="p-2 flex flex-col text-[11px] leading-tight overflow-hidden">
+        <table className="w-full text-[9px] border-collapse">
           <thead>
-            <tr className="border-b-2 border-blue-600">
-              <th className="text-left py-1">DATA</th>
-              <th className="text-left py-1">CLIENTE</th>
-              <th className="text-right py-1">VALOR</th>
+            <tr className="border-b border-blue-600">
+              <th className="text-left py-0.5">DATA</th>
+              <th className="text-left py-0.5">CLIENTE</th>
+              <th className="text-right py-0.5">VALOR</th>
             </tr>
           </thead>
           <tbody>
-            {r.itens.map((it, i) => (
+            {r.itens.slice(0, 4).map((it, i) => (
               <tr key={i} className="border-b border-blue-100">
-                <td className="py-1">{fmtDate(it.data)}</td>
-                <td className="py-1 truncate max-w-[120px]">{it.cliente}</td>
-                <td className="py-1 text-right">{formatBRL(it.valor)}</td>
+                <td className="py-0.5">{fmtDate(it.data)}</td>
+                <td className="py-0.5 truncate max-w-[100px]">{it.cliente}</td>
+                <td className="py-0.5 text-right">{formatBRL(it.valor)}</td>
               </tr>
             ))}
+            {r.itens.length > 4 && (
+              <tr>
+                <td colSpan={3} className="text-[8px] text-gray-500 italic py-0.5">
+                  + {r.itens.length - 4} item(ns) ocultado(s)
+                </td>
+              </tr>
+            )}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-blue-600 font-bold">
-              <td colSpan={2} className="py-1 text-right">TOTAL</td>
-              <td className="py-1 text-right">{formatBRL(r.valor_total)}</td>
+            <tr className="border-t border-blue-600 font-bold">
+              <td colSpan={2} className="py-0.5 text-right">TOTAL</td>
+              <td className="py-0.5 text-right">{formatBRL(r.valor_total)}</td>
             </tr>
           </tfoot>
         </table>
@@ -107,19 +118,19 @@ function ReciboBloco({ r }: { r: ReciboView }) {
 }
 
 export function ReciboA4({ recibos }: { recibos: ReciboView[] }) {
-  // Agrupa 3 por página
+  // Agrupa 5 por página
   const paginas: ReciboView[][] = [];
-  for (let i = 0; i < recibos.length; i += 3) paginas.push(recibos.slice(i, i + 3));
+  for (let i = 0; i < recibos.length; i += 5) paginas.push(recibos.slice(i, i + 5));
 
   return (
     <div className="recibos-print">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 10mm; }
+          @page { size: A4 portrait; margin: 8mm 10mm; }
           body { background: white !important; }
           .no-print { display: none !important; }
         }
-        .recibos-page { width: 190mm; min-height: 277mm; display: flex; flex-direction: column; gap: 4mm; }
+        .recibos-page { width: 190mm; min-height: 277mm; display: flex; flex-direction: column; gap: 3mm; justify-content: flex-start; }
         @media print {
           .recibos-page { page-break-after: always; }
           .recibos-page:last-child { page-break-after: auto; }
