@@ -169,7 +169,7 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Recibos" description="Geração, visualização, impressão e PDF" />
+      <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
       {/* Geração */}
       <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
