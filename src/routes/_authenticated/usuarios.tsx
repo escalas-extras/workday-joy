@@ -123,6 +123,9 @@ function Page() {
                         <Button size="icon" variant="ghost" title="Enviar redefinição de senha" onClick={() => mPwd.mutate({ userId: u.id, email: u.email })}><KeyRound className="h-3 w-3" /></Button>
                       )}
                       <Button size="icon" variant="ghost" title="Ativar/Desativar" onClick={() => mAtivo.mutate({ userId: u.id, ativo: !u.ativo })}><Power className="h-3 w-3" /></Button>
+                      {user?.id !== u.id && (
+                        <Button size="icon" variant="ghost" title="Excluir usuário" onClick={() => setConfirmDel({ id: u.id, nome: u.nome, email: u.email })}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -149,6 +152,27 @@ function Page() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O usuário <strong>{confirmDel?.nome}</strong> ({confirmDel?.email}) perderá o acesso ao sistema.
+              Registros históricos vinculados (extras, auditoria) serão mantidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => confirmDel && mDel.mutate({ userId: confirmDel.id })}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
