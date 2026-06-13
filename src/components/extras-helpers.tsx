@@ -10,13 +10,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { toast } from "sonner";
 
 export const SITUACAO_SERVICO_OPTS = [
-  { v: "contrato", l: "Contrato" },
+  { v: "extra_normal", l: "Extra Normal" },
   { v: "cobertura_ferias", l: "Cobertura de Férias" },
   { v: "cobertura_atestado", l: "Cobertura de Atestado" },
-  { v: "evento", l: "Evento" },
+  { v: "cobertura_folga", l: "Cobertura de Folga" },
+  { v: "treinamento", l: "Treinamento" },
   { v: "apoio_operacional", l: "Apoio Operacional" },
-  { v: "outro", l: "Outro" },
 ];
+
+export const SITUACAO_SERVICO_LABEL: Record<string, string> = {
+  extra_normal: "Extra Normal",
+  contrato: "Extra Normal",
+  cobertura_ferias: "Cobertura de Férias",
+  cobertura_atestado: "Cobertura de Atestado",
+  cobertura_folga: "Cobertura de Folga",
+  treinamento: "Treinamento",
+  apoio_operacional: "Apoio Operacional",
+  evento: "Evento",
+  outro: "Outro",
+};
+
+export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado"]);
 
 export const CLASSIFICACAO_COMERCIAL_OPTS = [
   { v: "contrato", l: "Contrato" },
