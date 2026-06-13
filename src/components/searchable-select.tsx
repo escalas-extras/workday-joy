@@ -2,8 +2,7 @@ import * as React from "react";
 import { Check, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 
 export interface SearchableOption {
   value: string;
@@ -35,17 +34,35 @@ export function SearchableSelect({
   className,
 }: Props) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const selected = options.find((o) => o.value === value);
+  const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filteredOptions = options.filter((o) => normalize(`${o.label} ${o.keywords ?? ""}`).includes(normalize(search)));
+
+  React.useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => inputRef.current?.focus(), 0);
+    const onPointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.clearTimeout(id);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
-      <PopoverTrigger asChild>
+    <div ref={containerRef} className="relative w-full">
         <Button
           type="button"
           variant="outline"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
+          onClick={() => { setOpen((prev) => !prev); setSearch(""); }}
           className={cn("w-full justify-between font-normal", !selected && "text-muted-foreground", className)}
         >
           <span className="truncate">{selected ? selected.label : placeholder}</span>
@@ -53,39 +70,45 @@ export function SearchableSelect({
             {allowClear && selected && !disabled && (
               <X
                 className="h-3 w-3 opacity-60 hover:opacity-100"
-                onClick={(e) => { e.stopPropagation(); onChange(""); }}
+                onClick={(e) => { e.stopPropagation(); onChange(""); setSearch(""); }}
               />
             )}
             <ChevronsUpDown className="h-4 w-4 opacity-50" />
           </div>
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width] min-w-[260px]" align="start">
-        <Command
-          filter={(value, search) => {
-            const opt = options.find((o) => o.value === value);
-            const hay = `${opt?.label ?? ""} ${opt?.keywords ?? ""}`.toLowerCase();
-            return hay.includes(search.toLowerCase()) ? 1 : 0;
-          }}
-        >
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {options.map((o) => (
-                <CommandItem
+      {open && (
+        <div className="absolute z-50 mt-1 w-full min-w-[260px] rounded-md border bg-popover text-popover-foreground shadow-md">
+          <div className="p-2 border-b">
+            <Input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-9"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setOpen(false);
+              }}
+            />
+          </div>
+          <div className="max-h-[260px] overflow-y-auto p-1">
+            {filteredOptions.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
+            ) : (
+              filteredOptions.map((o) => (
+                <button
                   key={o.value}
-                  value={o.value}
-                  onSelect={() => { onChange(o.value); setOpen(false); }}
+                  type="button"
+                  className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                  onClick={() => { onChange(o.value); setOpen(false); setSearch(""); }}
                 >
                   <Check className={cn("mr-2 h-4 w-4", value === o.value ? "opacity-100" : "opacity-0")} />
-                  {o.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                  <span className="truncate">{o.label}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
