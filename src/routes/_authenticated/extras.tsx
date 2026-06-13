@@ -145,23 +145,16 @@ function Page() {
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
               <Label>Colaborador</Label>
-              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, empresa_id: c?.empresa_id ?? "", funcao_id: c?.funcao_id ?? "" }); }}>
+              <Select value={vals.colaborador_id} onValueChange={(v) => { const c: any = (colabs.data ?? []).find((x: any) => x.id === v); setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" }); }}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{(colabs.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.matricula} - {c.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
               <Label>Cliente</Label>
-              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v, empresa_id: "" })}>
+              <Select value={vals.cliente_id} onValueChange={(v) => setVals({ ...vals, cliente_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>{(clientes.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Empresa Responsável</Label>
-              <Select value={vals.empresa_id} onValueChange={(v) => setVals({ ...vals, empresa_id: v })}>
-                <SelectTrigger><SelectValue placeholder={vals.cliente_id ? "Selecionar" : "Escolha cliente primeiro"} /></SelectTrigger>
-                <SelectContent>{empresasDoCliente.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
