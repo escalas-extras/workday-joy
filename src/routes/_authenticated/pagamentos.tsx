@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge, MarcarPagoDialog, FORMA_PGTO_OPTS } from "@/components/extras-helpers";
+import { StatusBadge, MarcarPagoDialog, FORMA_PGTO_OPTS, useMarcarACobrar } from "@/components/extras-helpers";
 import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { Wallet, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pagamentos")({ component: Page });
 
