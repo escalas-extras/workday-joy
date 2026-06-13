@@ -4,14 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge, MarcarPagoDialog, FORMA_PGTO_OPTS } from "@/components/extras-helpers";
+import { StatusBadge, MarcarPagoDialog, FORMA_PGTO_OPTS, useMarcarACobrar } from "@/components/extras-helpers";
 import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { Wallet, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pagamentos")({ component: Page });
 
 function Page() {
   const [pagarId, setPagarId] = useState<string | null>(null);
+  const aCobrar = useMarcarACobrar();
   const list = useQuery({
     queryKey: ["extras", "pagamentos"],
     queryFn: async () => (await supabase.from("extras").select("*, colaboradores(nome,matricula), clientes(nome_fantasia)")
@@ -36,7 +37,10 @@ function Page() {
                 <TableCell>{e.clientes?.nome_fantasia}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
-                <TableCell><Button size="sm" onClick={() => setPagarId(e.id)}><Wallet className="h-3 w-3 mr-1" />Marcar Pago</Button></TableCell>
+                <TableCell className="space-x-2 whitespace-nowrap">
+                  <Button size="sm" onClick={() => setPagarId(e.id)}><Wallet className="h-3 w-3 mr-1" />Marcar Pago</Button>
+                  <Button size="sm" variant="secondary" onClick={() => aCobrar.mutate(e.id)}><FileText className="h-3 w-3 mr-1" />Marcar À Cobrar</Button>
+                </TableCell>
               </TableRow>
             ))}
             {pendentes.length === 0 && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Sem pendências</TableCell></TableRow>}

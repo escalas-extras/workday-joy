@@ -35,6 +35,7 @@ export const STATUS_LABEL: Record<string, string> = {
 export const SIT_FIN_LABEL: Record<string, string> = {
   pendente_pagamento: "Pendente Pagamento",
   pago: "Pago",
+  a_cobrar: "À Cobrar",
   faturado: "Faturado",
   cancelado: "Cancelado",
 };
@@ -49,6 +50,7 @@ export function StatusBadge({ status, sit }: { status: string; sit?: string | nu
   const sitCls: Record<string, string> = {
     pendente_pagamento: "bg-orange-500/15 text-orange-700",
     pago: "bg-emerald-500/15 text-emerald-700",
+    a_cobrar: "bg-purple-500/15 text-purple-700",
     faturado: "bg-cyan-500/15 text-cyan-700",
     cancelado: "bg-gray-500/15 text-gray-700",
   };
@@ -162,4 +164,16 @@ export function CancelarExtraDialog({ extraId, open, onOpenChange }: { extraId: 
       </DialogContent>
     </Dialog>
   );
+}
+
+export function useMarcarACobrar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("extras").update({ situacao_financeira: "a_cobrar" as any }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries(); toast.success("Marcado como À Cobrar"); },
+    onError: (e: any) => toast.error(e.message),
+  });
 }
