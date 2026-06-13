@@ -50,6 +50,7 @@ export function StatusBadge({ status, sit }: { status: string; sit?: string | nu
   const sitCls: Record<string, string> = {
     pendente_pagamento: "bg-orange-500/15 text-orange-700",
     pago: "bg-emerald-500/15 text-emerald-700",
+    a_cobrar: "bg-purple-500/15 text-purple-700",
     faturado: "bg-cyan-500/15 text-cyan-700",
     cancelado: "bg-gray-500/15 text-gray-700",
   };
