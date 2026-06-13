@@ -151,7 +151,7 @@ function Page() {
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
