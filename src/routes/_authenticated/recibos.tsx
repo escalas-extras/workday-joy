@@ -72,7 +72,7 @@ function Page() {
   });
   const clientes = useQuery({
     queryKey: ["filter-clientes"],
-    queryFn: async () => (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
+    queryFn: async () => (await supabase.from("clientes").select("id,nome_fantasia").order("nome_fantasia")).data ?? [],
   });
 
   // Recibos x cliente: derivado via tabela recibos_itens -> extras. Carregamos um mapa por demanda.
@@ -176,7 +176,7 @@ function Page() {
           <Select value={fColab || "_all"} onValueChange={(v) => setFColab(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent><SelectItem value="_all">Todos</SelectItem>
-              {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -185,7 +185,7 @@ function Page() {
           <Select value={fCliente || "_all"} onValueChange={(v) => setFCliente(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent><SelectItem value="_all">Todos</SelectItem>
-              {(clientes.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+              {(clientes.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -308,10 +308,10 @@ function Page() {
           <Table>
             <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome?: string } } }) => (
+              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome_fantasia?: string } } }) => (
                 <TableRow key={i.id}>
                   <TableCell>{i.extras?.data}</TableCell>
-                  <TableCell>{i.extras?.clientes?.nome}</TableCell>
+                  <TableCell>{i.extras?.clientes?.nome_fantasia}</TableCell>
                   <TableCell>{i.extras?.hora_inicio} → {i.extras?.hora_termino}</TableCell>
                   <TableCell className="text-right">{formatBRL(i.valor_snapshot)}</TableCell>
                 </TableRow>
@@ -356,12 +356,12 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     .from("recibos_itens")
     .select("recibo_id, valor_snapshot, extras(data, clientes(nome_fantasia))")
     .in("recibo_id", ids);
-  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; clientes?: { nome?: string } } };
+  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; clientes?: { nome_fantasia?: string } } };
   const byRec: Record<string, { data: string; cliente: string; valor: number }[]> = {};
   for (const it of (its ?? []) as Item[]) {
     (byRec[it.recibo_id] ||= []).push({
       data: it.extras?.data ?? "",
-      cliente: it.extras?.clientes?.nome ?? "",
+      cliente: it.extras?.clientes?.nome_fantasia ?? "",
       valor: Number(it.valor_snapshot),
     });
   }
