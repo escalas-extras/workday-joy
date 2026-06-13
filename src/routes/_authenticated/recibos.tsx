@@ -110,7 +110,7 @@ function Page() {
   const itens = useQuery({
     queryKey: ["recibo_itens", detalheId],
     queryFn: async () => detalheId
-      ? (await supabase.from("recibos_itens").select("*, extras(data,hora_inicio,hora_termino,valor,cliente_id,clientes(nome))").eq("recibo_id", detalheId)).data ?? []
+      ? (await supabase.from("recibos_itens").select("*, extras(data,hora_inicio,hora_termino,valor,cliente_id,clientes(nome_fantasia))").eq("recibo_id", detalheId)).data ?? []
       : [],
     enabled: !!detalheId,
   });
@@ -354,7 +354,7 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     .order("numero");
   const { data: its } = await supabase
     .from("recibos_itens")
-    .select("recibo_id, valor_snapshot, extras(data, clientes(nome))")
+    .select("recibo_id, valor_snapshot, extras(data, clientes(nome_fantasia))")
     .in("recibo_id", ids);
   type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; clientes?: { nome?: string } } };
   const byRec: Record<string, { data: string; cliente: string; valor: number }[]> = {};
