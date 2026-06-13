@@ -61,3 +61,32 @@ export const cancelarRecibo = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+export const arquivarRecibos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { ids: string[] }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (!data.ids?.length) return { arquivados: 0 };
+    const { error, count } = await supabase
+      .from("recibos")
+      .update({ arquivado_em: new Date().toISOString(), arquivado_por: userId }, { count: "exact" })
+      .in("id", data.ids)
+      .is("arquivado_em", null);
+    if (error) throw error;
+    return { arquivados: count ?? 0 };
+  });
+
+export const desarquivarRecibo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { reciboId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { error } = await supabase
+      .from("recibos")
+      .update({ arquivado_em: null, arquivado_por: null })
+      .eq("id", data.reciboId);
+    if (error) throw error;
+    return { ok: true };
+  });
+

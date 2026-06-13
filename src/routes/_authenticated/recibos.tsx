@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/app-shell";
-import { gerarRecibosSemana, cancelarRecibo } from "@/lib/recibos.functions";
+import { gerarRecibosSemana, cancelarRecibo, arquivarRecibos } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/recibos")({ component: Pag
 type ReciboRow = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
   valor_total: number; ativo: boolean; colaborador_id: string;
+  arquivado_em?: string | null;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
     empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
 };
@@ -34,6 +35,7 @@ function Page() {
   const navigate = useNavigate();
   const gerar = useServerFn(gerarRecibosSemana);
   const cancelar = useServerFn(cancelarRecibo);
+  const arquivar = useServerFn(arquivarRecibos);
 
   const [semana, setSemana] = useState("");
   const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10));
@@ -56,6 +58,7 @@ function Page() {
       const { data } = await supabase
         .from("recibos")
         .select("*, colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
+        .is("arquivado_em", null)
         .order("gerado_em", { ascending: false });
       return (data ?? []) as ReciboRow[];
     },
@@ -144,12 +147,21 @@ function Page() {
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
+    arquivar({ data: { ids } })
+      .then((r) => {
+        if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
+        qc.invalidateQueries({ queryKey: ["recibos"] });
+      })
+      .catch((e: Error) => toast.error(e.message));
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
       const views = await loadReciboViews(ids);
       gerarPdfRecibos(views, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
+      const r = await arquivar({ data: { ids } });
+      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
+      qc.invalidateQueries({ queryKey: ["recibos"] });
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -157,7 +169,7 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Recibos" description="Geração, visualização, impressão e PDF" />
+      <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
       {/* Geração */}
       <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">

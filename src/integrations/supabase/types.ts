@@ -506,6 +506,8 @@ export type Database = {
       }
       recibos: {
         Row: {
+          arquivado_em: string | null
+          arquivado_por: string | null
           assinatura_url: string | null
           ativo: boolean
           cancelado_em: string | null
@@ -523,6 +525,8 @@ export type Database = {
           valor_total: number
         }
         Insert: {
+          arquivado_em?: string | null
+          arquivado_por?: string | null
           assinatura_url?: string | null
           ativo?: boolean
           cancelado_em?: string | null
@@ -540,6 +544,8 @@ export type Database = {
           valor_total: number
         }
         Update: {
+          arquivado_em?: string | null
+          arquivado_por?: string | null
           assinatura_url?: string | null
           ativo?: boolean
           cancelado_em?: string | null
