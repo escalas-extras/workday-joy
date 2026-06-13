@@ -176,7 +176,7 @@ function Page() {
           <Select value={fColab || "_all"} onValueChange={(v) => setFColab(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
             <SelectContent><SelectItem value="_all">Todos</SelectItem>
-              {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome_fantasia}</SelectItem>)}
+              {(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
