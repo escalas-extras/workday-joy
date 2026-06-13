@@ -261,6 +261,7 @@ export type Database = {
           cancelado_por: string | null
           classificacao_comercial: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id: string
+          colaborador_coberto_id: string | null
           colaborador_id: string
           comprovante_url: string | null
           created_at: string
@@ -306,6 +307,7 @@ export type Database = {
           cancelado_por?: string | null
           classificacao_comercial?: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id: string
+          colaborador_coberto_id?: string | null
           colaborador_id: string
           comprovante_url?: string | null
           created_at?: string
@@ -353,6 +355,7 @@ export type Database = {
           cancelado_por?: string | null
           classificacao_comercial?: Database["public"]["Enums"]["classificacao_comercial"]
           cliente_id?: string
+          colaborador_coberto_id?: string | null
           colaborador_id?: string
           comprovante_url?: string | null
           created_at?: string
@@ -397,6 +400,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extras_colaborador_coberto_id_fkey"
+            columns: ["colaborador_coberto_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
             referencedColumns: ["id"]
           },
           {
@@ -758,6 +768,9 @@ export type Database = {
         | "evento"
         | "apoio_operacional"
         | "outro"
+        | "extra_normal"
+        | "cobertura_folga"
+        | "treinamento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -913,6 +926,9 @@ export const Constants = {
         "evento",
         "apoio_operacional",
         "outro",
+        "extra_normal",
+        "cobertura_folga",
+        "treinamento",
       ],
     },
   },
