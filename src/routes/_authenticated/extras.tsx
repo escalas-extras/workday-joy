@@ -85,7 +85,12 @@ function Page() {
   });
 
   const openNew = () => { setEditing(null); setVals(empty()); setOpen(true); };
-  const openEdit = (e: any) => { setEditing(e); setVals({ ...e, valor: String(e.valor) }); setOpen(true); };
+  const openEdit = (e: any) => {
+    setEditing(e);
+    const { colaboradores, coberto, clientes, empresas, funcoes, ...rest } = e;
+    setVals({ ...rest, valor: String(e.valor), colaborador_coberto_id: e.colaborador_coberto_id ?? "" });
+    setOpen(true);
+  };
 
   const podeEditar = (e: any) => isAdmin || (isSupervisor && e.emitente_id === user?.id && e.status === "pendente");
 
