@@ -60,12 +60,18 @@ function Page() {
 
   const save = useMutation({
     mutationFn: async () => {
+      const requerCoberto = SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico);
+      if (requerCoberto && !vals.colaborador_coberto_id) {
+        throw new Error("Selecione o colaborador coberto");
+      }
       const payload: any = {
         ...vals,
         valor: parseFloat(vals.valor),
         semana_ref: vals.data, // será sobrescrito pelo trigger
         emitente_id: user!.id,
+        colaborador_coberto_id: requerCoberto ? vals.colaborador_coberto_id : null,
       };
+
       if (editing) {
         const { error } = await supabase.from("extras").update(payload).eq("id", editing.id);
         if (error) throw error;
