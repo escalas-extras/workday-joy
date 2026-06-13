@@ -282,7 +282,7 @@ export const executarImportacaoLotacao = createServerFn({ method: "POST" })
     // 4. Auditoria
     await supabaseAdmin.from("auditoria").insert({
       tabela: "importacoes_lotacao",
-      registro_id: imp?.id ?? null,
+      registro_id: imp?.id ?? "00000000-0000-0000-0000-000000000000",
       usuario_id: context.userId,
       acao: "INSERT",
       valor_novo: JSON.stringify({ arquivo_nome: data.arquivo_nome, total: linhas.length, criadas, atualizadas, erros }),
