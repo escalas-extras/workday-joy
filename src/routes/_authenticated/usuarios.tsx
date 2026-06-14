@@ -53,6 +53,7 @@ function Page() {
   const mAtivo = useMutation({ mutationFn: (d: any) => setAtivo({ data: d }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); toast.success("Atualizado"); }, onError: (e: any) => toast.error(e.message) });
   const mPwd = useMutation({ mutationFn: (d: any) => resetPwd({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("E-mail de redefinição enviado"), onError: (e: any) => toast.error(e.message) });
   const mResend = useMutation({ mutationFn: (d: any) => resend({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("Convite reenviado"), onError: (e: any) => toast.error(e.message) });
+  const mDelete = useMutation({ mutationFn: (d: any) => remove({ data: d }), onSuccess: () => { toast.success("Usuário excluído"); qc.invalidateQueries({ queryKey: ["usuarios"] }); }, onError: (e: any) => toast.error(e.message) });
 
   const toggleRole = (set: (v: any) => void, curr: string[], role: string) => {
     set(curr.includes(role) ? curr.filter((r) => r !== role) : [...curr, role]);
