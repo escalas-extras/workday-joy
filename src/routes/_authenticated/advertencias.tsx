@@ -87,7 +87,11 @@ function Page() {
   const cargo = colab?.funcao_id ? funMap.get(colab.funcao_id) ?? "" : "";
 
   const colabOptions = useMemo(
-    () => (colabs.data ?? []).map((c) => ({ value: c.id, label: c.nome, keywords: `${c.cpf ?? ""} ${empMap.get(c.empresa_id)?.nome ?? ""}` })),
+    () => (colabs.data ?? []).map((c) => ({
+      value: c.id,
+      label: c.matricula ? `${c.matricula} - ${c.nome}` : c.nome,
+      keywords: `${c.nome} ${c.matricula ?? ""} ${c.cpf ?? ""} ${empMap.get(c.empresa_id)?.nome ?? ""}`,
+    })),
     [colabs.data, empMap]
   );
 
