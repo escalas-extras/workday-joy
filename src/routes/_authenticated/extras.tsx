@@ -67,8 +67,36 @@ function Page() {
       if (requerCoberto && !vals.colaborador_coberto_id) {
         throw new Error("Selecione o colaborador coberto");
       }
+
+      let colaboradorId = vals.colaborador_id;
+
+      // Cria colaborador avulso na hora
+      if (!editing && vals.avulso) {
+        const nome = (vals.avulso_nome || "").trim();
+        if (!nome) throw new Error("Informe o nome do colaborador avulso");
+        if (!vals.funcao_id) throw new Error("Selecione a função antes de criar o avulso");
+        const { data: emp, error: empErr } = await supabase.from("empresas").select("id").eq("nome", "AVULSO").maybeSingle();
+        if (empErr) throw empErr;
+        if (!emp) throw new Error("Empresa AVULSO não encontrada");
+        const matricula = `AVU-${Date.now()}`;
+        const { data: novo, error: cErr } = await supabase.from("colaboradores").insert({
+          nome: nome.toUpperCase(),
+          matricula,
+          empresa_id: emp.id,
+          funcao_id: vals.funcao_id,
+          cpf: vals.avulso_cpf ? vals.avulso_cpf.replace(/\D/g, "") : null,
+          situacao: "ativo",
+        }).select("id").single();
+        if (cErr) throw cErr;
+        colaboradorId = novo.id;
+      }
+
+      if (!colaboradorId) throw new Error("Selecione um colaborador");
+
+      const { avulso, avulso_nome, avulso_cpf, ...rest } = vals;
       const payload: any = {
-        ...vals,
+        ...rest,
+        colaborador_id: colaboradorId,
         valor: parseFloat(vals.valor),
         semana_ref: vals.data, // será sobrescrito pelo trigger
         emitente_id: user!.id,
@@ -83,7 +111,7 @@ function Page() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["extras"] }); toast.success("Salvo"); setOpen(false); setEditing(null); setVals(empty()); },
+    onSuccess: () => { qc.invalidateQueries(); toast.success("Salvo"); setOpen(false); setEditing(null); setVals(empty()); },
     onError: (e: any) => toast.error(e.message),
   });
 
