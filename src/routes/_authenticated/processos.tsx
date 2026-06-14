@@ -844,6 +844,7 @@ function JustaCausaTab({
             case_id: caseRow.id,
             employee_id: caseRow.employee_id,
             employee_name: colab?.nome ?? null,
+            user_role: userRole,
             history_summary: histSummary,
             applied_at: new Date().toISOString(),
           },
