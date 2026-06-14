@@ -61,9 +61,25 @@ function Page() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-base">Clientes <Badge variant="secondary">{data.clientes.length}</Badge></CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Clientes/Postos <Badge variant="secondary">{data.clientes.length}</Badge></CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
               {data.clientes.map((c) => (<div key={c.id} className="border-b py-1">{c.nome_fantasia} — {c.razao_social}</div>))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Supervisores <Badge variant="secondary">{data.supervisores.length}</Badge></CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              {data.supervisores.map((s) => (<div key={s.id} className="border-b py-1">{s.nome} — {s.email}</div>))}
+            </CardContent>
+          </Card>
+          <Card className="md:col-span-2">
+            <CardHeader><CardTitle className="text-base">Medidas / Texto da Ocorrência <Badge variant="secondary">{data.medidas.length}</Badge></CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              {data.medidas.map((m) => (
+                <div key={m.id} className="border-b py-1">
+                  <strong>{m.warning_date}</strong> — {m.action_type} — {m.employee_name}: <span className="text-muted-foreground">{(m.conduct_description ?? "").slice(0, 120)}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
