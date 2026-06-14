@@ -1,0 +1,1 @@
+SELECT setval('public.recibos_numero_seq', 1, false);
