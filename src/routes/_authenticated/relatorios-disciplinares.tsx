@@ -30,6 +30,8 @@ const ACT_LABEL: Record<string, string> = {
 
 function Page() {
   const fn = useServerFn(getDashboardData);
+  const log = useServerFn(logPrintAction);
+  const relatorioId = useMemo(() => crypto.randomUUID(), []);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [empresaId, setEmpresaId] = useState<string>("");
