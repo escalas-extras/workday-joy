@@ -72,7 +72,7 @@ export function AppShell() {
         if (!visible.length) return null;
         return (
           <div key={g.group}>
-            <p className="px-2 mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.group}</p>
+            <p className="px-2 mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">{g.group}</p>
             <div className="flex flex-col gap-0.5">
               {visible.map((it) => {
                 const active = loc.pathname === it.to || (it.to !== "/" && loc.pathname.startsWith(it.to));
@@ -84,7 +84,9 @@ export function AppShell() {
                     onClick={() => mobile && setOpen(false)}
                     className={cn(
                       "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                      active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent"
+                      active
+                        ? "bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] font-medium shadow-sm"
+                        : "text-white/85 hover:bg-white/10 hover:text-white"
                     )}
                   >
                     <Icon className="h-4 w-4" />
