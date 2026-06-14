@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/app-shell";
-import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users, AlertTriangle, ShieldCheck, Package } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   component: Inicio,
@@ -23,6 +23,7 @@ function Inicio() {
     { to: "/relatorios-disciplinares", t: "Rel. Disciplinar", d: "Dashboard + exportação", icon: ShieldCheck },
     { to: "/pesquisa-disciplinar", t: "Pesquisa Disciplinar", d: "CPF, processo, testemunha", icon: AlertTriangle },
     { to: "/colaboradores", t: "Colaboradores", d: "Cadastro", icon: Users },
+    { to: "/almoxarifado", t: "Almoxarifado", d: "Uniformes e equipamentos", icon: Package },
   ];
   return (
     <div>

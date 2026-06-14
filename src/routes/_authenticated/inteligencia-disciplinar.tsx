@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -189,18 +189,23 @@ function Page() {
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
-          { l: "Orientações", v: data?.totals.orientacao_verbal ?? 0, c: "text-blue-600" },
-          { l: "Advertências", v: data?.totals.advertencia_escrita ?? 0, c: "text-amber-600" },
-          { l: "Suspensões", v: data?.totals.suspensao ?? 0, c: "text-orange-600" },
-          { l: "Justas Causas", v: data?.totals.justa_causa ?? 0, c: "text-red-600" },
-          { l: "Processos", v: data?.totals.processos ?? 0, c: "text-slate-700" },
-          { l: "Alertas", v: data?.alerts.length ?? 0, c: "text-purple-700" },
-        ].map((k) => (
-          <Card key={k.l}><CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">{k.l}</p>
-            <p className={`text-3xl font-bold ${k.c}`}>{k.v}</p>
-          </CardContent></Card>
-        ))}
+          { l: "Orientações", v: data?.totals.orientacao_verbal ?? 0, c: "text-blue-600", to: "/advertencias" as const },
+          { l: "Advertências", v: data?.totals.advertencia_escrita ?? 0, c: "text-amber-600", to: "/advertencias" as const },
+          { l: "Suspensões", v: data?.totals.suspensao ?? 0, c: "text-orange-600", to: "/advertencias" as const },
+          { l: "Justas Causas", v: data?.totals.justa_causa ?? 0, c: "text-red-600", to: "/processos" as const },
+          { l: "Processos", v: data?.totals.processos ?? 0, c: "text-slate-700", to: "/processos" as const },
+          { l: "Alertas", v: data?.alerts.length ?? 0, c: "text-purple-700", to: null as string | null },
+        ].map((k) => {
+          const inner = (
+            <Card className={k.to ? "hover:border-primary transition-colors cursor-pointer h-full" : "h-full"}>
+              <CardContent className="pt-4">
+                <p className="text-xs text-muted-foreground">{k.l}</p>
+                <p className={`text-3xl font-bold ${k.c}`}>{k.v}</p>
+              </CardContent>
+            </Card>
+          );
+          return k.to ? <Link key={k.l} to={k.to}>{inner}</Link> : <div key={k.l}>{inner}</div>;
+        })}
       </div>
 
       {!!data?.alerts.length && (

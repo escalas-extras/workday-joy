@@ -18,6 +18,8 @@ import {
   listMovimentacoes, listPendenciasDevolucao,
 } from "@/lib/almoxarifado.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { exportarExcel } from "@/lib/relatorios-export";
+import { FileSpreadsheet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
 
@@ -154,6 +156,24 @@ function Page() {
               <input type="checkbox" checked={filtroBaixo} onChange={(e) => setFiltroBaixo(e.target.checked)} />
               Somente abaixo do mínimo
             </label>
+            <Button variant="outline" size="sm" onClick={() => {
+              const rows = (estoque.data ?? []).map((r) => ({
+                empresa: r.empresas?.nome ?? "",
+                item: r.almox_itens?.nome ?? "",
+                tamanho: r.tamanho ?? "",
+                atual: r.quantidade_atual,
+                minimo: r.quantidade_minima,
+                abaixo: r.quantidade_minima > 0 && r.quantidade_atual < r.quantidade_minima ? "Sim" : "Não",
+              }));
+              exportarExcel(`almoxarifado_estoque_${new Date().toISOString().slice(0,10)}.xlsx`, "Estoque",
+                [
+                  { key: "empresa", label: "Empresa" }, { key: "item", label: "Item" },
+                  { key: "tamanho", label: "Tamanho" }, { key: "atual", label: "Atual" },
+                  { key: "minimo", label: "Mínimo" }, { key: "abaixo", label: "Abaixo do mínimo" },
+                ], rows);
+            }}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" />Excel
+            </Button>
           </CardContent></Card>
 
           <Card><CardContent className="pt-3">
