@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -25,7 +25,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getDossieData } from "@/lib/dossie.functions";
 import { gerarDossiePdf } from "@/lib/dossie-pdf";
 import { logPrintAction } from "@/lib/disciplinary-audit.functions";
-import { decodeMeta } from "@/lib/evidence-meta";
+
 
 function DossieTab({ caseId }: { caseId: string }) {
   const fn = useServerFn(getDossieData);
