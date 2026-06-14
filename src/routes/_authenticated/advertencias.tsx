@@ -448,6 +448,12 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
   const log = useServerFn(logPrintAction);
   const { isAdmin, isGestorOp } = useAuth();
   const canInactivate = isAdmin || isGestorOp;
+  const [tipoFilter, setTipoFilter] = useState<"todos" | DisciplinaryActionType>("todos");
+  const filtered = useMemo(
+    () => tipoFilter === "todos" ? warnings : warnings.filter((w) => w.action_type === tipoFilter),
+    [warnings, tipoFilter]
+  );
+  const jcCount = useMemo(() => warnings.filter((w) => w.action_type === "justa_causa").length, [warnings]);
   async function reimprimir(w: Warning, autoPrint: boolean) {
     if (w.action_type === "justa_causa") {
       const { gerarJustaCausaPdf } = await import("@/lib/justa-causa-pdf");
@@ -493,7 +499,31 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
 
   return (
     <Card>
-      <CardHeader><CardTitle>Histórico Disciplinar</CardTitle></CardHeader>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2">
+            Histórico Disciplinar
+            {jcCount > 0 && (
+              <Badge variant="destructive" className="uppercase tracking-wide">
+                {jcCount} Justa Causa{jcCount > 1 ? "s" : ""}
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Tipo</Label>
+            <Select value={tipoFilter} onValueChange={(v) => setTipoFilter(v as typeof tipoFilter)}>
+              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="orientacao_verbal">Orientação Verbal</SelectItem>
+                <SelectItem value="advertencia_escrita">Advertência Escrita</SelectItem>
+                <SelectItem value="suspensao">Suspensão</SelectItem>
+                <SelectItem value="justa_causa">Justa Causa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
       <CardContent>
         <div className="rounded-md border overflow-x-auto">
           <Table>
@@ -510,13 +540,18 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {warnings.map((w) => {
+              {filtered.map((w) => {
                 const reasonName = reasons.find((r) => r.id === w.warning_reason_id)?.nome ?? "—";
+                const isJC = w.action_type === "justa_causa";
                 return (
-                  <TableRow key={w.id}>
+                  <TableRow key={w.id} className={isJC ? "bg-destructive/5" : undefined}>
                     <TableCell>{fmtDateBR(w.warning_date)}</TableCell>
                     <TableCell>
-                      <Badge variant={w.action_type === "suspensao" ? "destructive" : w.action_type === "advertencia_escrita" ? "default" : "secondary"}>
+                      <Badge
+                        variant={isJC || w.action_type === "suspensao" ? "destructive" : w.action_type === "advertencia_escrita" ? "default" : "secondary"}
+                        className={isJC ? "uppercase tracking-wide" : undefined}
+                      >
+                        {isJC && <AlertCircle className="h-3 w-3 mr-1" />}
                         {ACTION_LABEL[w.action_type]}{w.action_type === "suspensao" && w.suspension_days ? ` · ${w.suspension_days}d` : ""}
                       </Badge>
                     </TableCell>
@@ -543,7 +578,7 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
                   </TableRow>
                 );
               })}
-              {!isLoading && warnings.length === 0 && (
+              {!isLoading && filtered.length === 0 && (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Nenhuma medida registrada.</TableCell></TableRow>
               )}
             </TableBody>
