@@ -425,6 +425,24 @@ interface HistoricoProps {
 
 function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
   async function reimprimir(w: Warning, autoPrint: boolean) {
+    if (w.action_type === "justa_causa") {
+      const { gerarJustaCausaPdf } = await import("@/lib/justa-causa-pdf");
+      await gerarJustaCausaPdf(
+        {
+          city: w.city,
+          date: fmtDateBR(w.warning_date),
+          employeeName: w.employee_name,
+          employeeCpf: w.employee_cpf ?? "",
+          description: w.conduct_description,
+          cltSubsections: w.clt_subsections,
+          empresaRazaoSocial: w.empresa_razao_social ?? "",
+          empresaCnpj: w.empresa_cnpj ?? "",
+        },
+        `justa-causa-${w.employee_name.replace(/\s+/g, "_")}-${w.warning_date}.pdf`,
+        { autoPrint }
+      );
+      return;
+    }
     await gerarAdvertenciaPdf(
       {
         actionType: w.action_type,
