@@ -18,6 +18,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/searchable-select";
+import { EquipmentChecklist } from "@/components/disciplinary/equipment-checklist";
+import { useServerFn } from "@tanstack/react-start";
+import { getDossieData } from "@/lib/dossie.functions";
+import { gerarDossiePdf } from "@/lib/dossie-pdf";
+import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+
+function DossieTab({ caseId }: { caseId: string }) {
+  const fn = useServerFn(getDossieData);
+  const log = useServerFn(logPrintAction);
+  async function handleGen() {
+    try {
+      const data = await fn({ data: { case_id: caseId } });
+      gerarDossiePdf(data);
+      await log({ data: { entity_type: "dossie", entity_id: caseId, action: "download" } });
+      toast.success("Dossiê gerado");
+    } catch (e) { toast.error((e as Error).message); }
+  }
+  return (
+    <Card>
+      <CardHeader><CardTitle>Backup Jurídico — Dossiê Disciplinar</CardTitle>
+        <CardDescription>Unifica processo, evidências, testemunhas, aprovações, histórico e trilha de auditoria em um único PDF.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={handleGen}><Download className="w-4 h-4 mr-2" />Gerar Dossiê (PDF)</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
