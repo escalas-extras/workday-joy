@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticated/recibos'
+import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedMotivosRejeicaoRouteImport } from './routes/_authenticated/motivos-rejeicao'
@@ -65,6 +66,11 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
 const AuthenticatedRecibosRoute = AuthenticatedRecibosRouteImport.update({
   id: '/recibos',
   path: '/recibos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProcessosRoute = AuthenticatedProcessosRouteImport.update({
+  id: '/processos',
+  path: '/processos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/processos': typeof AuthenticatedProcessosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
+  '/processos': typeof AuthenticatedProcessosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/_authenticated/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
+  '/_authenticated/processos': typeof AuthenticatedProcessosRoute
   '/_authenticated/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/motivos-rejeicao'
     | '/pagamentos'
     | '/perfil'
+    | '/processos'
     | '/recibos'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/motivos-rejeicao'
     | '/pagamentos'
     | '/perfil'
+    | '/processos'
     | '/recibos'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/_authenticated/motivos-rejeicao'
     | '/_authenticated/pagamentos'
     | '/_authenticated/perfil'
+    | '/_authenticated/processos'
     | '/_authenticated/recibos'
     | '/_authenticated/usuarios'
     | '/_authenticated/admin/importar-lotacao'
@@ -420,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/recibos'
       fullPath: '/recibos'
       preLoaderRoute: typeof AuthenticatedRecibosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/processos': {
+      id: '/_authenticated/processos'
+      path: '/processos'
+      fullPath: '/processos'
+      preLoaderRoute: typeof AuthenticatedProcessosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/perfil': {
@@ -617,6 +636,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMotivosRejeicaoRoute: typeof AuthenticatedMotivosRejeicaoRoute
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
+  AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
   AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRouteWithChildren
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedAdminImportarLotacaoRoute: typeof AuthenticatedAdminImportarLotacaoRoute
@@ -642,6 +662,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMotivosRejeicaoRoute: AuthenticatedMotivosRejeicaoRoute,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
+  AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
   AuthenticatedRecibosRoute: AuthenticatedRecibosRouteWithChildren,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedAdminImportarLotacaoRoute:

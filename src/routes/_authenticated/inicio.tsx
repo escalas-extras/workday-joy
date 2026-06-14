@@ -19,6 +19,7 @@ function Inicio() {
     { to: "/fechamento", t: "Fechamento", d: "Semana operacional", icon: CalendarCheck },
     { to: "/recibos", t: "Recibos", d: "Geração e cancelamento", icon: Receipt },
     { to: "/advertencias", t: "Medidas Disciplinares", d: "Advertências e suspensões", icon: AlertTriangle },
+    { to: "/processos", t: "Processos Disciplinares", d: "Apuração e Justa Causa", icon: ShieldCheck },
     { to: "/colaboradores", t: "Colaboradores", d: "Cadastro", icon: Users },
   ];
   return (
