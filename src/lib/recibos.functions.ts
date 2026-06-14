@@ -47,10 +47,10 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     const erros: string[] = [];
     for (const [colab, grupo] of grupos) {
       // Verifica se já tem recibo ativo
-      const { data: existente } = await supabase.from("recibos").select("id").eq("colaborador_id", colab).eq("semana_ref", data.semana_ref).eq("ativo", true).maybeSingle();
+      const { data: existente } = await supabase.from("recibos").select("id").eq("colaborador_id", colab).eq("semana_ref", semanaRef).eq("ativo", true).maybeSingle();
       if (existente) continue;
       const { data: rec, error: e1 } = await supabase.from("recibos").insert({
-        colaborador_id: colab, semana_ref: data.semana_ref, gerado_por: userId, data_pagamento: data.data_pagamento, valor_total: grupo.total,
+        colaborador_id: colab, semana_ref: semanaRef, gerado_por: userId, data_pagamento: data.data_pagamento, valor_total: grupo.total,
       }).select("id").single();
       if (e1) { erros.push(e1.message); continue; }
       const itens = grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: 0 }));
