@@ -526,12 +526,19 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
                     <TableCell>{reasonName}</TableCell>
                     <TableCell>{w.clt_article} {w.clt_subsections.map((s) => s.toUpperCase()).join("/")}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, false)}>
+                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, false)} title="Baixar">
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, true)}>
+                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, true)} title="Reimprimir">
                         <Printer className="h-4 w-4" />
                       </Button>
+                      {canInactivate && (
+                        <InactivateButton
+                          table="disciplinary_warnings"
+                          id={w.id}
+                          invalidateKeys={[["adv-warnings"]]}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 );
