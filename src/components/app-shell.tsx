@@ -107,7 +107,9 @@ export function AppShell() {
       {/* Sidebar desktop */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/10 bg-[var(--sidebar)] text-[var(--sidebar-foreground)] print:hidden">
         <div className="px-4 py-4 border-b border-white/10 flex items-center justify-center">
-          <img src={julianiLogo.url} alt="Grupo Juliani" className="h-14 w-auto" />
+          <div className="bg-white/90 rounded-lg px-3 py-2 shadow-sm">
+            <img src={julianiLogo.url} alt="Grupo Juliani" className="h-14 w-auto" />
+          </div>
         </div>
         <div className="px-4 py-3 border-b border-white/10">
           <p className="text-sm font-bold leading-tight">Gestão de Horas Extras</p>
