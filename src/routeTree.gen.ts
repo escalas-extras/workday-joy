@@ -31,6 +31,7 @@ import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authenticated/colaboradores'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
 import { Route as AuthenticatedAdvertenciasRouteImport } from './routes/_authenticated/advertencias'
 import { Route as AuthenticatedRelatoriosRecibosRouteImport } from './routes/_authenticated/relatorios.recibos'
 import { Route as AuthenticatedRelatoriosOperacionalRouteImport } from './routes/_authenticated/relatorios.operacional'
@@ -157,6 +158,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAlmoxarifadoRoute =
+  AuthenticatedAlmoxarifadoRouteImport.update({
+    id: '/almoxarifado',
+    path: '/almoxarifado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdvertenciasRoute =
   AuthenticatedAdvertenciasRouteImport.update({
     id: '/advertencias',
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -256,6 +264,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -291,6 +300,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/advertencias'
+    | '/almoxarifado'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/advertencias'
+    | '/almoxarifado'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -393,6 +405,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/advertencias'
+    | '/_authenticated/almoxarifado'
     | '/_authenticated/auditoria'
     | '/_authenticated/clientes'
     | '/_authenticated/colaboradores'
@@ -585,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/almoxarifado': {
+      id: '/_authenticated/almoxarifado'
+      path: '/almoxarifado'
+      fullPath: '/almoxarifado'
+      preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/advertencias': {
       id: '/_authenticated/advertencias'
       path: '/advertencias'
@@ -684,6 +704,7 @@ const AuthenticatedRecibosRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdvertenciasRoute: typeof AuthenticatedAdvertenciasRoute
+  AuthenticatedAlmoxarifadoRoute: typeof AuthenticatedAlmoxarifadoRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
   AuthenticatedColaboradoresRoute: typeof AuthenticatedColaboradoresRoute
@@ -713,6 +734,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdvertenciasRoute: AuthenticatedAdvertenciasRoute,
+  AuthenticatedAlmoxarifadoRoute: AuthenticatedAlmoxarifadoRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
   AuthenticatedColaboradoresRoute: AuthenticatedColaboradoresRoute,
