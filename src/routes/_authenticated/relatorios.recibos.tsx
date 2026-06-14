@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { PageHeader } from "@/components/app-shell";
 import { Printer, FileDown, Eye, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/extenso";
+import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/routes/_authenticated/recibos";
 import { desarquivarRecibo } from "@/lib/recibos.functions";
@@ -42,6 +44,7 @@ function Page() {
   const [fCliente, setFCliente] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [printViews, setPrintViews] = useState<ReciboView[]>([]);
 
   // Recibos no período (por semana_ref). Inclui dados de empresa do colaborador.
   const list = useQuery({
@@ -109,12 +112,25 @@ function Page() {
     return true;
   }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
 
+  const printQuery = useQuery({
+    queryKey: ["recibos-arquivados-print", filtrados.map((r) => r.id).join(",")],
+    enabled: filtrados.length > 0,
+    staleTime: 30000,
+    queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
+  });
+
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
+  const preparandoPrint = printQuery.isLoading || printQuery.isFetching;
 
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
-    navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
+    const byId = new Map((printQuery.data ?? []).map((r) => [r.id, r]));
+    const views = ids.map((id) => byId.get(id)).filter(Boolean) as ReciboView[];
+    if (views.length !== ids.length) return toast.error("Aguarde os recibos carregarem para impressão");
+    flushSync(() => setPrintViews(views));
+    window.focus();
+    window.print();
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
@@ -158,6 +174,10 @@ function Page() {
 
   return (
     <div>
+      <div className="hidden print:block">
+        {printViews.length ? <ReciboA4 recibos={printViews} /> : null}
+      </div>
+      <div className="print:hidden">
       <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados). Filtros mostram apenas registros com recibos no período." />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
@@ -201,14 +221,14 @@ function Page() {
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap">
-        <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length}>
+        <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length || preparandoPrint}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Selecionados ({selectedIds.length})
         </Button>
         <Button size="sm" variant="outline" onClick={() => handlePdf(selectedIds)} disabled={!selectedIds.length}>
           <FileDown className="h-4 w-4 mr-1" />PDF Selecionados
         </Button>
         <div className="w-px bg-border mx-1" />
-        <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
+        <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length || preparandoPrint}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Filtrados ({filtrados.length})
         </Button>
         <Button size="sm" onClick={() => handlePdf(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
@@ -249,7 +269,7 @@ function Page() {
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => navigate({ to: "/recibos/imprimir", search: { ids: r.id, action: "preview" } })} title="Visualizar"><Eye className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} title="Imprimir"><Printer className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} disabled={preparandoPrint} title="Imprimir"><Printer className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => handleDesarquivar(r.id)} title="Desarquivar"><Undo2 className="h-3 w-3" /></Button>
                   </div>
@@ -261,6 +281,7 @@ function Page() {
         </Table>
       </div>
       <div className="mt-3 text-right text-sm font-semibold">Total: {formatBRL(totalValor)} — {filtrados.length} recibo(s)</div>
+      </div>
     </div>
   );
 }
