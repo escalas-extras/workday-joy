@@ -696,7 +696,14 @@ function WitnessesTab({
                   <TableCell>{w.telefone ?? "—"}</TableCell>
                   <TableCell className="max-w-[300px] truncate">{w.relato ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    {canWrite && <Button variant="ghost" size="sm" onClick={() => remove(w.id)}><Trash2 className="h-4 w-4" /></Button>}
+                    {canWrite && (
+                      <InactivateButton
+                        table="disciplinary_case_witnesses"
+                        id={w.id}
+                        invalidateKeys={[["proc-wit", caseId]]}
+                        onDone={onChanged}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
