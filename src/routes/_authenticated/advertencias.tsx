@@ -20,7 +20,7 @@ import { gerarAdvertenciaPdf } from "@/lib/advertencia-pdf";
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
 interface Empresa { id: string; nome: string; razao_social: string | null; cnpj: string | null }
-interface Colab { id: string; nome: string; cpf: string | null; empresa_id: string; funcao_id: string | null }
+interface Colab { id: string; nome: string; matricula: string | null; cpf: string | null; empresa_id: string; funcao_id: string | null }
 interface Funcao { id: string; nome: string }
 interface Reason { id: string; nome: string; clt_article: string; clt_subsections: string[]; descricao_padrao: string }
 interface Warning {
@@ -53,7 +53,7 @@ function Page() {
   });
   const colabs = useQuery({
     queryKey: ["adv-colabs"],
-    queryFn: async () => ((await supabase.from("colaboradores").select("id,nome,cpf,empresa_id,funcao_id").eq("situacao", "ativo").order("nome")).data ?? []) as Colab[],
+    queryFn: async () => ((await supabase.from("colaboradores").select("id,nome,matricula,cpf,empresa_id,funcao_id").eq("situacao", "ativo").order("nome")).data ?? []) as Colab[],
   });
   const funcoes = useQuery({
     queryKey: ["adv-funcoes"],
@@ -87,7 +87,11 @@ function Page() {
   const cargo = colab?.funcao_id ? funMap.get(colab.funcao_id) ?? "" : "";
 
   const colabOptions = useMemo(
-    () => (colabs.data ?? []).map((c) => ({ value: c.id, label: c.nome, keywords: `${c.cpf ?? ""} ${empMap.get(c.empresa_id)?.nome ?? ""}` })),
+    () => (colabs.data ?? []).map((c) => ({
+      value: c.id,
+      label: c.matricula ? `${c.matricula} - ${c.nome}` : c.nome,
+      keywords: `${c.nome} ${c.matricula ?? ""} ${c.cpf ?? ""} ${empMap.get(c.empresa_id)?.nome ?? ""}`,
+    })),
     [colabs.data, empMap]
   );
 
@@ -213,8 +217,8 @@ function Page() {
                   options={colabOptions}
                   value={colaboradorId}
                   onChange={onPickColab}
-                  placeholder="Buscar colaborador..."
-                  searchPlaceholder="Nome ou CPF..."
+                  placeholder="Selecionar"
+                  searchPlaceholder="Digite nome, matrícula ou CPF..."
                 />
               </div>
 
