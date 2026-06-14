@@ -8,8 +8,8 @@ import {
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import julianiLogoUrl from "@/assets/juliani-logo-transparent.png";
-const julianiLogo = { url: julianiLogoUrl };
+import julianiLogoAsset from "@/assets/juliani-logo-v2.png.asset.json";
+const julianiLogo = { url: julianiLogoAsset.url };
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; roles?: AppRole[] };
 
