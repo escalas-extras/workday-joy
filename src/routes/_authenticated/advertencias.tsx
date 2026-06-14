@@ -18,6 +18,7 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { gerarAdvertenciaPdf, type DisciplinaryActionType } from "@/lib/advertencia-pdf";
+import { RecidivismAlert } from "@/components/disciplinary/recidivism-alert";
 
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
