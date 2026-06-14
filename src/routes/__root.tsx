@@ -88,15 +88,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
+      { title: "Gestão de Horas Extras - Grupo Juliani" },
+      { name: "description", content: "Sistema de gestão de horas extras do Grupo Juliani" },
+      { name: "author", content: "Grupo Juliani" },
       { name: "google", content: "notranslate" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Gestão de Horas Extras - Grupo Juliani" },
+      { property: "og:description", content: "Sistema de gestão de horas extras do Grupo Juliani" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
