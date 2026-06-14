@@ -269,7 +269,8 @@ export const getEmployeeIntel = createServerFn({ method: "POST" })
     const d180 = list.filter((w) => days(w.warning_date) <= 180).length;
     const d365 = list.filter((w) => days(w.warning_date) <= 365).length;
     const sameReason = data.reason_id ? list.filter((w) => w.warning_reason_id === data.reason_id).length : 0;
-    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason);
+    const hasJustaCausa = list.some((w) => w.action_type === "justa_causa");
+    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason, hasJustaCausa);
     const suggestion = suggestNextAction(list.map((w) => ({ action_type: w.action_type as string, reason_id: w.warning_reason_id as string | null })), data.reason_id);
 
     return {
