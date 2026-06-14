@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import julianiLogoUrl from "@/assets/juliani-logo-transparent.png";
-const julianiLogo = { url: julianiLogoUrl };
+import julianiLogoAsset from "@/assets/juliani-logo-v2.png.asset.json";
+const julianiLogo = { url: julianiLogoAsset.url };
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
