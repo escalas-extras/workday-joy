@@ -47,8 +47,8 @@ export const recordAudit = createServerFn({ method: "POST" })
       action: data.action,
       entity_type: data.entity_type,
       entity_id: data.entity_id ?? null,
-      old_value: (data.old_value as object | null) ?? null,
-      new_value: (data.new_value as object | null) ?? null,
+      old_value: asJson(data.old_value),
+      new_value: asJson(data.new_value),
       reason: data.reason ?? null,
       company_id: data.company_id ?? null,
     });
@@ -111,7 +111,7 @@ export const deactivateDisciplinaryEntity = createServerFn({ method: "POST" })
       user_email: (claims as { email?: string } | undefined)?.email ?? null,
       ip_address: ip || null, user_agent: ua || null,
       action: "deactivate", entity_type: data.table, entity_id: data.id,
-      old_value: old as object | null, reason: data.reason,
+      old_value: asJson(old), reason: data.reason,
     });
     return { ok: true };
   });
@@ -150,7 +150,7 @@ export const getRecidivismAlert = createServerFn({ method: "POST" })
     const { supabase } = context;
     const { data: result, error } = await supabase.rpc("get_recidivism_counts", {
       _employee_id: data.employee_id,
-      _reason_id: data.reason_id ?? null,
+      _reason_id: data.reason_id ?? undefined,
     });
     if (error) throw new Error(error.message);
     return (result as Record<string, number>) ?? {};
@@ -281,7 +281,7 @@ export const saveEquipmentChecklist = createServerFn({ method: "POST" })
       user_id: userId, ip_address: ip || null, user_agent: ua || null,
       action: existing ? "update" : "create",
       entity_type: "equipment_return_checklist", entity_id: id ?? null,
-      new_value: payload as object,
+      new_value: asJson(payload),
     });
     return { ok: true, id };
   });
