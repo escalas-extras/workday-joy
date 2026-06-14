@@ -15,11 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   listAlmoxBase, listEstoque, upsertEstoqueMinimo, registrarMovimentacao,
-  listMovimentacoes, listPendenciasDevolucao,
+  listMovimentacoes, listPendenciasDevolucao, importarEstoqueExcel,
 } from "@/lib/almoxarifado.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { exportarExcel } from "@/lib/relatorios-export";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
 
