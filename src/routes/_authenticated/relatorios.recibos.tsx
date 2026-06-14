@@ -114,7 +114,9 @@ function Page() {
 
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
-    navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
+    const params = new URLSearchParams({ ids: ids.join(","), action: "print" });
+    const janela = window.open(`/recibos/imprimir?${params.toString()}`, "_blank");
+    if (!janela) toast.error("Não foi possível abrir a impressão. Verifique se o navegador bloqueou a nova aba.");
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
