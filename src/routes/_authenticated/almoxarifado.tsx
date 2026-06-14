@@ -20,6 +20,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { exportarExcel, exportarPdf } from "@/lib/relatorios-export";
 import { FileSpreadsheet, FileText, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/searchable-select";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
