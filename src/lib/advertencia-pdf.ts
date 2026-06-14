@@ -156,10 +156,22 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   // Assinaturas
   y += 18;
   doc.setLineWidth(0.3);
-  doc.line(margin, y, pageW - margin, y);
-  y += 4;
-  doc.setFontSize(10);
-  doc.text("Ciente do empregado", margin, y);
+  if (isSusp) {
+    const col = (contentW - 10) / 3;
+    const labels = ["Representante da Empresa", "Empregado", "Testemunha"];
+    for (let i = 0; i < 3; i++) {
+      const x = margin + i * (col + 5);
+      doc.line(x, y, x + col, y);
+      doc.setFontSize(9);
+      doc.text(labels[i], x + col / 2, y + 4, { align: "center" });
+    }
+    y += 8;
+  } else {
+    doc.line(margin, y, pageW - margin, y);
+    y += 4;
+    doc.setFontSize(10);
+    doc.text("Ciente do empregado", margin, y);
+  }
 
   // Página 2: rodapé com Art. 482 completo
   // Se não couber, nova página
