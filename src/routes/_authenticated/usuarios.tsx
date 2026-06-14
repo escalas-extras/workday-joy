@@ -27,12 +27,14 @@ const ROLES = [
 
 function Page() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const list = useServerFn(listUsuarios);
   const invite = useServerFn(inviteUsuario);
   const updateRoles = useServerFn(updateUsuarioRoles);
   const setAtivo = useServerFn(setUsuarioAtivo);
   const resetPwd = useServerFn(sendPasswordResetByAdmin);
   const resend = useServerFn(resendInvite);
+  const remove = useServerFn(deleteUsuario);
 
   const { data, isLoading } = useQuery({ queryKey: ["usuarios"], queryFn: () => list() });
 
