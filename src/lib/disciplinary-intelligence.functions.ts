@@ -293,10 +293,33 @@ export const getEmployeeIntel = createServerFn({ method: "POST" })
     const d90 = list.filter((w) => days(w.warning_date) <= 90).length;
     const d180 = list.filter((w) => days(w.warning_date) <= 180).length;
     const d365 = list.filter((w) => days(w.warning_date) <= 365).length;
-    const sameReason = data.reason_id ? list.filter((w) => w.warning_reason_id === data.reason_id).length : 0;
+
+    // Histórico relacionado ao MESMO motivo
+    const sameList = data.reason_id ? list.filter((w) => w.warning_reason_id === data.reason_id) : [];
+    const sameReason = sameList.length;
+    const sameAdv = sameList.filter((w) => w.action_type === "advertencia_escrita").length;
+    const sameSusp = sameList.filter((w) => w.action_type === "suspensao").length;
+    const sameOri = sameList.filter((w) => w.action_type === "orientacao_verbal").length;
+    const sameJc = sameList.filter((w) => w.action_type === "justa_causa").length;
+    const lastSame = sameList[0] ?? null;
+
+    // Motivos mais frequentes no histórico (para detectar "motivos equivalentes" recorrentes)
+    const reasonFreq = new Map<string, number>();
+    for (const w of list) {
+      const rid = (w.warning_reason_id as string) ?? "sem_motivo";
+      reasonFreq.set(rid, (reasonFreq.get(rid) ?? 0) + 1);
+    }
+    const topReasons = Array.from(reasonFreq.entries())
+      .map(([reason_id, qtd]) => ({ reason_id, qtd }))
+      .sort((a, b) => b.qtd - a.qtd)
+      .slice(0, 5);
+
     const hasJustaCausa = list.some((w) => w.action_type === "justa_causa");
-    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason, hasJustaCausa);
-    const suggestion = suggestNextAction(list.map((w) => ({ action_type: w.action_type as string, reason_id: w.warning_reason_id as string | null })), data.reason_id);
+    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason, hasJustaCausa, sameSusp);
+    const suggestion = suggestNextAction(
+      list.map((w) => ({ action_type: w.action_type as string, reason_id: w.warning_reason_id as string | null })),
+      data.reason_id,
+    );
 
     return {
       counts: { ...counts, total: list.length, processos: (cases ?? []).length },
@@ -305,5 +328,15 @@ export const getEmployeeIntel = createServerFn({ method: "POST" })
       recidivism,
       suggestion,
       windows: { d30, d90, d180, d365, sameReason },
+      sameReasonBreakdown: {
+        total: sameReason,
+        adv: sameAdv,
+        susp: sameSusp,
+        ori: sameOri,
+        jc: sameJc,
+        lastDate: (lastSame?.warning_date as string) ?? null,
+        lastType: (lastSame?.action_type as string) ?? null,
+      },
+      topReasons,
     };
   });
