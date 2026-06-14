@@ -229,6 +229,7 @@ export type Database = {
       }
       disciplinary_warnings: {
         Row: {
+          action_type: string
           city: string
           clt_article: string
           clt_subsections: string[]
@@ -246,12 +247,16 @@ export type Database = {
           generated_document_url: string | null
           id: string
           observacoes: string | null
+          suspension_days: number | null
+          suspension_end_date: string | null
+          suspension_start_date: string | null
           updated_at: string
           warning_date: string
           warning_reason_id: string | null
           witness_signature_url: string | null
         }
         Insert: {
+          action_type?: string
           city?: string
           clt_article?: string
           clt_subsections?: string[]
@@ -269,12 +274,16 @@ export type Database = {
           generated_document_url?: string | null
           id?: string
           observacoes?: string | null
+          suspension_days?: number | null
+          suspension_end_date?: string | null
+          suspension_start_date?: string | null
           updated_at?: string
           warning_date?: string
           warning_reason_id?: string | null
           witness_signature_url?: string | null
         }
         Update: {
+          action_type?: string
           city?: string
           clt_article?: string
           clt_subsections?: string[]
@@ -292,6 +301,9 @@ export type Database = {
           generated_document_url?: string | null
           id?: string
           observacoes?: string | null
+          suspension_days?: number | null
+          suspension_end_date?: string | null
+          suspension_start_date?: string | null
           updated_at?: string
           warning_date?: string
           warning_reason_id?: string | null

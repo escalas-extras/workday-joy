@@ -18,7 +18,7 @@ function Inicio() {
     { to: "/faturamento", t: "Faturamento", d: "Cobrança ao cliente", icon: Receipt },
     { to: "/fechamento", t: "Fechamento", d: "Semana operacional", icon: CalendarCheck },
     { to: "/recibos", t: "Recibos", d: "Geração e cancelamento", icon: Receipt },
-    { to: "/advertencias", t: "Advertências", d: "Geração e histórico", icon: AlertTriangle },
+    { to: "/advertencias", t: "Medidas Disciplinares", d: "Advertências e suspensões", icon: AlertTriangle },
     { to: "/colaboradores", t: "Colaboradores", d: "Cadastro", icon: Users },
   ];
   return (
