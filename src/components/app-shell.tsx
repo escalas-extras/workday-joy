@@ -8,7 +8,8 @@ import {
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import julianiLogo from "@/assets/juliani-logo.png.asset.json";
+import julianiLogoUrl from "@/assets/juliani-logo-transparent.png";
+const julianiLogo = { url: julianiLogoUrl };
 
 type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }>; roles?: AppRole[] };
 
@@ -105,7 +106,7 @@ export function AppShell() {
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/10 bg-[var(--sidebar)] text-[var(--sidebar-foreground)] print:hidden">
-        <div className="px-4 py-4 border-b border-white/10 bg-white/95 flex items-center justify-center">
+        <div className="px-4 py-4 border-b border-white/10 flex items-center justify-center">
           <img src={julianiLogo.url} alt="Grupo Juliani" className="h-14 w-auto" />
         </div>
         <div className="px-4 py-3 border-b border-white/10">
@@ -128,7 +129,7 @@ export function AppShell() {
         <div className="fixed inset-0 z-50 md:hidden print:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="relative w-72 max-w-[80vw] h-full bg-[var(--sidebar)] text-[var(--sidebar-foreground)] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/95">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <img src={julianiLogo.url} alt="Grupo Juliani" className="h-10 w-auto" />
               <Button size="icon" variant="ghost" onClick={() => setOpen(false)} className="text-primary hover:bg-primary/10"><X className="h-4 w-4" /></Button>
             </div>
