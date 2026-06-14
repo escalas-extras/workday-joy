@@ -91,7 +91,7 @@ function Page() {
   });
   const warnings = useQuery({
     queryKey: ["adv-warnings"],
-    queryFn: async () => ((await supabase.from("disciplinary_warnings").select("*").order("created_at", { ascending: false }).limit(500)).data ?? []) as Warning[],
+    queryFn: async () => ((await supabase.from("disciplinary_warnings").select("*").eq("active", true).order("created_at", { ascending: false }).limit(500)).data ?? []) as Warning[],
   });
 
   const funMap = useMemo(() => new Map((funcoes.data ?? []).map((f) => [f.id, f.nome])), [funcoes.data]);
