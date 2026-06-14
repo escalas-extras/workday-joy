@@ -168,3 +168,29 @@ export const logPasswordChange = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+export const deleteUsuario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.userId === context.userId) throw new Error("Você não pode excluir o próprio usuário");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Buscar dados antes de excluir para auditoria
+    const { data: prof } = await supabaseAdmin.from("profiles").select("nome,email").eq("id", data.userId).maybeSingle();
+    // Registra auditoria ANTES da exclusão (após o delete o id deixa de existir)
+    await audit(supabaseAdmin, {
+      tabela: "profiles",
+      registro_id: data.userId,
+      usuario_id: context.userId,
+      acao: "DELETE",
+      valor_novo: { email: prof?.email, nome: prof?.nome },
+      justificativa: `Usuário excluído permanentemente por ${context.userId}`,
+    });
+    // Remove papéis e profile (histórico em extras/auditoria/fechamentos mantém o uuid solto, sem FK)
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw error;
+    return { ok: true };
+  });

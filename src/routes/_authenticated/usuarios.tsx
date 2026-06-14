@@ -1,18 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listUsuarios, inviteUsuario, updateUsuarioRoles, setUsuarioAtivo, sendPasswordResetByAdmin, resendInvite } from "@/lib/usuarios.functions";
+import { listUsuarios, inviteUsuario, updateUsuarioRoles, setUsuarioAtivo, sendPasswordResetByAdmin, resendInvite, deleteUsuario } from "@/lib/usuarios.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/app-shell";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, KeyRound, Power, Shield, Mail } from "lucide-react";
+import { Plus, KeyRound, Power, Shield, Mail, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Page });
 
@@ -25,12 +27,14 @@ const ROLES = [
 
 function Page() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const list = useServerFn(listUsuarios);
   const invite = useServerFn(inviteUsuario);
   const updateRoles = useServerFn(updateUsuarioRoles);
   const setAtivo = useServerFn(setUsuarioAtivo);
   const resetPwd = useServerFn(sendPasswordResetByAdmin);
   const resend = useServerFn(resendInvite);
+  const remove = useServerFn(deleteUsuario);
 
   const { data, isLoading } = useQuery({ queryKey: ["usuarios"], queryFn: () => list() });
 
@@ -49,6 +53,7 @@ function Page() {
   const mAtivo = useMutation({ mutationFn: (d: any) => setAtivo({ data: d }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["usuarios"] }); toast.success("Atualizado"); }, onError: (e: any) => toast.error(e.message) });
   const mPwd = useMutation({ mutationFn: (d: any) => resetPwd({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("E-mail de redefinição enviado"), onError: (e: any) => toast.error(e.message) });
   const mResend = useMutation({ mutationFn: (d: any) => resend({ data: { ...d, redirectTo } }), onSuccess: () => toast.success("Convite reenviado"), onError: (e: any) => toast.error(e.message) });
+  const mDelete = useMutation({ mutationFn: (d: any) => remove({ data: d }), onSuccess: () => { toast.success("Usuário excluído"); qc.invalidateQueries({ queryKey: ["usuarios"] }); }, onError: (e: any) => toast.error(e.message) });
 
   const toggleRole = (set: (v: any) => void, curr: string[], role: string) => {
     set(curr.includes(role) ? curr.filter((r) => r !== role) : [...curr, role]);
@@ -113,6 +118,28 @@ function Page() {
                         <Button size="icon" variant="ghost" title="Enviar redefinição de senha" onClick={() => mPwd.mutate({ userId: u.id, email: u.email })}><KeyRound className="h-3 w-3" /></Button>
                       )}
                       <Button size="icon" variant="ghost" title="Ativar/Desativar" onClick={() => mAtivo.mutate({ userId: u.id, ativo: !u.ativo })}><Power className="h-3 w-3" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="ghost" title="Excluir usuário" disabled={u.id === user?.id}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir usuário definitivamente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação remove o login de <strong>{u.email}</strong> e seus papéis.
+                              Registros históricos (extras, auditoria, fechamentos, recibos) são mantidos,
+                              mas o nome do usuário deixará de ser exibido neles.
+                              Para preservar a rastreabilidade prefira <strong>Desativar</strong>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => mDelete.mutate({ userId: u.id })}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
