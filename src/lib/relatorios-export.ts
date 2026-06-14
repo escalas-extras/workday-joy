@@ -66,7 +66,7 @@ export async function exportarPdf(
   doc.text(titulo, 42, 11);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text("Grupo Juliani · Gestão de Horas Extras", 42, 16);
+  doc.text("Grupo Juliani · Gestão de Escalas Extras", 42, 16);
   doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, pageW - 8, 16, { align: "right" });
 
   // Linha vermelha de destaque
@@ -90,7 +90,7 @@ export async function exportarPdf(
       const h = doc.internal.pageSize.getHeight();
       doc.setFontSize(7);
       doc.setTextColor(120, 120, 120);
-      doc.text("Grupo Juliani · Gestão de Horas Extras", 8, h - 4);
+      doc.text("Grupo Juliani · Gestão de Escalas Extras", 8, h - 4);
     },
   });
   doc.save(filename);

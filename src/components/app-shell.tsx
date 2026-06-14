@@ -111,7 +111,7 @@ export function AppShell() {
           <img src={julianiLogo.url} alt="Grupo Juliani" className="h-14 w-auto" />
         </div>
         <div className="px-4 py-3 border-b border-white/10">
-          <p className="text-sm font-bold leading-tight">Gestão de Horas Extras</p>
+          <p className="text-sm font-bold leading-tight">Gestão de Escalas Extras</p>
           <p className="text-[10px] uppercase tracking-wider text-white/60">Grupo Juliani</p>
         </div>
         <div className="flex-1 overflow-y-auto">{renderNav()}</div>
@@ -149,7 +149,7 @@ export function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between border-b bg-primary text-primary-foreground px-4 py-3 print:hidden">
           <Button size="icon" variant="ghost" onClick={() => setOpen(true)} className="text-primary-foreground hover:bg-white/10"><Menu className="h-5 w-5" /></Button>
-          <h1 className="text-sm font-bold">Horas Extras · Juliani</h1>
+          <h1 className="text-sm font-bold">Escalas Extras</h1>
           <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/" })} className="text-primary-foreground hover:bg-white/10"><Home className="h-5 w-5" /></Button>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-x-auto print:p-0 print:overflow-visible">
