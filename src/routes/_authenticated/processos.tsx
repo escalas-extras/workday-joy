@@ -130,7 +130,7 @@ function ProcessosPage() {
   });
   const cases = useQuery({
     queryKey: ["proc-cases"],
-    queryFn: async () => ((await supabase.from("disciplinary_cases").select("*").order("opened_at", { ascending: false })).data ?? []) as CaseRow[],
+    queryFn: async () => ((await supabase.from("disciplinary_cases").select("*").eq("active", true).order("opened_at", { ascending: false })).data ?? []) as CaseRow[],
   });
 
   const empMap = useMemo(() => new Map((empresas.data ?? []).map((e) => [e.id, e])), [empresas.data]);
