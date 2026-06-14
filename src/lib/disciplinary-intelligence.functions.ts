@@ -24,7 +24,9 @@ function suggestNextAction(history: { action_type: string; reason_id?: string | 
   const sameReason = currentReason ? history.filter((h) => h.reason_id === currentReason).length : 0;
   const total = history.length;
   const hasSuspension = history.some((h) => h.action_type === "suspensao");
-  if (sameReason >= 3 || (hasSuspension && total >= 4)) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência grave detectada" };
+  const hasJustaCausa = history.some((h) => h.action_type === "justa_causa");
+  if (hasJustaCausa) return { suggested: "justa_causa", label: "Justa Causa registrada", rationale: "Já existe Justa Causa no histórico" };
+  if (sameReason >= 3 || (hasSuspension && total >= 4)) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência grave detectada — avaliar Justa Causa" };
   if (total === 0) return { suggested: "orientacao_verbal", label: "Orientação Verbal", rationale: "Primeira ocorrência" };
   if (total === 1) return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Segunda ocorrência" };
   if (total === 2) return { suggested: "advertencia_escrita", label: "Advertência Formal", rationale: "Terceira ocorrência" };
@@ -32,8 +34,8 @@ function suggestNextAction(history: { action_type: string; reason_id?: string | 
   return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Padrão" };
 }
 
-function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number) {
-  // Crítica: 3+ em 180 ou mesmo motivo recorrente
+function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number, hasJustaCausa = false) {
+  if (hasJustaCausa) return { level: "critica", label: "Crítica (Justa Causa)", color: "destructive" };
   if (d180 >= 3 || sameReason >= 2 || d30 >= 2) return { level: "critica", label: "Crítica", color: "destructive" };
   if (d90 >= 2 || d180 >= 2) return { level: "alta", label: "Alta", color: "destructive" };
   if (d365 >= 2) return { level: "media", label: "Média", color: "default" };
@@ -172,9 +174,13 @@ export const getDisciplinaryIntel = createServerFn({ method: "POST" })
       const eRows = rows.filter((r) => r.colaborador_id === eid);
       const adv180 = eRows.filter((r) => r.action_type === "advertencia_escrita" && days(r.warning_date as string) <= 180).length;
       const susp365 = eRows.filter((r) => r.action_type === "suspensao" && days(r.warning_date as string) <= 365).length;
+      const jc365 = eRows.filter((r) => r.action_type === "justa_causa" && days(r.warning_date as string) <= 365).length;
       if (adv180 >= 3) alerts.push({ type: "advertencias_180", severity: "critical", message: `${v.nome}: ${adv180} advertências em 180 dias`, entity_id: eid });
       if (susp365 >= 2) alerts.push({ type: "suspensoes_365", severity: "critical", message: `${v.nome}: ${susp365} suspensões em 365 dias`, entity_id: eid });
+      if (jc365 >= 1) alerts.push({ type: "justa_causa", severity: "critical", message: `${v.nome}: Justa Causa registrada no último ano`, entity_id: eid });
     }
+    const jcCases = cases.filter((c) => c.status === "convertido_justa_causa").length;
+    if (jcCases > 0) alerts.push({ type: "processos_jc", severity: "critical", message: `${jcCases} processo(s) convertido(s) em Justa Causa no período` });
     for (const c of cases) {
       if (c.status === "arquivado" || c.status === "convertido_justa_causa" || c.status === "aprovado") continue;
       const d = days(c.updated_at as string);
@@ -263,7 +269,8 @@ export const getEmployeeIntel = createServerFn({ method: "POST" })
     const d180 = list.filter((w) => days(w.warning_date) <= 180).length;
     const d365 = list.filter((w) => days(w.warning_date) <= 365).length;
     const sameReason = data.reason_id ? list.filter((w) => w.warning_reason_id === data.reason_id).length : 0;
-    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason);
+    const hasJustaCausa = list.some((w) => w.action_type === "justa_causa");
+    const recidivism = classifyRecidivism(d30, d90, d180, d365, sameReason, hasJustaCausa);
     const suggestion = suggestNextAction(list.map((w) => ({ action_type: w.action_type as string, reason_id: w.warning_reason_id as string | null })), data.reason_id);
 
     return {
