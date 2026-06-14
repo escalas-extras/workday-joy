@@ -319,6 +319,19 @@ function Page() {
                       onChange={(e) => setMov({ ...mov, quantidade: parseInt(e.target.value || "1", 10) })} />
                   </div>
                   <div className="md:col-span-3">
+                    <Label>Colaborador {colabObrigatorio ? "*" : "(opcional)"}</Label>
+                    <SearchableSelect
+                      options={colabOptions}
+                      value={mov.colaborador_id}
+                      onChange={(v) => setMov({ ...mov, colaborador_id: v })}
+                      placeholder="Selecione um colaborador (opcional)"
+                      searchPlaceholder="Digite nome, matrícula ou CPF..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vincule a movimentação a um colaborador para manter o histórico individual.
+                    </p>
+                  </div>
+                  <div className="md:col-span-3">
                     <Label>Observação</Label>
                     <Textarea value={mov.observacao} onChange={(e) => setMov({ ...mov, observacao: e.target.value })} />
                   </div>
