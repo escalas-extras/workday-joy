@@ -821,6 +821,7 @@ function JustaCausaTab({
   canJC: boolean; onGenerated: () => void;
 }) {
   const { user } = useAuth();
+  const log = useServerFn(logPrintAction);
   const [city, setCity] = useState("Londrina");
   const [date, setDate] = useState(todayISO());
   const [customBody, setCustomBody] = useState("");
