@@ -75,14 +75,14 @@ export const registrarMovimentacao = createServerFn({ method: "POST" })
     const { data: id, error } = await supabase.rpc("almox_registrar_movimentacao", {
       p_empresa_id: data.empresa_id,
       p_item_id: data.item_id,
-      p_tamanho: data.tamanho,
+      p_tamanho: data.tamanho ?? undefined,
       p_tipo: data.tipo,
       p_motivo: data.motivo,
       p_quantidade: data.quantidade,
-      p_colaborador_id: data.colaborador_id ?? null,
-      p_entrega_id: null,
-      p_observacao: data.observacao ?? null,
-    });
+      p_colaborador_id: data.colaborador_id ?? undefined,
+      p_entrega_id: undefined,
+      p_observacao: data.observacao ?? undefined,
+    } as never);
     if (error) throw error;
     return { id };
   });
