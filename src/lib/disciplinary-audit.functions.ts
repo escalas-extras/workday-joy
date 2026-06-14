@@ -223,9 +223,9 @@ export const disciplinaryGlobalSearch = createServerFn({ method: "POST" })
     const [cols, procs, wits, emps, clis] = await Promise.all([
       supabase.from("colaboradores").select("id, nome, cpf, matricula").or(`nome.ilike.${like},cpf.ilike.${like},matricula.ilike.${like}`).limit(15),
       supabase.from("disciplinary_cases").select("id, status, description, opened_at, employee_id").or(`description.ilike.${like},id.eq.${/^[0-9a-f-]{36}$/i.test(term) ? term : "00000000-0000-0000-0000-000000000000"}`).limit(15),
-      supabase.from("disciplinary_case_witnesses").select("id, witness_name, witness_cpf, case_id").or(`witness_name.ilike.${like},witness_cpf.ilike.${like}`).limit(15),
+      supabase.from("disciplinary_case_witnesses").select("id, nome, cpf, case_id").or(`nome.ilike.${like},cpf.ilike.${like}`).limit(15),
       supabase.from("empresas").select("id, nome, razao_social, cnpj").or(`nome.ilike.${like},razao_social.ilike.${like},cnpj.ilike.${like}`).limit(10),
-      supabase.from("clientes").select("id, nome").ilike("nome", like).limit(10),
+      supabase.from("clientes").select("id, nome_fantasia, razao_social").or(`nome_fantasia.ilike.${like},razao_social.ilike.${like}`).limit(10), like).limit(10),
     ]);
     return {
       colaboradores: cols.data ?? [],
