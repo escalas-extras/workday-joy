@@ -880,11 +880,51 @@ function JustaCausaTab({
             />
             <p className="text-xs text-muted-foreground mt-1">Deixe em branco/sem edição para usar o texto padrão.</p>
           </div>
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <HistoryIcon className="h-4 w-4" />
+              <span className="text-sm font-medium">Histórico disciplinar do colaborador</span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge variant="outline">Orientações: {histSummary.ori}</Badge>
+              <Badge variant="outline">Advertências: {histSummary.adv}</Badge>
+              <Badge variant={histSummary.susp > 0 ? "secondary" : "outline"}>Suspensões: {histSummary.susp}</Badge>
+              <Badge variant={histSummary.jc > 0 ? "destructive" : "outline"}>Justa Causa anterior: {histSummary.jc}</Badge>
+              <Badge variant="outline">Total: {histSummary.total}</Badge>
+            </div>
+          </div>
+
+          {escalationBreak && caseRow.status !== "convertido_justa_causa" && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Quebra de escalonamento detectada</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p className="text-sm">
+                  Não há suspensão prévia registrada para este colaborador. A aplicação direta de Justa Causa
+                  configura exceção à gradação da pena. A operação pode prosseguir, mas é obrigatório justificar a exceção.
+                </p>
+                <div>
+                  <Label htmlFor="override-reason">Justificativa da exceção (obrigatória, mín. 20 caracteres)</Label>
+                  <Textarea
+                    id="override-reason"
+                    rows={3}
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                    placeholder="Descreva os fatos que justificam a aplicação direta de Justa Causa sem progressão prévia."
+                  />
+                  <p className="text-xs mt-1">
+                    {overrideReason.trim().length}/20 — registrado em auditoria com usuário, data, hora, IP e motivo.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPreviewOpen(true)}>
               <Eye className="h-4 w-4 mr-2" />Pré-visualizar
             </Button>
-            <Button disabled={!canJC || generating} onClick={generate}>
+            <Button disabled={!canJC || generating || (needsJustification && !justificationOk)} onClick={generate}>
               {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Gavel className="h-4 w-4 mr-2" />}
               Gerar Justa Causa
             </Button>
