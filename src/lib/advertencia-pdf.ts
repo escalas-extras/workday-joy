@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import julianiLogo from "@/assets/juliani-logo-v2.png.asset.json";
 
-export type DisciplinaryActionType = "orientacao_verbal" | "advertencia_escrita" | "suspensao";
+export type DisciplinaryActionType = "orientacao_verbal" | "advertencia_escrita" | "suspensao" | "justa_causa";
 
 export interface AdvertenciaData {
   actionType?: DisciplinaryActionType;
