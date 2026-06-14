@@ -18,6 +18,8 @@ import {
   listMovimentacoes, listPendenciasDevolucao,
 } from "@/lib/almoxarifado.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { exportarExcel } from "@/lib/relatorios-export";
+import { FileSpreadsheet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
 
