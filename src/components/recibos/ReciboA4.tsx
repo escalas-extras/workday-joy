@@ -33,25 +33,25 @@ function semanaDescricao(semana_ref: string): string {
 function ReciboBloco({ r }: { r: ReciboView }) {
   return (
     <div
-      className="relative grid grid-cols-2 gap-0 border-2 border-blue-600 rounded-lg overflow-hidden bg-white text-black"
+      className="relative grid grid-cols-2 gap-0 border-2 border-[#060B5A] rounded-lg overflow-hidden bg-white text-black"
       style={{ height: "50mm", pageBreakInside: "avoid", breakInside: "avoid" }}
     >
       {!r.ativo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <span className="text-red-500/20 text-4xl font-black rotate-[-15deg] border-2 border-red-500/20 px-3 py-1 rounded">
+          <span className="text-[#D61E1E]/20 text-4xl font-black rotate-[-15deg] border-2 border-[#D61E1E]/20 px-3 py-1 rounded">
             CANCELADO
           </span>
         </div>
       )}
       {/* Esquerda: dados do recibo */}
-      <div className="p-2 border-r border-blue-600 flex flex-col justify-between text-[11px] leading-tight">
+      <div className="p-2 border-r border-[#060B5A] flex flex-col justify-between text-[11px] leading-tight">
         <div>
           <div className="flex justify-between items-baseline">
             <h2 className="text-sm font-bold tracking-wide">RECIBO</h2>
             <span className="text-[9px] font-mono">Nº {String(r.numero).padStart(6, "0")}</span>
           </div>
-          <div className="mt-1 flex items-center gap-2 border border-blue-300 bg-blue-50 rounded p-1">
-            <div className="text-[8px] uppercase text-blue-700 font-bold">Valor</div>
+          <div className="mt-1 flex items-center gap-2 border border-[#060B5A]/40 bg-[#E8EBF5] rounded p-1">
+            <div className="text-[8px] uppercase text-[#060B5A] font-bold">Valor</div>
             <div className="text-xs font-bold">{formatBRL(r.valor_total)}</div>
           </div>
           <p className="mt-1 italic text-[9px] leading-none text-gray-700">
@@ -83,7 +83,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
       <div className="p-2 flex flex-col text-[11px] leading-tight overflow-hidden">
         <table className="w-full text-[9px] border-collapse">
           <thead>
-            <tr className="border-b border-blue-600">
+            <tr className="border-b border-[#060B5A]">
               <th className="text-left py-0.5">DATA</th>
               <th className="text-left py-0.5">CLIENTE</th>
               <th className="text-right py-0.5">VALOR</th>
@@ -91,7 +91,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
           </thead>
           <tbody>
             {r.itens.slice(0, 4).map((it, i) => (
-              <tr key={i} className="border-b border-blue-100">
+              <tr key={i} className="border-b border-[#060B5A]/15">
                 <td className="py-0.5">{fmtDate(it.data)}</td>
                 <td className="py-0.5 truncate max-w-[100px]">{it.cliente}</td>
                 <td className="py-0.5 text-right">{formatBRL(it.valor)}</td>
@@ -106,7 +106,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             )}
           </tbody>
           <tfoot>
-            <tr className="border-t border-blue-600 font-bold">
+            <tr className="border-t border-[#060B5A] font-bold">
               <td colSpan={2} className="py-0.5 text-right">TOTAL</td>
               <td className="py-0.5 text-right">{formatBRL(r.valor_total)}</td>
             </tr>
