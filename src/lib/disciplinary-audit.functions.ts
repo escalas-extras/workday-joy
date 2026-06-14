@@ -225,7 +225,7 @@ export const disciplinaryGlobalSearch = createServerFn({ method: "POST" })
       supabase.from("disciplinary_cases").select("id, status, description, opened_at, employee_id").or(`description.ilike.${like},id.eq.${/^[0-9a-f-]{36}$/i.test(term) ? term : "00000000-0000-0000-0000-000000000000"}`).limit(15),
       supabase.from("disciplinary_case_witnesses").select("id, nome, cpf, case_id").or(`nome.ilike.${like},cpf.ilike.${like}`).limit(15),
       supabase.from("empresas").select("id, nome, razao_social, cnpj").or(`nome.ilike.${like},razao_social.ilike.${like},cnpj.ilike.${like}`).limit(10),
-      supabase.from("clientes").select("id, nome_fantasia, razao_social").or(`nome_fantasia.ilike.${like},razao_social.ilike.${like}`).limit(10), like).limit(10),
+      supabase.from("clientes").select("id, nome_fantasia, razao_social").or(`nome_fantasia.ilike.${like},razao_social.ilike.${like}`).limit(10),
     ]);
     return {
       colaboradores: cols.data ?? [],
