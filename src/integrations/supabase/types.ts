@@ -739,7 +739,9 @@ export type Database = {
       is_admin_or_gestor: { Args: { _user_id: string }; Returns: boolean }
       normalize_text: { Args: { t: string }; Returns: string }
       proximo_numero_recibo: { Args: never; Returns: number }
-      semana_ref_de: { Args: { ts: string }; Returns: string }
+      semana_ref_de:
+        | { Args: { d: string }; Returns: string }
+        | { Args: { ts: string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
