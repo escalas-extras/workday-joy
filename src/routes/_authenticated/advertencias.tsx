@@ -19,6 +19,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { gerarAdvertenciaPdf, type DisciplinaryActionType } from "@/lib/advertencia-pdf";
 import { RecidivismAlert } from "@/components/disciplinary/recidivism-alert";
+import { InactivateButton } from "@/components/disciplinary/inactivate-button";
+import { useServerFn } from "@tanstack/react-start";
+import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+
+type PrintEntity = "advertencia" | "suspensao" | "orientacao" | "justa_causa" | "warning";
+function entityFor(a: DisciplinaryActionType): PrintEntity {
+  if (a === "advertencia_escrita") return "advertencia";
+  if (a === "suspensao") return "suspensao";
+  if (a === "orientacao_verbal") return "orientacao";
+  if (a === "justa_causa") return "justa_causa";
+  return "warning";
+}
 
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
@@ -79,7 +91,7 @@ function Page() {
   });
   const warnings = useQuery({
     queryKey: ["adv-warnings"],
-    queryFn: async () => ((await supabase.from("disciplinary_warnings").select("*").order("created_at", { ascending: false }).limit(500)).data ?? []) as Warning[],
+    queryFn: async () => ((await supabase.from("disciplinary_warnings").select("*").eq("active", true).order("created_at", { ascending: false }).limit(500)).data ?? []) as Warning[],
   });
 
   const funMap = useMemo(() => new Map((funcoes.data ?? []).map((f) => [f.id, f.nome])), [funcoes.data]);
@@ -161,6 +173,7 @@ interface MedidaFormProps {
 
 function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, empMap, colabMap, funMap, warnings, onSaved }: MedidaFormProps) {
   const isSusp = actionType === "suspensao";
+  const log = useServerFn(logPrintAction);
   const [empresaId, setEmpresaId] = useState("");
   const [colaboradorId, setColaboradorId] = useState("");
   const [warningDate, setWarningDate] = useState(todayISO());
@@ -249,7 +262,7 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
     const filename = `${prefix}-${(colab?.nome ?? "").replace(/\s+/g, "_")}-${warningDate}.pdf`;
     const suspEnd = isSusp && suspStart ? addDaysISO(suspStart, Math.max(0, suspDays - 1)) : null;
 
-    const { error } = await supabase.from("disciplinary_warnings").insert({
+    const { data: ins, error } = await supabase.from("disciplinary_warnings").insert({
       empresa_id: empresaId,
       colaborador_id: colaboradorId,
       warning_date: warningDate,
@@ -269,10 +282,13 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
       suspension_days: isSusp ? suspDays : null,
       suspension_start_date: isSusp ? (suspStart || null) : null,
       suspension_end_date: isSusp ? (suspEnd || null) : null,
-    });
+    }).select("id").single();
     if (error) return toast.error(error.message);
 
     await gerarAdvertenciaPdf(d, filename);
+    try {
+      await log({ data: { entity_type: entityFor(actionType), entity_id: ins!.id, action: "download" } });
+    } catch { /* não bloquear emissão por falha de log */ }
     toast.success(`${ACTION_LABEL[actionType]} registrada.`);
     setConduct(""); setObs(""); setReasonId("");
     if (isSusp) { setSuspStart(""); setSuspDays(1); }
@@ -429,6 +445,9 @@ interface HistoricoProps {
 }
 
 function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
+  const log = useServerFn(logPrintAction);
+  const { isAdmin, isGestorOp } = useAuth();
+  const canInactivate = isAdmin || isGestorOp;
   async function reimprimir(w: Warning, autoPrint: boolean) {
     if (w.action_type === "justa_causa") {
       const { gerarJustaCausaPdf } = await import("@/lib/justa-causa-pdf");
@@ -446,6 +465,7 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
         `justa-causa-${w.employee_name.replace(/\s+/g, "_")}-${w.warning_date}.pdf`,
         { autoPrint }
       );
+      try { await log({ data: { entity_type: "justa_causa", entity_id: w.id, action: autoPrint ? "reprint" : "download" } }); } catch { /* noop */ }
       return;
     }
     await gerarAdvertenciaPdf(
@@ -468,6 +488,7 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
       `${w.action_type === "suspensao" ? "suspensao" : "advertencia"}-${w.employee_name.replace(/\s+/g, "_")}-${w.warning_date}.pdf`,
       { autoPrint }
     );
+    try { await log({ data: { entity_type: entityFor(w.action_type), entity_id: w.id, action: autoPrint ? "reprint" : "download" } }); } catch { /* noop */ }
   }
 
   return (
@@ -505,12 +526,19 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
                     <TableCell>{reasonName}</TableCell>
                     <TableCell>{w.clt_article} {w.clt_subsections.map((s) => s.toUpperCase()).join("/")}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, false)}>
+                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, false)} title="Baixar">
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, true)}>
+                      <Button variant="ghost" size="sm" onClick={() => reimprimir(w, true)} title="Reimprimir">
                         <Printer className="h-4 w-4" />
                       </Button>
+                      {canInactivate && (
+                        <InactivateButton
+                          table="disciplinary_warnings"
+                          id={w.id}
+                          invalidateKeys={[["adv-warnings"]]}
+                        />
+                      )}
                     </TableCell>
                   </TableRow>
                 );

@@ -3,9 +3,10 @@ import { useMemo, useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Upload, FileText, Users as UsersIcon, ShieldCheck, Gavel, Download, Eye,
+  Plus, Upload, FileText, Users as UsersIcon, ShieldCheck, Gavel, Download, Eye,
   CheckCircle2, XCircle, History as HistoryIcon, AlertCircle, ChevronLeft, Loader2,
 } from "lucide-react";
+import { InactivateButton } from "@/components/disciplinary/inactivate-button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/app-shell";
@@ -129,7 +130,7 @@ function ProcessosPage() {
   });
   const cases = useQuery({
     queryKey: ["proc-cases"],
-    queryFn: async () => ((await supabase.from("disciplinary_cases").select("*").order("opened_at", { ascending: false })).data ?? []) as CaseRow[],
+    queryFn: async () => ((await supabase.from("disciplinary_cases").select("*").eq("active", true).order("opened_at", { ascending: false })).data ?? []) as CaseRow[],
   });
 
   const empMap = useMemo(() => new Map((empresas.data ?? []).map((e) => [e.id, e])), [empresas.data]);
@@ -314,15 +315,15 @@ function CaseDetail({
   const qc = useQueryClient();
   const evidences = useQuery({
     queryKey: ["proc-evid", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_evidences").select("*").eq("case_id", caseRow.id).order("created_at", { ascending: false })).data ?? []) as Evidence[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_evidences").select("*").eq("case_id", caseRow.id).eq("active", true).order("created_at", { ascending: false })).data ?? []) as Evidence[],
   });
   const witnesses = useQuery({
     queryKey: ["proc-wit", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_witnesses").select("*").eq("case_id", caseRow.id).order("created_at")).data ?? []) as Witness[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_witnesses").select("*").eq("case_id", caseRow.id).eq("active", true).order("created_at")).data ?? []) as Witness[],
   });
   const approvals = useQuery({
     queryKey: ["proc-appr", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_approvals").select("*").eq("case_id", caseRow.id)).data ?? []) as Approval[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_approvals").select("*").eq("case_id", caseRow.id).eq("active", true)).data ?? []) as Approval[],
   });
   const histWarnings = useQuery({
     queryKey: ["proc-hist", caseRow.employee_id],
@@ -525,6 +526,7 @@ function EvidencesTab({
   const fileRef = useRef<HTMLInputElement>(null);
   const [descricao, setDescricao] = useState("");
   const [uploading, setUploading] = useState(false);
+  const log = useServerFn(logPrintAction);
 
   async function upload(file: File) {
     if (!userId) return;
@@ -550,18 +552,11 @@ function EvidencesTab({
   async function baixar(ev: Evidence) {
     const { data, error } = await supabase.storage.from("disciplinary-evidences").createSignedUrl(ev.file_path, 60);
     if (error) return toast.error(error.message);
+    try { await log({ data: { entity_type: "case", entity_id: caseId, action: "download" } }); } catch { /* noop */ }
     window.open(data.signedUrl, "_blank");
   }
 
-  async function remover(ev: Evidence) {
-    if (!confirm(`Remover ${ev.file_name}?`)) return;
-    const { error: sErr } = await supabase.storage.from("disciplinary-evidences").remove([ev.file_path]);
-    if (sErr) return toast.error(sErr.message);
-    const { error } = await supabase.from("disciplinary_case_evidences").delete().eq("id", ev.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removida.");
-    onChanged();
-  }
+
 
   return (
     <Card>
@@ -606,7 +601,14 @@ function EvidencesTab({
                   <TableCell>{fmtDateBR(e.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => baixar(e)}><Download className="h-4 w-4" /></Button>
-                    {canWrite && <Button variant="ghost" size="sm" onClick={() => remover(e)}><Trash2 className="h-4 w-4" /></Button>}
+                    {canWrite && (
+                      <InactivateButton
+                        table="disciplinary_case_evidences"
+                        id={e.id}
+                        invalidateKeys={[["proc-evid", caseId]]}
+                        onDone={onChanged}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -644,12 +646,6 @@ function WitnessesTab({
     onChanged();
   }
 
-  async function remove(id: string) {
-    if (!confirm("Remover testemunha?")) return;
-    const { error } = await supabase.from("disciplinary_case_witnesses").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    onChanged();
-  }
 
   return (
     <Card>
@@ -688,7 +684,14 @@ function WitnessesTab({
                   <TableCell>{w.telefone ?? "—"}</TableCell>
                   <TableCell className="max-w-[300px] truncate">{w.relato ?? "—"}</TableCell>
                   <TableCell className="text-right">
-                    {canWrite && <Button variant="ghost" size="sm" onClick={() => remove(w.id)}><Trash2 className="h-4 w-4" /></Button>}
+                    {canWrite && (
+                      <InactivateButton
+                        table="disciplinary_case_witnesses"
+                        id={w.id}
+                        invalidateKeys={[["proc-wit", caseId]]}
+                        onDone={onChanged}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -818,6 +821,7 @@ function JustaCausaTab({
   canJC: boolean; onGenerated: () => void;
 }) {
   const { user } = useAuth();
+  const log = useServerFn(logPrintAction);
   const [city, setCity] = useState("Londrina");
   const [date, setDate] = useState(todayISO());
   const [customBody, setCustomBody] = useState("");
@@ -882,6 +886,7 @@ function JustaCausaTab({
       .eq("id", caseRow.id);
 
     await gerarJustaCausaPdf(data, filename);
+    try { await log({ data: { entity_type: "justa_causa", entity_id: warn!.id, action: "download" } }); } catch { /* noop */ }
     setGenerating(false);
     toast.success("Justa Causa emitida e registrada.");
     onGenerated();
@@ -954,6 +959,7 @@ function JustaCausaTab({
           <DialogFooter>
             <Button onClick={async () => {
               await gerarJustaCausaPdf(data, "preview-justa-causa.pdf", { autoPrint: false });
+              try { await log({ data: { entity_type: "justa_causa", entity_id: caseRow.id, action: "view" } }); } catch { /* noop */ }
             }}>
               <Download className="h-4 w-4 mr-2" />Baixar PDF
             </Button>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
-import { getDashboardData } from "@/lib/disciplinary-audit.functions";
+import { getDashboardData, logPrintAction } from "@/lib/disciplinary-audit.functions";
 import { exportarExcel } from "@/lib/relatorios-export";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -30,6 +30,8 @@ const ACT_LABEL: Record<string, string> = {
 
 function Page() {
   const fn = useServerFn(getDashboardData);
+  const log = useServerFn(logPrintAction);
+  const relatorioId = useMemo(() => crypto.randomUUID(), []);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [empresaId, setEmpresaId] = useState<string>("");
@@ -61,7 +63,7 @@ function Page() {
     ];
   }, [data]);
 
-  function exportExcel() {
+  async function exportExcel() {
     if (!data) return;
     exportarExcel(
       `relatorio_disciplinar_${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -73,8 +75,9 @@ function Page() {
       ],
       data.rows as unknown as Record<string, unknown>[],
     );
+    try { await log({ data: { entity_type: "relatorio", entity_id: relatorioId, action: "download" } }); } catch { /* noop */ }
   }
-  function exportPdf() {
+  async function exportPdf() {
     if (!data) return;
     const doc = new jsPDF({ format: "a4", unit: "pt", orientation: "landscape" });
     doc.setFontSize(16); doc.text("Relatório Disciplinar Executivo", 40, 40);
@@ -97,6 +100,7 @@ function Page() {
       styles: { fontSize: 8 }, headStyles: { fillColor: [6, 11, 90] },
     });
     doc.save(`relatorio_disciplinar_${new Date().toISOString().slice(0, 10)}.pdf`);
+    try { await log({ data: { entity_type: "relatorio", entity_id: relatorioId, action: "download" } }); } catch { /* noop */ }
   }
 
   return (
