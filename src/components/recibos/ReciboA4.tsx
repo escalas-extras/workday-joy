@@ -1,4 +1,5 @@
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
+import julianiLogo from "@/assets/juliani-logo.png.asset.json";
 
 export interface ReciboItemView {
   data: string; // YYYY-MM-DD
