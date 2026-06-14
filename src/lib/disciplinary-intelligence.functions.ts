@@ -208,8 +208,25 @@ export const getDisciplinaryIntel = createServerFn({ method: "POST" })
       ranking,
       timeline,
       alerts,
-      rows,
-      cases,
+      rows: rows.map((r) => ({
+        id: (r.id as string) ?? "",
+        warning_date: (r.warning_date as string) ?? "",
+        action_type: (r.action_type as string) ?? "",
+        colaborador_id: (r.colaborador_id as string) ?? "",
+        colaborador_nome: (r.colaborador_nome as string) ?? "",
+        cpf: (r.cpf as string) ?? "",
+        empresa_nome: (r.empresa_nome as string) ?? "",
+        reason_nome: (r.reason_nome as string) ?? "",
+        supervisor: supervisorMap.get(r.created_by as string) ?? "",
+      })),
+      cases: cases.map((c) => ({
+        id: c.id as string,
+        status: c.status as string,
+        opened_at: c.opened_at as string,
+        updated_at: c.updated_at as string,
+        description: (c.description as string) ?? "",
+        employee_id: c.employee_id as string,
+      })),
     };
   });
 
