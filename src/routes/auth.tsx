@@ -68,7 +68,7 @@ function AuthPage() {
       <Card className="w-full max-w-md border-primary/10 shadow-lg">
         <CardHeader className="items-center text-center">
           <img src={julianiLogo.url} alt="Grupo Juliani" className="h-20 w-auto mb-2" />
-          <CardTitle className="text-primary">Gestão de Horas Extras</CardTitle>
+          <CardTitle className="text-primary">Gestão de Escalas Extras</CardTitle>
           <CardDescription>
             {mode === "signin" ? "Acesse sua conta para continuar" : "Recuperação de senha"}
           </CardDescription>
