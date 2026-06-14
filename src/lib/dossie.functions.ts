@@ -14,9 +14,9 @@ export const getDossieData = createServerFn({ method: "POST" })
     const employeeId = c.employee_id as string;
     const [warnings, evidences, witnesses, approvals, audit] = await Promise.all([
       supabase.from("disciplinary_warnings").select("action_type, warning_date, conduct_description").eq("colaborador_id", employeeId).eq("active", true).order("warning_date", { ascending: false }),
-      supabase.from("disciplinary_case_evidences").select("file_name, description, uploaded_at").eq("case_id", data.case_id).eq("active", true),
-      supabase.from("disciplinary_case_witnesses").select("witness_name, witness_cpf").eq("case_id", data.case_id).eq("active", true),
-      supabase.from("disciplinary_case_approvals").select("approver_role, approver_name, decision, decided_at, notes").eq("case_id", data.case_id).eq("active", true),
+      supabase.from("disciplinary_case_evidences").select("file_name, descricao, created_at").eq("case_id", data.case_id).eq("active", true),
+      supabase.from("disciplinary_case_witnesses").select("nome, cpf").eq("case_id", data.case_id).eq("active", true),
+      supabase.from("disciplinary_case_approvals").select("step, approved_by, decision, created_at, observacao").eq("case_id", data.case_id).eq("active", true),
       supabase.from("audit_trail").select("created_at, action, user_email, ip_address").eq("entity_id", data.case_id).order("created_at", { ascending: false }).limit(200),
     ]);
     const emp = (c as { colaboradores: { nome: string; cpf: string | null } | null }).colaboradores;
