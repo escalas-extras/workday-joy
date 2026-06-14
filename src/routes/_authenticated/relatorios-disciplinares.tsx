@@ -63,7 +63,7 @@ function Page() {
     ];
   }, [data]);
 
-  function exportExcel() {
+  async function exportExcel() {
     if (!data) return;
     exportarExcel(
       `relatorio_disciplinar_${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -75,6 +75,7 @@ function Page() {
       ],
       data.rows as unknown as Record<string, unknown>[],
     );
+    try { await log({ data: { entity_type: "relatorio", entity_id: relatorioId, action: "download" } }); } catch { /* noop */ }
   }
   function exportPdf() {
     if (!data) return;
