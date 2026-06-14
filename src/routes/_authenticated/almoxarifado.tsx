@@ -144,6 +144,7 @@ function Page() {
           {canWrite && <TabsTrigger value="movimentar">Movimentar</TabsTrigger>}
           <TabsTrigger value="movs">Movimentações</TabsTrigger>
           <TabsTrigger value="pendencias">Pendências</TabsTrigger>
+          {canWrite && <TabsTrigger value="importar">Importar Excel</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="estoque" className="space-y-3 pt-2">
