@@ -101,15 +101,19 @@ function Page() {
   async function salvarMov(e: React.FormEvent) {
     e.preventDefault();
     if (!mov.item_id || !mov.quantidade) { toast.error("Preencha item e quantidade"); return; }
+    if (colabObrigatorio && !mov.colaborador_id) {
+      toast.error("Selecione o colaborador para este motivo"); return;
+    }
     try {
       await regFn({ data: {
         item_id: mov.item_id,
         tamanho: tamanhosDisp.length ? mov.tamanho || null : null,
         tipo: mov.tipo, motivo: mov.motivo, quantidade: mov.quantidade,
         observacao: mov.observacao || null,
+        colaborador_id: mov.colaborador_id || null,
       }});
       toast.success("Movimentação registrada");
-      setMov({ ...mov, quantidade: 1, observacao: "" });
+      setMov({ ...mov, quantidade: 1, observacao: "", colaborador_id: "" });
       qc.invalidateQueries({ queryKey: ["almox-estoque"] });
       qc.invalidateQueries({ queryKey: ["almox-movs"] });
     } catch (err) { toast.error((err as Error).message); }
