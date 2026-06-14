@@ -23,9 +23,9 @@ export const Route = createFileRoute("/_authenticated/relatorios/recibos")({ com
 
 type Row = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
-  valor_total: number; ativo: boolean; arquivado_em: string;
+  valor_total: number; ativo: boolean; arquivado_em: string; colaborador_id: string;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
-    empresas?: { nome: string }; funcoes?: { nome: string } };
+    empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
 };
 
 function Page() {
@@ -39,34 +39,75 @@ function Page() {
   const [ate, setAte] = useState(hoje);
   const [fColab, setFColab] = useState("");
   const [fEmpresa, setFEmpresa] = useState("");
+  const [fCliente, setFCliente] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  const colabs = useQuery({ queryKey: ["rrec-colabs"], queryFn: async () => (await supabase.from("colaboradores").select("id,nome").order("nome")).data ?? [] });
-  const empresas = useQuery({ queryKey: ["rrec-empresas"], queryFn: async () => (await supabase.from("empresas").select("id,nome").order("nome")).data ?? [] });
-
+  // Recibos no período (por semana_ref). Inclui dados de empresa do colaborador.
   const list = useQuery({
     queryKey: ["recibos-arquivados", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("recibos")
-        .select("id,numero,semana_ref,data_pagamento,valor_total,ativo,arquivado_em,colaborador_id,colaboradores(nome,matricula,empresa_id,empresas(nome),funcoes(nome))")
+        .select("id,numero,semana_ref,data_pagamento,valor_total,ativo,arquivado_em,colaborador_id,colaboradores(nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
         .not("arquivado_em", "is", null)
-        .gte("arquivado_em", `${de}T00:00:00`)
-        .lte("arquivado_em", `${ate}T23:59:59`)
-        .order("arquivado_em", { ascending: false });
+        .gte("semana_ref", de)
+        .lte("semana_ref", ate)
+        .order("semana_ref", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
   });
 
+  // Mapa recibo -> Set<cliente_id> via recibos_itens
+  const clientesMap = useQuery({
+    queryKey: ["recibos-arquivados-clientes", (list.data ?? []).map((r) => r.id)],
+    enabled: !!list.data?.length,
+    queryFn: async () => {
+      const ids = (list.data ?? []).map((r) => r.id);
+      const { data } = await supabase.from("recibos_itens")
+        .select("recibo_id, extras(cliente_id, clientes(id,nome_fantasia))")
+        .in("recibo_id", ids);
+      const map: Record<string, Set<string>> = {};
+      const nomes = new Map<string, string>();
+      type ItemRow = { recibo_id: string; extras: { cliente_id: string; clientes?: { id: string; nome_fantasia: string } } | null };
+      for (const it of (data ?? []) as ItemRow[]) {
+        if (!it.extras?.cliente_id) continue;
+        (map[it.recibo_id] ||= new Set()).add(it.extras.cliente_id);
+        if (it.extras.clientes) nomes.set(it.extras.clientes.id, it.extras.clientes.nome_fantasia);
+      }
+      return { map, nomes };
+    },
+  });
+
+  // Opções dinâmicas — apenas itens presentes no período
+  const opts = useMemo(() => {
+    const empresas = new Map<string, string>();
+    const colabs = new Map<string, string>();
+    for (const r of list.data ?? []) {
+      if (r.colaboradores?.empresas) empresas.set(r.colaboradores.empresas.id, r.colaboradores.empresas.nome);
+      if (r.colaboradores) colabs.set(r.colaborador_id, r.colaboradores.nome);
+    }
+    const clientes = [...(clientesMap.data?.nomes ?? new Map()).entries()].map(([id, nome]) => ({ id: id as string, nome: nome as string }));
+    const sort = (arr: { id: string; nome: string }[]) => arr.sort((a, b) => a.nome.localeCompare(b.nome));
+    return {
+      empresas: sort([...empresas.entries()].map(([id, nome]) => ({ id, nome }))),
+      colabs: sort([...colabs.entries()].map(([id, nome]) => ({ id, nome }))),
+      clientes: sort(clientes),
+    };
+  }, [list.data, clientesMap.data]);
+
   const filtrados = useMemo(() => (list.data ?? []).filter((r) => {
-    if (fColab && (r as Row & { colaborador_id: string }).colaborador_id !== fColab) return false;
+    if (fColab && r.colaborador_id !== fColab) return false;
     if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
     if (fStatus === "ativo" && !r.ativo) return false;
     if (fStatus === "cancelado" && r.ativo) return false;
+    if (fCliente) {
+      const set = clientesMap.data?.map[r.id];
+      if (!set || !set.has(fCliente)) return false;
+    }
     return true;
-  }), [list.data, fColab, fEmpresa, fStatus]);
+  }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
@@ -113,25 +154,34 @@ function Page() {
   }));
   const totalValor = filtrados.reduce((s, r) => s + Number(r.valor_total), 0);
 
+  const limpar = () => { setFColab(""); setFEmpresa(""); setFCliente(""); setFStatus(""); };
+
   return (
     <div>
-      <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados)" />
+      <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados). Filtros mostram apenas registros com recibos no período." />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">Arquivado de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+        <div><Label className="text-xs">Semana de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
         <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
-        <div>
-          <Label className="text-xs">Colaborador</Label>
-          <Select value={fColab || "_all"} onValueChange={(v) => setFColab(v === "_all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent><SelectItem value="_all">Todos</SelectItem>{(colabs.data ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
         <div>
           <Label className="text-xs">Empresa</Label>
           <Select value={fEmpresa || "_all"} onValueChange={(v) => setFEmpresa(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-            <SelectContent><SelectItem value="_all">Todas</SelectItem>{(empresas.data ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="_all">Todas ({opts.empresas.length})</SelectItem>{opts.empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Cliente</Label>
+          <Select value={fCliente || "_all"} onValueChange={(v) => setFCliente(v === "_all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent><SelectItem value="_all">Todos ({opts.clientes.length})</SelectItem>{opts.clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Colaborador</Label>
+          <Select value={fColab || "_all"} onValueChange={(v) => setFColab(v === "_all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+            <SelectContent><SelectItem value="_all">Todos ({opts.colabs.length})</SelectItem>{opts.colabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
           </Select>
         </div>
         <div>
@@ -146,7 +196,7 @@ function Page() {
           </Select>
         </div>
         <div className="flex items-end">
-          <Button size="sm" variant="outline" onClick={() => { setFColab(""); setFEmpresa(""); setFStatus(""); }}>Limpar</Button>
+          <Button size="sm" variant="outline" onClick={limpar}>Limpar</Button>
         </div>
       </div>
 
@@ -206,7 +256,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {!filtrados.length && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum recibo arquivado no período</TableCell></TableRow>}
+            {!filtrados.length && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum recibo no período / filtros aplicados</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

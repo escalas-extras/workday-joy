@@ -2,27 +2,11 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ReciboView } from "@/components/recibos/ReciboA4";
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
-import julianiLogo from "@/assets/juliani-logo.png.asset.json";
 
 // Cores Grupo Juliani
 const NAVY: [number, number, number] = [6, 11, 90];
 const RED: [number, number, number] = [214, 30, 30];
 const NAVY_SOFT: [number, number, number] = [232, 235, 245];
-
-async function loadLogoDataUrl(): Promise<string | null> {
-  try {
-    const res = await fetch(julianiLogo.url);
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const r = new FileReader();
-      r.onload = () => resolve(r.result as string);
-      r.onerror = () => resolve(null);
-      r.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
 
 function fmtDate(d: string): string {
   if (!d) return "";
@@ -46,19 +30,18 @@ export async function gerarPdfRecibos(recibos: ReciboView[], filename = "recibos
   const margin = 10;
   const blockH = 51;
   const gap = 3;
-  const logo = await loadLogoDataUrl();
 
   recibos.forEach((r, i) => {
     const indexNaPagina = i % 5;
     if (i > 0 && indexNaPagina === 0) doc.addPage();
     const y = margin + indexNaPagina * (blockH + gap);
-    drawRecibo(doc, r, margin, y, pageW - 2 * margin, blockH, logo);
+    drawRecibo(doc, r, margin, y, pageW - 2 * margin, blockH);
   });
 
   doc.save(filename);
 }
 
-function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, h: number, logo: string | null) {
+function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, h: number) {
   // Moldura azul Juliani arredondada
   doc.setDrawColor(...NAVY);
   doc.setLineWidth(0.5);
@@ -69,14 +52,11 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
   doc.line(x + colW, y, x + colW, y + h);
 
   // ============ ESQUERDA ============
-  let cy = y + 4.5;
-  if (logo) {
-    try { doc.addImage(logo, "PNG", x + 2, y + 1.8, 13, 6); } catch { /* ignore */ }
-  }
+  const cy = y + 4.5;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);
-  doc.text("RECIBO", x + 17, cy);
+  doc.text("RECIBO", x + 3, cy);
   doc.setFont("courier", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(0, 0, 0);
