@@ -552,8 +552,10 @@ function EvidencesTab({
   async function baixar(ev: Evidence) {
     const { data, error } = await supabase.storage.from("disciplinary-evidences").createSignedUrl(ev.file_path, 60);
     if (error) return toast.error(error.message);
+    try { await log({ data: { entity_type: "case", entity_id: caseId, action: "download" } }); } catch { /* noop */ }
     window.open(data.signedUrl, "_blank");
   }
+
 
 
   return (
