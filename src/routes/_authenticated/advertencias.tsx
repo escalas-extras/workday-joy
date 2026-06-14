@@ -20,7 +20,7 @@ import { gerarAdvertenciaPdf } from "@/lib/advertencia-pdf";
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
 interface Empresa { id: string; nome: string; razao_social: string | null; cnpj: string | null }
-interface Colab { id: string; nome: string; cpf: string | null; empresa_id: string; funcao_id: string | null }
+interface Colab { id: string; nome: string; matricula: string | null; cpf: string | null; empresa_id: string; funcao_id: string | null }
 interface Funcao { id: string; nome: string }
 interface Reason { id: string; nome: string; clt_article: string; clt_subsections: string[]; descricao_padrao: string }
 interface Warning {
