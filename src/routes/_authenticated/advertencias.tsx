@@ -445,6 +445,9 @@ interface HistoricoProps {
 }
 
 function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
+  const log = useServerFn(logPrintAction);
+  const { isAdmin, isGestorOp } = useAuth();
+  const canInactivate = isAdmin || isGestorOp;
   async function reimprimir(w: Warning, autoPrint: boolean) {
     if (w.action_type === "justa_causa") {
       const { gerarJustaCausaPdf } = await import("@/lib/justa-causa-pdf");
@@ -462,6 +465,7 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
         `justa-causa-${w.employee_name.replace(/\s+/g, "_")}-${w.warning_date}.pdf`,
         { autoPrint }
       );
+      try { await log({ data: { entity_type: "justa_causa", entity_id: w.id, action: autoPrint ? "reprint" : "download" } }); } catch { /* noop */ }
       return;
     }
     await gerarAdvertenciaPdf(
@@ -484,6 +488,7 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
       `${w.action_type === "suspensao" ? "suspensao" : "advertencia"}-${w.employee_name.replace(/\s+/g, "_")}-${w.warning_date}.pdf`,
       { autoPrint }
     );
+    try { await log({ data: { entity_type: entityFor(w.action_type), entity_id: w.id, action: autoPrint ? "reprint" : "download" } }); } catch { /* noop */ }
   }
 
   return (
