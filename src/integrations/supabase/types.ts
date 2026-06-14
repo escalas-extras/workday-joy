@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_trail: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_trail_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auditoria: {
         Row: {
           acao: string
@@ -168,6 +224,13 @@ export type Database = {
             referencedRelation: "colaboradores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "colaborador_clientes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
         ]
       }
       colaboradores: {
@@ -227,29 +290,89 @@ export type Database = {
           },
         ]
       }
+      digital_signatures: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          provider: string | null
+          signature_hash: string | null
+          signed_at: string | null
+          signer_cpf: string | null
+          signer_email: string | null
+          signer_name: string
+          signer_role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          provider?: string | null
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_name: string
+          signer_role: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          provider?: string | null
+          signature_hash?: string | null
+          signed_at?: string | null
+          signer_cpf?: string | null
+          signer_email?: string | null
+          signer_name?: string
+          signer_role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       disciplinary_case_approvals: {
         Row: {
+          active: boolean
           approved_by: string
           case_id: string
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           decision: string
           id: string
           observacao: string | null
           step: string
         }
         Insert: {
+          active?: boolean
           approved_by: string
           case_id: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           decision: string
           id?: string
           observacao?: string | null
           step: string
         }
         Update: {
+          active?: boolean
           approved_by?: string
           case_id?: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           decision?: string
           id?: string
           observacao?: string | null
@@ -267,8 +390,12 @@ export type Database = {
       }
       disciplinary_case_evidences: {
         Row: {
+          active: boolean
           case_id: string
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           descricao: string | null
           file_name: string
           file_path: string
@@ -278,8 +405,12 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          active?: boolean
           case_id: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           descricao?: string | null
           file_name: string
           file_path: string
@@ -289,8 +420,12 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          active?: boolean
           case_id?: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           descricao?: string | null
           file_name?: string
           file_path?: string
@@ -311,11 +446,15 @@ export type Database = {
       }
       disciplinary_case_witnesses: {
         Row: {
+          active: boolean
           cargo: string | null
           case_id: string
           cpf: string | null
           created_at: string
           created_by: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           id: string
           nome: string
           observacoes: string | null
@@ -323,11 +462,15 @@ export type Database = {
           telefone: string | null
         }
         Insert: {
+          active?: boolean
           cargo?: string | null
           case_id: string
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           id?: string
           nome: string
           observacoes?: string | null
@@ -335,11 +478,15 @@ export type Database = {
           telefone?: string | null
         }
         Update: {
+          active?: boolean
           cargo?: string | null
           case_id?: string
           cpf?: string | null
           created_at?: string
           created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           id?: string
           nome?: string
           observacoes?: string | null
@@ -358,8 +505,12 @@ export type Database = {
       }
       disciplinary_cases: {
         Row: {
+          active: boolean
           company_id: string
           created_at: string
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           description: string
           employee_id: string
           final_decision: string | null
@@ -374,8 +525,12 @@ export type Database = {
           warning_id: string | null
         }
         Insert: {
+          active?: boolean
           company_id: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           description: string
           employee_id: string
           final_decision?: string | null
@@ -390,8 +545,12 @@ export type Database = {
           warning_id?: string | null
         }
         Update: {
+          active?: boolean
           company_id?: string
           created_at?: string
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           description?: string
           employee_id?: string
           final_decision?: string | null
@@ -421,17 +580,68 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "disciplinary_cases_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
             foreignKeyName: "disciplinary_cases_warning_id_fkey"
             columns: ["warning_id"]
             isOneToOne: false
             referencedRelation: "disciplinary_warnings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "disciplinary_cases_warning_id_fkey"
+            columns: ["warning_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_dashboard"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      disciplinary_print_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       disciplinary_warnings: {
         Row: {
           action_type: string
+          active: boolean
           city: string
           clt_article: string
           clt_subsections: string[]
@@ -439,6 +649,9 @@ export type Database = {
           conduct_description: string
           created_at: string
           created_by: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
           employee_cpf: string | null
           employee_name: string
           employee_role: string | null
@@ -459,6 +672,7 @@ export type Database = {
         }
         Insert: {
           action_type?: string
+          active?: boolean
           city?: string
           clt_article?: string
           clt_subsections?: string[]
@@ -466,6 +680,9 @@ export type Database = {
           conduct_description: string
           created_at?: string
           created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           employee_cpf?: string | null
           employee_name: string
           employee_role?: string | null
@@ -486,6 +703,7 @@ export type Database = {
         }
         Update: {
           action_type?: string
+          active?: boolean
           city?: string
           clt_article?: string
           clt_subsections?: string[]
@@ -493,6 +711,9 @@ export type Database = {
           conduct_description?: string
           created_at?: string
           created_by?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
           employee_cpf?: string | null
           employee_name?: string
           employee_role?: string | null
@@ -518,6 +739,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "colaboradores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
           },
           {
             foreignKeyName: "disciplinary_warnings_empresa_id_fkey"
@@ -564,6 +792,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      equipment_return_checklist: {
+        Row: {
+          case_id: string
+          completed: boolean
+          created_at: string
+          id: string
+          items: Json
+          observations: string | null
+          responsible_user_id: string | null
+          return_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_id: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          items?: Json
+          observations?: string | null
+          responsible_user_id?: string | null
+          return_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          items?: Json
+          observations?: string | null
+          responsible_user_id?: string | null
+          return_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_return_checklist_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: true
+            referencedRelation: "disciplinary_cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extras: {
         Row: {
@@ -724,11 +996,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "extras_colaborador_coberto_id_fkey"
+            columns: ["colaborador_coberto_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
             foreignKeyName: "extras_colaborador_id_fkey"
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "colaboradores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extras_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
           },
           {
             foreignKeyName: "extras_empresa_id_fkey"
@@ -978,6 +1264,13 @@ export type Database = {
             referencedRelation: "colaboradores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recibos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
         ]
       }
       recibos_itens: {
@@ -1072,9 +1365,83 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_disciplinary_dashboard: {
+        Row: {
+          action_type: string | null
+          active: boolean | null
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          cpf: string | null
+          created_by: string | null
+          empresa_id: string | null
+          empresa_nome: string | null
+          id: string | null
+          mes_ref: string | null
+          reason_nome: string | null
+          warning_date: string | null
+          warning_reason_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_warnings_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_warning_reason_id_fkey"
+            columns: ["warning_reason_id"]
+            isOneToOne: false
+            referencedRelation: "warning_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_disciplinary_stats_by_employee: {
+        Row: {
+          colaborador_id: string | null
+          cpf: string | null
+          empresa_id: string | null
+          nome: string | null
+          qtd_advertencias: number | null
+          qtd_justas_causas: number | null
+          qtd_orientacoes: number | null
+          qtd_suspensoes: number | null
+          ultima_advertencia: string | null
+          ultima_ocorrencia: string | null
+          ultima_suspensao: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "colaboradores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      get_recidivism_counts: {
+        Args: { _employee_id: string; _reason_id?: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

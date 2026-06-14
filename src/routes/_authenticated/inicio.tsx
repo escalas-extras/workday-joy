@@ -20,6 +20,8 @@ function Inicio() {
     { to: "/recibos", t: "Recibos", d: "Geração e cancelamento", icon: Receipt },
     { to: "/advertencias", t: "Medidas Disciplinares", d: "Advertências e suspensões", icon: AlertTriangle },
     { to: "/processos", t: "Processos Disciplinares", d: "Apuração e Justa Causa", icon: ShieldCheck },
+    { to: "/relatorios-disciplinares", t: "Rel. Disciplinar", d: "Dashboard + exportação", icon: ShieldCheck },
+    { to: "/pesquisa-disciplinar", t: "Pesquisa Disciplinar", d: "CPF, processo, testemunha", icon: AlertTriangle },
     { to: "/colaboradores", t: "Colaboradores", d: "Cadastro", icon: Users },
   ];
   return (

@@ -18,6 +18,7 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { gerarAdvertenciaPdf, type DisciplinaryActionType } from "@/lib/advertencia-pdf";
+import { RecidivismAlert } from "@/components/disciplinary/recidivism-alert";
 
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
@@ -376,6 +377,10 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
           <Label>Observações adicionais</Label>
           <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
         </div>
+
+        {colaboradorId && (
+          <div className="md:col-span-2"><RecidivismAlert employeeId={colaboradorId} reasonId={reasonId || null} /></div>
+        )}
 
         {colaboradorId && historico.length > 0 && (
           <div className="md:col-span-2">

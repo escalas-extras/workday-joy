@@ -36,6 +36,8 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/relatorios/financeiro", label: "Rel. Financeiro", icon: FileBarChart, roles: ["admin", "gestor_financeiro"] },
       { to: "/relatorios/faturamento", label: "Rel. Faturamento", icon: FileSpreadsheet, roles: ["admin", "gestor_financeiro"] },
       { to: "/relatorios/recibos", label: "Rel. Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
+      { to: "/relatorios-disciplinares", label: "Rel. Disciplinar", icon: ShieldCheck, roles: ["admin", "gestor_operacional", "supervisor"] },
+      { to: "/pesquisa-disciplinar", label: "Pesquisa Disciplinar", icon: AlertTriangle, roles: ["admin", "gestor_operacional", "supervisor"] },
     ],
   },
   {
