@@ -3,9 +3,10 @@ import { useMemo, useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Upload, FileText, Users as UsersIcon, ShieldCheck, Gavel, Download, Eye,
+  Plus, Upload, FileText, Users as UsersIcon, ShieldCheck, Gavel, Download, Eye,
   CheckCircle2, XCircle, History as HistoryIcon, AlertCircle, ChevronLeft, Loader2,
 } from "lucide-react";
+import { InactivateButton } from "@/components/disciplinary/inactivate-button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/app-shell";
