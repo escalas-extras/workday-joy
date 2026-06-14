@@ -14,6 +14,299 @@ export type Database = {
   }
   public: {
     Tables: {
+      almox_categorias: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+          tipo_tamanho: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ordem?: number
+          tipo_tamanho: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo_tamanho?: string
+        }
+        Relationships: []
+      }
+      almox_devolucoes: {
+        Row: {
+          condicao: string
+          created_at: string
+          data: string
+          entrega_id: string
+          id: string
+          observacao: string | null
+          quantidade: number
+          responsavel_id: string | null
+          retorna_estoque: boolean
+        }
+        Insert: {
+          condicao: string
+          created_at?: string
+          data?: string
+          entrega_id: string
+          id?: string
+          observacao?: string | null
+          quantidade: number
+          responsavel_id?: string | null
+          retorna_estoque?: boolean
+        }
+        Update: {
+          condicao?: string
+          created_at?: string
+          data?: string
+          entrega_id?: string
+          id?: string
+          observacao?: string | null
+          quantidade?: number
+          responsavel_id?: string | null
+          retorna_estoque?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almox_devolucoes_entrega_id_fkey"
+            columns: ["entrega_id"]
+            isOneToOne: false
+            referencedRelation: "almox_entregas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almox_entregas: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_entrega: string
+          empresa_id: string
+          id: string
+          item_id: string
+          observacao: string | null
+          quantidade: number
+          quantidade_devolvida: number
+          responsavel_id: string | null
+          status: string
+          tamanho: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_entrega?: string
+          empresa_id: string
+          id?: string
+          item_id: string
+          observacao?: string | null
+          quantidade: number
+          quantidade_devolvida?: number
+          responsavel_id?: string | null
+          status?: string
+          tamanho?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_entrega?: string
+          empresa_id?: string
+          id?: string
+          item_id?: string
+          observacao?: string | null
+          quantidade?: number
+          quantidade_devolvida?: number
+          responsavel_id?: string | null
+          status?: string
+          tamanho?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almox_entregas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almox_entregas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
+            foreignKeyName: "almox_entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almox_entregas_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almox_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almox_estoque: {
+        Row: {
+          ativo: boolean
+          empresa_id: string
+          id: string
+          item_id: string
+          quantidade_atual: number
+          quantidade_minima: number
+          tamanho: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          empresa_id: string
+          id?: string
+          item_id: string
+          quantidade_atual?: number
+          quantidade_minima?: number
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          empresa_id?: string
+          id?: string
+          item_id?: string
+          quantidade_atual?: number
+          quantidade_minima?: number
+          tamanho?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almox_estoque_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almox_estoque_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almox_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almox_itens: {
+        Row: {
+          ativo: boolean
+          categoria_id: string
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id: string
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almox_itens_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "almox_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almox_movimentacoes: {
+        Row: {
+          colaborador_id: string | null
+          created_at: string
+          empresa_id: string
+          entrega_id: string | null
+          id: string
+          item_id: string
+          motivo: string
+          observacao: string | null
+          quantidade: number
+          tamanho: string | null
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          colaborador_id?: string | null
+          created_at?: string
+          empresa_id: string
+          entrega_id?: string | null
+          id?: string
+          item_id: string
+          motivo: string
+          observacao?: string | null
+          quantidade: number
+          tamanho?: string | null
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          colaborador_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          entrega_id?: string | null
+          id?: string
+          item_id?: string
+          motivo?: string
+          observacao?: string | null
+          quantidade?: number
+          tamanho?: string | null
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almox_movimentacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almox_movimentacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "v_disciplinary_stats_by_employee"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
+            foreignKeyName: "almox_movimentacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almox_movimentacoes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almox_itens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_trail: {
         Row: {
           action: string
@@ -1438,6 +1731,20 @@ export type Database = {
       }
     }
     Functions: {
+      almox_registrar_movimentacao: {
+        Args: {
+          p_colaborador_id?: string
+          p_empresa_id: string
+          p_entrega_id?: string
+          p_item_id: string
+          p_motivo: string
+          p_observacao?: string
+          p_quantidade: number
+          p_tamanho: string
+          p_tipo: string
+        }
+        Returns: string
+      }
       get_recidivism_counts: {
         Args: { _employee_id: string; _reason_id?: string }
         Returns: Json
