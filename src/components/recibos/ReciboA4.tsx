@@ -69,10 +69,21 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             ({valorPorExtenso(r.valor_total)})
           </p>
           <div className="mt-1 space-y-0.5 text-[9px]">
-            <p>
-              <span className="font-semibold">Ref.: </span>
-              {semanaDescricao(r.semana_ref)}
-            </p>
+            {(() => {
+              const s = semanaDoMes(r.semana_ref);
+              return (
+                <>
+                  <p>
+                    <span className="font-semibold">Semana Ref.: </span>
+                    {s.label}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Período: </span>
+                    {s.periodo}
+                  </p>
+                </>
+              );
+            })()}
             <p className="truncate">
               <span className="font-semibold">Colaborador: </span>
               {r.colaborador}
