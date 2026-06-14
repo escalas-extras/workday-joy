@@ -38,6 +38,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/relatorios/recibos", label: "Rel. Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
       { to: "/relatorios-disciplinares", label: "Rel. Disciplinar", icon: ShieldCheck, roles: ["admin", "gestor_operacional", "supervisor"] },
       { to: "/pesquisa-disciplinar", label: "Pesquisa Disciplinar", icon: AlertTriangle, roles: ["admin", "gestor_operacional", "supervisor"] },
+      { to: "/inteligencia-disciplinar", label: "Inteligência Disciplinar", icon: ShieldCheck, roles: ["admin", "gestor_operacional", "supervisor"] },
     ],
   },
   {
