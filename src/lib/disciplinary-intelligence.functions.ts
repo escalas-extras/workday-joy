@@ -174,9 +174,13 @@ export const getDisciplinaryIntel = createServerFn({ method: "POST" })
       const eRows = rows.filter((r) => r.colaborador_id === eid);
       const adv180 = eRows.filter((r) => r.action_type === "advertencia_escrita" && days(r.warning_date as string) <= 180).length;
       const susp365 = eRows.filter((r) => r.action_type === "suspensao" && days(r.warning_date as string) <= 365).length;
+      const jc365 = eRows.filter((r) => r.action_type === "justa_causa" && days(r.warning_date as string) <= 365).length;
       if (adv180 >= 3) alerts.push({ type: "advertencias_180", severity: "critical", message: `${v.nome}: ${adv180} advertências em 180 dias`, entity_id: eid });
       if (susp365 >= 2) alerts.push({ type: "suspensoes_365", severity: "critical", message: `${v.nome}: ${susp365} suspensões em 365 dias`, entity_id: eid });
+      if (jc365 >= 1) alerts.push({ type: "justa_causa", severity: "critical", message: `${v.nome}: Justa Causa registrada no último ano`, entity_id: eid });
     }
+    const jcCases = cases.filter((c) => c.status === "convertido_justa_causa").length;
+    if (jcCases > 0) alerts.push({ type: "processos_jc", severity: "critical", message: `${jcCases} processo(s) convertido(s) em Justa Causa no período` });
     for (const c of cases) {
       if (c.status === "arquivado" || c.status === "convertido_justa_causa" || c.status === "aprovado") continue;
       const d = days(c.updated_at as string);
