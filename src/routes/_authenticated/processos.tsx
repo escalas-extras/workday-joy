@@ -20,10 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/searchable-select";
 import { EquipmentChecklist } from "@/components/disciplinary/equipment-checklist";
+import { EvidenceGallery } from "@/components/disciplinary/evidence-gallery";
 import { useServerFn } from "@tanstack/react-start";
 import { getDossieData } from "@/lib/dossie.functions";
 import { gerarDossiePdf } from "@/lib/dossie-pdf";
 import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+import { decodeMeta } from "@/lib/evidence-meta";
 
 function DossieTab({ caseId }: { caseId: string }) {
   const fn = useServerFn(getDossieData);
@@ -368,7 +370,7 @@ function CaseDetail({
       <Tabs defaultValue="dados">
         <TabsList className="flex-wrap">
           <TabsTrigger value="dados"><FileText className="h-4 w-4 mr-1" />Dados</TabsTrigger>
-          <TabsTrigger value="evid"><Upload className="h-4 w-4 mr-1" />Evidências ({evidences.data?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="evid"><Upload className="h-4 w-4 mr-1" />Evidências Visuais ({evidences.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="test"><UsersIcon className="h-4 w-4 mr-1" />Testemunhas ({witnesses.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="hist"><HistoryIcon className="h-4 w-4 mr-1" />Histórico ({histWarnings.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="aprov"><ShieldCheck className="h-4 w-4 mr-1" />Aprovações</TabsTrigger>
@@ -382,8 +384,9 @@ function CaseDetail({
         </TabsContent>
 
         <TabsContent value="evid">
-          <EvidencesTab caseId={caseRow.id} list={evidences.data ?? []} loading={evidences.isLoading} userId={userId}
-            canWrite={isAdmin || isGestorOp || isSupervisor} onChanged={reload} />
+          <EvidenceGallery caseId={caseRow.id} userId={userId}
+            canWrite={isAdmin || isGestorOp || isSupervisor}
+            onCountChange={() => reload()} />
         </TabsContent>
 
         <TabsContent value="test">
