@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
-import { getDashboardData } from "@/lib/disciplinary-audit.functions";
+import { getDashboardData, logPrintAction } from "@/lib/disciplinary-audit.functions";
 import { exportarExcel } from "@/lib/relatorios-export";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
