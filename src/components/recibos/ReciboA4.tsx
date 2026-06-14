@@ -34,7 +34,8 @@ function addDays(d: string, n: number): string {
 
 function semanaDoMes(semana_ref: string): { label: string; periodo: string } {
   if (!semana_ref) return { label: "", periodo: "" };
-  const quartaReferencia = addDays(semana_ref, 6);
+  // semana_ref é a sexta-feira de início; quarta de referência = sexta + 5 dias
+  const quartaReferencia = addDays(semana_ref, 5);
   const [y, m, d] = quartaReferencia.split("-").map(Number);
   const wed = new Date(Date.UTC(y, m - 1, d));
   const wDay = wed.getUTCDate();
@@ -42,7 +43,8 @@ function semanaDoMes(semana_ref: string): { label: string; periodo: string } {
   const wYear = wed.getUTCFullYear();
   const ord = ORDINAIS[Math.min(Math.ceil(wDay / 7), 5) - 1] ?? `${Math.ceil(wDay / 7)}ª`;
   const label = `${ord} Semana de ${MESES[wMonth]}/${wYear}`;
-  const fim = addDays(semana_ref, 8);
+  // Período: sexta a quinta da semana seguinte (7 dias)
+  const fim = addDays(semana_ref, 6);
   return { label, periodo: `${fmtDate(semana_ref)} a ${fmtDate(fim)}` };
 }
 

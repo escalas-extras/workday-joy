@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Normaliza qualquer data para a quinta-feira de referência da semana (igual ao backend semana_ref_de)
+// Normaliza qualquer data para a sexta-feira de referência da semana (igual ao backend semana_ref_de)
 function normalizaSemanaRef(input: string): string {
   const [y, m, d] = input.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   const dow = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay(); // ISO: seg=1..dom=7
-  const diff = (dow - 4 + 7) % 7; // quinta=4
+  const diff = (dow - 5 + 7) % 7; // sexta=5
   dt.setUTCDate(dt.getUTCDate() - diff);
   return dt.toISOString().slice(0, 10);
 }
