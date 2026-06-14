@@ -221,14 +221,14 @@ function Page() {
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap">
-        <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length}>
+        <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length || preparandoPrint}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Selecionados ({selectedIds.length})
         </Button>
         <Button size="sm" variant="outline" onClick={() => handlePdf(selectedIds)} disabled={!selectedIds.length}>
           <FileDown className="h-4 w-4 mr-1" />PDF Selecionados
         </Button>
         <div className="w-px bg-border mx-1" />
-        <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
+        <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length || preparandoPrint}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Filtrados ({filtrados.length})
         </Button>
         <Button size="sm" onClick={() => handlePdf(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
@@ -269,7 +269,7 @@ function Page() {
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => navigate({ to: "/recibos/imprimir", search: { ids: r.id, action: "preview" } })} title="Visualizar"><Eye className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} title="Imprimir"><Printer className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} disabled={preparandoPrint} title="Imprimir"><Printer className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => handleDesarquivar(r.id)} title="Desarquivar"><Undo2 className="h-3 w-3" /></Button>
                   </div>
