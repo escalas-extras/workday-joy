@@ -42,6 +42,11 @@ function Page() {
   const pendFn = useServerFn(listPendenciasDevolucao);
   const upMinFn = useServerFn(upsertEstoqueMinimo);
   const regFn = useServerFn(registrarMovimentacao);
+  const importFn = useServerFn(importarEstoqueExcel);
+
+  const [importPreview, setImportPreview] = useState<Array<{ empresa: string; item: string; tamanho?: string; quantidade_atual?: number; quantidade_minima?: number }> | null>(null);
+  const [importResult, setImportResult] = useState<{ ok: number; total: number; errors: { linha: number; motivo: string }[] } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const [empresaSel, setEmpresaSel] = useState<string>("");
   const [filtroBaixo, setFiltroBaixo] = useState(false);
