@@ -20,6 +20,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { exportarExcel, exportarPdf } from "@/lib/relatorios-export";
 import { FileSpreadsheet, FileText, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { SearchableSelect } from "@/components/searchable-select";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
@@ -66,10 +68,23 @@ function Page() {
     item_id: "", tamanho: "" as string,
     tipo: "entrada" as "entrada" | "saida",
     motivo: "compra", quantidade: 1, observacao: "",
+    colaborador_id: "" as string,
   });
   const itemSel = useMemo(() => base.data?.itens.find((i) => i.id === mov.item_id), [base.data, mov.item_id]);
   const catSel = useMemo(() => base.data?.categorias.find((c) => c.id === itemSel?.categoria_id), [base.data, itemSel]);
   const tamanhosDisp = catSel ? TAMANHOS[catSel.tipo_tamanho] ?? [] : [];
+
+  const colabs = useQuery({
+    queryKey: ["almox-colabs-ativos"],
+    queryFn: async () => ((await supabase.from("colaboradores")
+      .select("id,nome,matricula,cpf").eq("situacao", "ativo").order("nome")).data ?? []),
+  });
+  const colabOptions = useMemo(() => (colabs.data ?? []).map((c) => ({
+    value: c.id,
+    label: c.matricula ? `${c.matricula} - ${c.nome}` : c.nome,
+    keywords: `${c.nome} ${c.matricula ?? ""} ${c.cpf ?? ""}`,
+  })), [colabs.data]);
+  const colabObrigatorio = mov.motivo === "entrega_colaborador" || mov.motivo === "devolucao";
 
   async function salvarMin(row: { item_id: string; tamanho: string | null; quantidade_minima: number }) {
     const v = prompt(`Quantidade mínima:`, String(row.quantidade_minima));
@@ -86,15 +101,19 @@ function Page() {
   async function salvarMov(e: React.FormEvent) {
     e.preventDefault();
     if (!mov.item_id || !mov.quantidade) { toast.error("Preencha item e quantidade"); return; }
+    if (colabObrigatorio && !mov.colaborador_id) {
+      toast.error("Selecione o colaborador para este motivo"); return;
+    }
     try {
       await regFn({ data: {
         item_id: mov.item_id,
         tamanho: tamanhosDisp.length ? mov.tamanho || null : null,
         tipo: mov.tipo, motivo: mov.motivo, quantidade: mov.quantidade,
         observacao: mov.observacao || null,
+        colaborador_id: mov.colaborador_id || null,
       }});
       toast.success("Movimentação registrada");
-      setMov({ ...mov, quantidade: 1, observacao: "" });
+      setMov({ ...mov, quantidade: 1, observacao: "", colaborador_id: "" });
       qc.invalidateQueries({ queryKey: ["almox-estoque"] });
       qc.invalidateQueries({ queryKey: ["almox-movs"] });
     } catch (err) { toast.error((err as Error).message); }
@@ -298,6 +317,19 @@ function Page() {
                     <Label>Quantidade</Label>
                     <Input type="number" min={1} value={mov.quantidade}
                       onChange={(e) => setMov({ ...mov, quantidade: parseInt(e.target.value || "1", 10) })} />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Label>Colaborador {colabObrigatorio ? "*" : "(opcional)"}</Label>
+                    <SearchableSelect
+                      options={colabOptions}
+                      value={mov.colaborador_id}
+                      onChange={(v) => setMov({ ...mov, colaborador_id: v })}
+                      placeholder="Selecione um colaborador (opcional)"
+                      searchPlaceholder="Digite nome, matrícula ou CPF..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vincule a movimentação a um colaborador para manter o histórico individual.
+                    </p>
                   </div>
                   <div className="md:col-span-3">
                     <Label>Observação</Label>
