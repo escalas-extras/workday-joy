@@ -15,6 +15,7 @@ export interface AdvertenciaData {
   empresaRazaoSocial: string;
   empresaCnpj: string;
   observacoes?: string;
+  hasEvidences?: boolean;
   // Suspensão
   suspensionDays?: number | null;
   suspensionStart?: string | null; // dd/mm/yyyy
@@ -135,6 +136,15 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   const reinLines = doc.splitTextToSize(reincidencia, contentW);
   doc.text(reinLines, margin, y, { align: "justify", maxWidth: contentW });
   y += reinLines.length * 5.2 + 4;
+
+  if (data.hasEvidences) {
+    doc.setFont("helvetica", "italic");
+    const ev = "Existem evidências eletrônicas vinculadas ao presente registro disciplinar.";
+    const evLines = doc.splitTextToSize(ev, contentW);
+    doc.text(evLines, margin, y, { align: "justify", maxWidth: contentW });
+    y += evLines.length * 5.2 + 4;
+    doc.setFont("helvetica", "normal");
+  }
 
   if (data.observacoes && data.observacoes.trim()) {
     doc.setFont("helvetica", "italic");
