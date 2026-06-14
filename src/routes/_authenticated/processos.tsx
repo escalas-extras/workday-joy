@@ -886,7 +886,7 @@ function JustaCausaTab({
       .eq("id", caseRow.id);
 
     await gerarJustaCausaPdf(data, filename);
-    try { await log({ data: { entity_type: "justa_causa", entity_id: warn!.id, action: "generate_pdf" as unknown as "download" } }); } catch { /* noop */ }
+    try { await log({ data: { entity_type: "justa_causa", entity_id: warn!.id, action: "download" } }); } catch { /* noop */ }
     setGenerating(false);
     toast.success("Justa Causa emitida e registrada.");
     onGenerated();
