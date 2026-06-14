@@ -203,3 +203,127 @@ export const listPendenciasDevolucao = createServerFn({ method: "GET" })
     if (error) throw error;
     return data ?? [];
   });
+
+// ===== Importação de estoque via planilha =====
+export interface ImportEstoqueRow {
+  empresa: string;
+  item: string;
+  tamanho?: string | null;
+  quantidade_atual?: number | null;
+  quantidade_minima?: number | null;
+}
+
+export const importarEstoqueExcel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { rows: ImportEstoqueRow[] }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isGestor } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_operacional" });
+    if (!isAdmin && !isGestor) throw new Error("Sem permissão para importar estoque.");
+
+    const [{ data: empresas }, { data: itens }] = await Promise.all([
+      supabase.from("empresas").select("id,nome"),
+      supabase.from("almox_itens").select("id,nome").eq("ativo", true),
+    ]);
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    const empMap = new Map((empresas ?? []).map((e) => [norm(e.nome), e.id]));
+    const itemMap = new Map((itens ?? []).map((i) => [norm(i.nome), i.id]));
+
+    const errors: { linha: number; motivo: string }[] = [];
+    let ok = 0;
+    for (let i = 0; i < data.rows.length; i++) {
+      const r = data.rows[i];
+      const linha = i + 2; // header
+      try {
+        if (!r.empresa || !r.item) { errors.push({ linha, motivo: "Empresa ou item vazios" }); continue; }
+        const empresa_id = empMap.get(norm(r.empresa));
+        const item_id = itemMap.get(norm(r.item));
+        if (!empresa_id) { errors.push({ linha, motivo: `Empresa "${r.empresa}" não encontrada` }); continue; }
+        if (!item_id) { errors.push({ linha, motivo: `Item "${r.item}" não encontrado` }); continue; }
+        const tamanho = r.tamanho?.toString().trim() || null;
+        const qtdAtual = Number(r.quantidade_atual ?? 0);
+        const qtdMin = r.quantidade_minima != null ? Number(r.quantidade_minima) : null;
+        if (!Number.isFinite(qtdAtual) || qtdAtual < 0) { errors.push({ linha, motivo: "Quantidade inválida" }); continue; }
+
+        // estoque atual
+        const { data: existing } = await supabase.from("almox_estoque")
+          .select("id, quantidade_atual, quantidade_minima")
+          .eq("empresa_id", empresa_id).eq("item_id", item_id)
+          .eq("tamanho", tamanho ?? "").maybeSingle();
+        const atualAgora = existing?.quantidade_atual ?? 0;
+        const delta = qtdAtual - atualAgora;
+        if (delta !== 0) {
+          const { error: mErr } = await supabase.rpc("almox_registrar_movimentacao", {
+            p_empresa_id: empresa_id, p_item_id: item_id, p_tamanho: tamanho ?? undefined,
+            p_tipo: delta > 0 ? "entrada" : "saida",
+            p_motivo: delta > 0 ? "ajuste_entrada" : "ajuste_saida",
+            p_quantidade: Math.abs(delta),
+            p_colaborador_id: undefined, p_entrega_id: undefined,
+            p_observacao: "Importação inicial via planilha",
+          } as never);
+          if (mErr) { errors.push({ linha, motivo: mErr.message }); continue; }
+        } else if (!existing) {
+          // cria linha zerada para registrar o mínimo
+          await supabase.from("almox_estoque").insert({ empresa_id, item_id, tamanho });
+        }
+        if (qtdMin != null && Number.isFinite(qtdMin) && qtdMin >= 0) {
+          await supabase.from("almox_estoque").update({ quantidade_minima: qtdMin })
+            .eq("empresa_id", empresa_id).eq("item_id", item_id).eq("tamanho", tamanho ?? "");
+        }
+        ok++;
+      } catch (e) {
+        errors.push({ linha, motivo: (e as Error).message });
+      }
+    }
+    return { ok, total: data.rows.length, errors };
+  });
+
+// ===== Desligamento integrado com almoxarifado =====
+export const verificarPendenciasColaborador = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { colaborador_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const { data: rows, error } = await supabase.from("almox_entregas")
+      .select("id, data_entrega, tamanho, quantidade, quantidade_devolvida, status, almox_itens(nome), empresas(nome)")
+      .eq("colaborador_id", data.colaborador_id)
+      .in("status", ["em_uso", "devolvido_parcial"])
+      .order("data_entrega", { ascending: true });
+    if (error) throw error;
+    return rows ?? [];
+  });
+
+export const desligarColaborador = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { colaborador_id: string; justificativa: string; forcar?: boolean }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (!data.justificativa || data.justificativa.trim().length < 5)
+      throw new Error("Informe uma justificativa de desligamento (mínimo 5 caracteres).");
+    const { data: pend, error: pErr } = await supabase.from("almox_entregas")
+      .select("id, quantidade, quantidade_devolvida, almox_itens(nome)")
+      .eq("colaborador_id", data.colaborador_id)
+      .in("status", ["em_uso", "devolvido_parcial"]);
+    if (pErr) throw pErr;
+    const pendentes = pend ?? [];
+    if (pendentes.length > 0 && !data.forcar) {
+      return { ok: false, pendencias: pendentes };
+    }
+    const { error: uErr } = await supabase.from("colaboradores")
+      .update({ situacao: "inativo" }).eq("id", data.colaborador_id);
+    if (uErr) throw uErr;
+    // trilha simples na tabela auditoria
+    await supabase.from("auditoria").insert({
+      acao: "desligamento_colaborador",
+      tabela: "colaboradores",
+      registro_id: data.colaborador_id,
+      usuario_id: userId,
+      detalhes: {
+        justificativa: data.justificativa.trim(),
+        pendencias_almoxarifado: pendentes.length,
+        forcado: !!data.forcar,
+      } as never,
+    } as never);
+    return { ok: true, pendencias: pendentes };
+  });
