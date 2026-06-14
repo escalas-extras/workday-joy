@@ -52,7 +52,7 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
   doc.line(x + colW, y, x + colW, y + h);
 
   // ============ ESQUERDA ============
-  const cy = y + 4.5;
+  let cy = y + 4.5;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(...NAVY);

@@ -131,7 +131,7 @@ function Page() {
         headStyles: { fillColor: [6, 11, 90], textColor: 255, fontStyle: "bold", fontSize: 10 },
       });
       autoTable(doc, {
-        startY: (doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY,
+        startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY,
         head: [cols.map((c) => c.label)],
         body: g.rows.map((r) => cols.map((c) => String((r as Record<string, unknown>)[c.key] ?? ""))),
         foot: [["", "", "", "", "Subtotal", formatBRL(g.total), ""]],
@@ -140,7 +140,7 @@ function Page() {
         footStyles: { fillColor: [239, 246, 255], textColor: 0, fontStyle: "bold" },
         columnStyles: Object.fromEntries(cols.map((c, i) => [i, { halign: c.align ?? "left", cellWidth: c.width }])),
       });
-      y = (doc as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4;
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4;
       if (y > 180) { doc.addPage(); y = 14; }
     }
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
