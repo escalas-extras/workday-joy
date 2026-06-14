@@ -112,17 +112,25 @@ function Page() {
     return true;
   }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
 
+  const printQuery = useQuery({
+    queryKey: ["recibos-arquivados-print", filtrados.map((r) => r.id).join(",")],
+    enabled: filtrados.length > 0,
+    staleTime: 30000,
+    queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
+  });
+
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
+  const preparandoPrint = printQuery.isLoading || printQuery.isFetching;
 
-  const handleImprimir = async (ids: string[]) => {
+  const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
-    try {
-      const views = await loadReciboViews(ids);
-      flushSync(() => setPrintViews(views));
-      window.focus();
-      window.print();
-    } catch (e) { toast.error((e as Error).message); }
+    const byId = new Map((printQuery.data ?? []).map((r) => [r.id, r]));
+    const views = ids.map((id) => byId.get(id)).filter(Boolean) as ReciboView[];
+    if (views.length !== ids.length) return toast.error("Aguarde os recibos carregarem para impressão");
+    flushSync(() => setPrintViews(views));
+    window.focus();
+    window.print();
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
