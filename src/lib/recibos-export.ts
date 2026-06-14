@@ -97,7 +97,10 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text(`Ref.: ${semanaDescricao(r.semana_ref)}`, x + 3, cy);
+  const s = semanaDoMes(r.semana_ref);
+  doc.text(`Semana Ref.: ${s.label}`, x + 3, cy);
+  cy += 3;
+  doc.text(`Período: ${s.periodo}`, x + 3, cy);
   cy += 3;
   doc.text(`Colaborador: ${r.colaborador}`, x + 3, cy);
   cy += 3;
