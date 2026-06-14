@@ -1,0 +1,1 @@
+ALTER TYPE public.situacao_servico ADD VALUE IF NOT EXISTS 'falta';
