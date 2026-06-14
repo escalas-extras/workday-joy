@@ -10,7 +10,7 @@ type AuditAction =
   | "create" | "update" | "delete" | "deactivate" | "view" | "print"
   | "download" | "reprint" | "approve" | "reject" | "generate_pdf" | "upload";
 
-type PrintEntity = "warning" | "case" | "justa_causa" | "dossie" | "suspensao" | "orientacao";
+type PrintEntity = "warning" | "case" | "justa_causa" | "dossie" | "suspensao" | "orientacao" | "advertencia" | "relatorio";
 type PrintAction = "view" | "download" | "print" | "reprint";
 
 function captureMeta() {
