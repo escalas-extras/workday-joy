@@ -554,15 +554,6 @@ function EvidencesTab({
     window.open(data.signedUrl, "_blank");
   }
 
-  async function remover(ev: Evidence) {
-    if (!confirm(`Remover ${ev.file_name}?`)) return;
-    const { error: sErr } = await supabase.storage.from("disciplinary-evidences").remove([ev.file_path]);
-    if (sErr) return toast.error(sErr.message);
-    const { error } = await supabase.from("disciplinary_case_evidences").delete().eq("id", ev.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removida.");
-    onChanged();
-  }
 
   return (
     <Card>
