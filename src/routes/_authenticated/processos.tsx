@@ -343,6 +343,8 @@ function CaseDetail({
           <TabsTrigger value="hist"><HistoryIcon className="h-4 w-4 mr-1" />Histórico ({histWarnings.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="aprov"><ShieldCheck className="h-4 w-4 mr-1" />Aprovações</TabsTrigger>
           <TabsTrigger value="jc"><Gavel className="h-4 w-4 mr-1" />Justa Causa</TabsTrigger>
+          <TabsTrigger value="equip"><Upload className="h-4 w-4 mr-1" />Equipamentos</TabsTrigger>
+          <TabsTrigger value="dossie"><FileText className="h-4 w-4 mr-1" />Dossiê</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
