@@ -14,6 +14,7 @@ import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_R
 import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Ban } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/extras")({ component: Page });
