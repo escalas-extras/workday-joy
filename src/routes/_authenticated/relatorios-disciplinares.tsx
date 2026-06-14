@@ -100,6 +100,7 @@ function Page() {
       styles: { fontSize: 8 }, headStyles: { fillColor: [6, 11, 90] },
     });
     doc.save(`relatorio_disciplinar_${new Date().toISOString().slice(0, 10)}.pdf`);
+    try { await log({ data: { entity_type: "relatorio", entity_id: relatorioId, action: "download" } }); } catch { /* noop */ }
   }
 
   return (
