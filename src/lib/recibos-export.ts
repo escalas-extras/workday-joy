@@ -25,18 +25,15 @@ function addDays(d: string, n: number): string {
 
 function semanaDoMes(semana_ref: string): { label: string; periodo: string } {
   if (!semana_ref) return { label: "", periodo: "" };
-  const [y, m, d] = semana_ref.split("-").map(Number);
-  const base = new Date(Date.UTC(y, m - 1, d));
-  const dow = base.getUTCDay();
-  const diffToMon = (dow + 6) % 7;
-  const wed = new Date(base);
-  wed.setUTCDate(base.getUTCDate() - diffToMon + 2);
+  const quartaReferencia = addDays(semana_ref, 6);
+  const [y, m, d] = quartaReferencia.split("-").map(Number);
+  const wed = new Date(Date.UTC(y, m - 1, d));
   const wDay = wed.getUTCDate();
   const wMonth = wed.getUTCMonth();
   const wYear = wed.getUTCFullYear();
   const ord = ORDINAIS[Math.min(Math.ceil(wDay / 7), 5) - 1] ?? `${Math.ceil(wDay / 7)}ª`;
   const label = `${ord} Semana de ${MESES[wMonth]}/${wYear}`;
-  const fim = addDays(semana_ref, 6);
+  const fim = addDays(semana_ref, 8);
   return { label, periodo: `${fmtDate(semana_ref)} a ${fmtDate(fim)}` };
 }
 
