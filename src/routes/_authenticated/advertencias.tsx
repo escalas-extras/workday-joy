@@ -19,6 +19,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { gerarAdvertenciaPdf, type DisciplinaryActionType } from "@/lib/advertencia-pdf";
 import { RecidivismAlert } from "@/components/disciplinary/recidivism-alert";
+import { InactivateButton } from "@/components/disciplinary/inactivate-button";
+import { useServerFn } from "@tanstack/react-start";
+import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+
+type PrintEntity = "advertencia" | "suspensao" | "orientacao" | "justa_causa" | "warning";
+function entityFor(a: DisciplinaryActionType): PrintEntity {
+  if (a === "advertencia_escrita") return "advertencia";
+  if (a === "suspensao") return "suspensao";
+  if (a === "orientacao_verbal") return "orientacao";
+  if (a === "justa_causa") return "justa_causa";
+  return "warning";
+}
 
 export const Route = createFileRoute("/_authenticated/advertencias")({ component: Page });
 
