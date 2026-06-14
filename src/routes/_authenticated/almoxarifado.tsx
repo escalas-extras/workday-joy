@@ -15,11 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   listAlmoxBase, listEstoque, upsertEstoqueMinimo, registrarMovimentacao,
-  listMovimentacoes, listPendenciasDevolucao,
+  listMovimentacoes, listPendenciasDevolucao, importarEstoqueExcel,
 } from "@/lib/almoxarifado.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { exportarExcel } from "@/lib/relatorios-export";
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
 
@@ -41,6 +42,11 @@ function Page() {
   const pendFn = useServerFn(listPendenciasDevolucao);
   const upMinFn = useServerFn(upsertEstoqueMinimo);
   const regFn = useServerFn(registrarMovimentacao);
+  const importFn = useServerFn(importarEstoqueExcel);
+
+  const [importPreview, setImportPreview] = useState<Array<{ empresa: string; item: string; tamanho?: string; quantidade_atual?: number; quantidade_minima?: number }> | null>(null);
+  const [importResult, setImportResult] = useState<{ ok: number; total: number; errors: { linha: number; motivo: string }[] } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const [empresaSel, setEmpresaSel] = useState<string>("");
   const [filtroBaixo, setFiltroBaixo] = useState(false);
@@ -138,6 +144,7 @@ function Page() {
           {canWrite && <TabsTrigger value="movimentar">Movimentar</TabsTrigger>}
           <TabsTrigger value="movs">Movimentações</TabsTrigger>
           <TabsTrigger value="pendencias">Pendências</TabsTrigger>
+          {canWrite && <TabsTrigger value="importar">Importar Excel</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="estoque" className="space-y-3 pt-2">
@@ -340,6 +347,131 @@ function Page() {
             </Table>
           </CardContent></Card>
         </TabsContent>
+
+        {canWrite && (
+          <TabsContent value="importar" className="pt-2 space-y-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Importar estoque atual via planilha</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>A planilha deve conter as colunas (linha 1 com cabeçalho):</p>
+                  <code className="block bg-muted p-2 rounded">empresa | item | tamanho | quantidade_atual | quantidade_minima</code>
+                  <p>Os nomes de <b>empresa</b> e <b>item</b> são comparados sem distinção de maiúsculas/acentos. Itens não cadastrados são reportados como erro.</p>
+                  <p>Diferenças entre a quantidade da planilha e o estoque atual são registradas como ajustes em <b>Movimentações</b> (motivo: <code>ajuste_entrada</code> / <code>ajuste_saida</code>).</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const exemplo = [
+                      { empresa: "Nome da empresa", item: "Camisa Polo", tamanho: "M", quantidade_atual: 10, quantidade_minima: 5 },
+                    ];
+                    exportarExcel("modelo_importacao_estoque.xlsx", "Estoque",
+                      [
+                        { key: "empresa", label: "empresa" }, { key: "item", label: "item" },
+                        { key: "tamanho", label: "tamanho" }, { key: "quantidade_atual", label: "quantidade_atual" },
+                        { key: "quantidade_minima", label: "quantidade_minima" },
+                      ], exemplo);
+                  }}>
+                    <FileSpreadsheet className="w-4 h-4 mr-1" />Baixar modelo
+                  </Button>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const buf = await file.arrayBuffer();
+                        const wb = XLSX.read(buf);
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
+                        const rows = json.map((r) => {
+                          const lk = (k: string) => {
+                            const key = Object.keys(r).find((kk) => kk.toLowerCase().trim() === k);
+                            return key ? r[key] : undefined;
+                          };
+                          return {
+                            empresa: String(lk("empresa") ?? "").trim(),
+                            item: String(lk("item") ?? "").trim(),
+                            tamanho: lk("tamanho") != null ? String(lk("tamanho")).trim() : "",
+                            quantidade_atual: Number(lk("quantidade_atual") ?? 0),
+                            quantidade_minima: lk("quantidade_minima") !== "" && lk("quantidade_minima") != null ? Number(lk("quantidade_minima")) : undefined,
+                          };
+                        }).filter((r) => r.empresa || r.item);
+                        setImportPreview(rows);
+                        setImportResult(null);
+                      } catch (err) {
+                        toast.error("Erro ao ler arquivo: " + (err as Error).message);
+                      } finally {
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                </div>
+
+                {importPreview && (
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Pré-visualização: {importPreview.length} linha(s)</div>
+                    <div className="max-h-64 overflow-auto border rounded">
+                      <Table>
+                        <TableHeader><TableRow>
+                          <TableHead>Empresa</TableHead><TableHead>Item</TableHead><TableHead>Tam.</TableHead>
+                          <TableHead className="text-right">Qtd Atual</TableHead><TableHead className="text-right">Mínimo</TableHead>
+                        </TableRow></TableHeader>
+                        <TableBody>
+                          {importPreview.slice(0, 50).map((r, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="text-xs">{r.empresa}</TableCell>
+                              <TableCell className="text-xs">{r.item}</TableCell>
+                              <TableCell className="text-xs">{r.tamanho || "—"}</TableCell>
+                              <TableCell className="text-right">{r.quantidade_atual ?? 0}</TableCell>
+                              <TableCell className="text-right">{r.quantidade_minima ?? "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => { setImportPreview(null); setImportResult(null); }}>Cancelar</Button>
+                      <Button disabled={importing} onClick={async () => {
+                        setImporting(true);
+                        try {
+                          const res = await importFn({ data: { rows: importPreview } });
+                          setImportResult(res);
+                          toast.success(`Importação concluída: ${res.ok}/${res.total}`);
+                          qc.invalidateQueries({ queryKey: ["almox-estoque"] });
+                          qc.invalidateQueries({ queryKey: ["almox-movs"] });
+                        } catch (err) {
+                          toast.error((err as Error).message);
+                        } finally { setImporting(false); }
+                      }}>
+                        <Upload className="w-4 h-4 mr-1" />Confirmar importação
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {importResult && (
+                  <div className="border rounded-md p-3 space-y-2">
+                    <p className="text-sm">
+                      <Badge>{importResult.ok} ok</Badge>{" "}
+                      <Badge variant="destructive">{importResult.errors.length} erro(s)</Badge>
+                      {" "}de {importResult.total}
+                    </p>
+                    {importResult.errors.length > 0 && (
+                      <div className="max-h-40 overflow-auto text-xs space-y-1">
+                        {importResult.errors.map((e, i) => (
+                          <div key={i}>Linha {e.linha}: <span className="text-red-600">{e.motivo}</span></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

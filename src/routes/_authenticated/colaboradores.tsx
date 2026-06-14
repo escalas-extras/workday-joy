@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { DesligarColaboradorButton } from "@/components/almoxarifado/desligar-colaborador";
 
 export const Route = createFileRoute("/_authenticated/colaboradores")({ component: Page });
 
@@ -30,6 +31,7 @@ function Page() {
         { key: "empresa_id", label: "Empresa", render: (r) => empMap.get(r.empresa_id) ?? "—" },
         { key: "funcao_id", label: "Função", render: (r) => funMap.get(r.funcao_id) ?? "—" },
         { key: "situacao", label: "Situação", render: (r) => <Badge variant={r.situacao === "ativo" ? "default" : "secondary"}>{r.situacao}</Badge> },
+        { key: "_desligar", label: "Desligamento", render: (r) => <DesligarColaboradorButton colaboradorId={r.id} situacao={r.situacao} /> },
       ]}
       renderForm={(v, set) => (
         <>
