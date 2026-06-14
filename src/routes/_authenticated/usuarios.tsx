@@ -118,6 +118,28 @@ function Page() {
                         <Button size="icon" variant="ghost" title="Enviar redefinição de senha" onClick={() => mPwd.mutate({ userId: u.id, email: u.email })}><KeyRound className="h-3 w-3" /></Button>
                       )}
                       <Button size="icon" variant="ghost" title="Ativar/Desativar" onClick={() => mAtivo.mutate({ userId: u.id, ativo: !u.ativo })}><Power className="h-3 w-3" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="icon" variant="ghost" title="Excluir usuário" disabled={u.id === user?.id}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir usuário definitivamente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação remove o login de <strong>{u.email}</strong> e seus papéis.
+                              Registros históricos (extras, auditoria, fechamentos, recibos) são mantidos,
+                              mas o nome do usuário deixará de ser exibido neles.
+                              Para preservar a rastreabilidade prefira <strong>Desativar</strong>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => mDelete.mutate({ userId: u.id })}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
