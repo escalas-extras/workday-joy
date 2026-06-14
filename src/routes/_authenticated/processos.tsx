@@ -607,7 +607,14 @@ function EvidencesTab({
                   <TableCell>{fmtDateBR(e.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => baixar(e)}><Download className="h-4 w-4" /></Button>
-                    {canWrite && <Button variant="ghost" size="sm" onClick={() => remover(e)}><Trash2 className="h-4 w-4" /></Button>}
+                    {canWrite && (
+                      <InactivateButton
+                        table="disciplinary_case_evidences"
+                        id={e.id}
+                        invalidateKeys={[["proc-evid", caseId]]}
+                        onDone={onChanged}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
