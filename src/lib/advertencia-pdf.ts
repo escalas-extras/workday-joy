@@ -1,7 +1,10 @@
 import { jsPDF } from "jspdf";
 import julianiLogo from "@/assets/juliani-logo-v2.png.asset.json";
 
+export type DisciplinaryActionType = "orientacao_verbal" | "advertencia_escrita" | "suspensao";
+
 export interface AdvertenciaData {
+  actionType?: DisciplinaryActionType;
   city: string;
   date: string; // dd/mm/yyyy
   employeeName: string;
@@ -12,6 +15,10 @@ export interface AdvertenciaData {
   empresaRazaoSocial: string;
   empresaCnpj: string;
   observacoes?: string;
+  // Suspensão
+  suspensionDays?: number | null;
+  suspensionStart?: string | null; // dd/mm/yyyy
+  suspensionEnd?: string | null;   // dd/mm/yyyy
 }
 
 async function loadLogoDataUrl(): Promise<string | null> {
