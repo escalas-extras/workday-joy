@@ -389,6 +389,14 @@ function CaseDetail({
             onGenerated={reload}
           />
         </TabsContent>
+
+        <TabsContent value="equip">
+          <EquipmentChecklist caseId={caseRow.id} />
+        </TabsContent>
+
+        <TabsContent value="dossie">
+          <DossieTab caseId={caseRow.id} />
+        </TabsContent>
       </Tabs>
     </div>
   );
