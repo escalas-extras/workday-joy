@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { PageHeader } from "@/components/app-shell";
 import { Printer, FileDown, Eye, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "@/lib/extenso";
+import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/routes/_authenticated/recibos";
 import { desarquivarRecibo } from "@/lib/recibos.functions";
