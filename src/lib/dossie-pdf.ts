@@ -11,10 +11,12 @@ export interface DossieData {
   employeeCpf?: string | null;
   companyName?: string | null;
   warnings: Array<{ action_type: string; warning_date: string; conduct_description: string }>;
-  evidences: Array<{ file_name?: string | null; description?: string | null; mime_type?: string | null; uploaded_at?: string | null; uploaded_by?: string | null }>;
+  evidences: Array<{ file_name?: string | null; description?: string | null; mime_type?: string | null; uploaded_at?: string | null; uploaded_by?: string | null; data_url?: string | null }>;
   witnesses: Array<{ witness_name: string; witness_cpf?: string | null }>;
   approvals: Array<{ approver_role: string; approver_name?: string | null; decision: string; decided_at?: string | null; notes?: string | null }>;
   auditTrail: Array<{ created_at: string; action: string; user_email?: string | null; ip_address?: string | null }>;
+  imagesEmbedded?: number;
+  imagesTotal?: number;
 }
 
 const ACT: Record<string, string> = {
@@ -115,48 +117,90 @@ export function gerarDossiePdf(d: DossieData) {
   doc.text("ANEXO I — EVIDÊNCIAS VISUAIS", W / 2, y, { align: "center" });
   y += 18;
   doc.setFontSize(9); doc.setFont("helvetica", "italic");
-  doc.text("Conforme política interna, mídias originais não são embutidas neste dossiê.", W / 2, y, { align: "center" });
-  doc.text("Os arquivos eletrônicos permanecem custodiados no sistema e disponíveis para perícia.", W / 2, y + 10, { align: "center" });
-  y += 24;
+  if ((d.imagesEmbedded ?? 0) < (d.imagesTotal ?? 0)) {
+    doc.text(`Exibindo ${d.imagesEmbedded} de ${d.imagesTotal} imagens (limite por dossiê).`, W / 2, y, { align: "center" });
+    y += 12;
+  }
+  doc.text("Vídeos e áudios não são embutidos. Mídias originais permanecem custodiadas no sistema.", W / 2, y, { align: "center" });
+  y += 18;
   doc.setFont("helvetica", "normal");
 
   const imgs = d.evidences.filter((e) => isImageMime(e.mime_type));
   const avs = d.evidences.filter((e) => !isImageMime(e.mime_type));
 
-  const evRow = (e: DossieData["evidences"][number]) => {
-    const m = decodeMeta(e.description ?? null);
-    return [
-      e.file_name ?? "—",
-      m ? CATEGORY_LABEL[m.cat] : "—",
-      m?.desc ?? "—",
-      m?.local ?? "—",
-      m?.dataOc ? m.dataOc.split("-").reverse().join("/") : (e.uploaded_at ? new Date(e.uploaded_at).toLocaleDateString("pt-BR") : "—"),
-      e.uploaded_by ?? "—",
-    ];
-  };
+  // Render cada imagem em tamanho de leitura, com metadados, quebrando página quando preciso.
+  const IMG_MAX_W = W - 80;       // largura útil
+  const IMG_MAX_H = 380;          // altura máx de uma imagem
+  const META_LINE_H = 11;
+  const META_BLOCK_H = META_LINE_H * 5 + 8; // ~63pt
 
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text(`Imagens (${imgs.length})`, 40, y); y += 6;
   if (imgs.length === 0) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text("Nenhuma imagem registrada.", 40, y); y += 12;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text("Nenhuma imagem registrada.", 40, y); y += 16;
   } else {
-    autoTable(doc, {
-      startY: y + 4,
-      head: [["Arquivo", "Categoria", "Descrição", "Local", "Data ocorrência", "Responsável"]],
-      body: imgs.map(evRow),
-      styles: { fontSize: 7 }, headStyles: { fillColor: [6, 11, 90] },
+    imgs.forEach((e, idx) => {
+      const m = decodeMeta(e.description ?? null);
+      const ext = (e.mime_type ?? "").toLowerCase().includes("png") ? "PNG"
+        : (e.mime_type ?? "").toLowerCase().includes("webp") ? "WEBP" : "JPEG";
+
+      // garantir espaço para imagem + metadados
+      if (y + IMG_MAX_H + META_BLOCK_H + 40 > 800) { doc.addPage(); y = 50; }
+
+      doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+      doc.text(`Imagem ${idx + 1} — ${e.file_name ?? "—"}`, 40, y);
+      y += 14;
+
+      if (e.data_url) {
+        try {
+          // jsPDF calcula proporção via imageProperties
+          const props = doc.getImageProperties(e.data_url);
+          const ratio = props.width / props.height;
+          let w = IMG_MAX_W;
+          let h = w / ratio;
+          if (h > IMG_MAX_H) { h = IMG_MAX_H; w = h * ratio; }
+          const x = (W - w) / 2;
+          // moldura
+          doc.setDrawColor(180); doc.rect(x - 1, y - 1, w + 2, h + 2);
+          doc.addImage(e.data_url, ext === "WEBP" ? "PNG" : ext, x, y, w, h, undefined, "FAST");
+          y += h + 8;
+        } catch {
+          doc.setFont("helvetica", "italic"); doc.setFontSize(9);
+          doc.text("[imagem indisponível para inclusão neste PDF]", 40, y); y += 12;
+        }
+      } else {
+        doc.setFont("helvetica", "italic"); doc.setFontSize(9);
+        doc.text("[imagem não embutida — consulte o sistema]", 40, y); y += 12;
+      }
+
+      // Metadados
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+      const cat = m ? CATEGORY_LABEL[m.cat] : "—";
+      const desc = m?.desc ?? "—";
+      const local = m?.local ?? "—";
+      const dataOc = m?.dataOc ? m.dataOc.split("-").reverse().join("/") : (e.uploaded_at ? new Date(e.uploaded_at).toLocaleDateString("pt-BR") : "—");
+      const obs = m?.obs ?? "—";
+      const lines = [
+        `Categoria: ${cat}`,
+        `Descrição: ${desc}`,
+        `Local: ${local}`,
+        `Data da ocorrência: ${dataOc}`,
+        `Observações: ${obs}`,
+      ];
+      lines.forEach((ln) => {
+        const wrapped = doc.splitTextToSize(ln, W - 80);
+        if (y + wrapped.length * META_LINE_H > 800) { doc.addPage(); y = 50; }
+        doc.text(wrapped, 40, y);
+        y += wrapped.length * META_LINE_H;
+      });
+      y += 14;
     });
-    y = ((doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? y) + 16;
   }
 
-  if (y > 700) { doc.addPage(); y = 50; }
-  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-  doc.text(`Vídeos / Áudios / Documentos (${avs.length})`, 40, y); y += 6;
-  if (avs.length === 0) {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
-    doc.text("Nenhum item registrado.", 40, y);
-  } else {
+  // Tabela de vídeos / áudios / documentos
+  if (avs.length > 0) {
+    if (y > 700) { doc.addPage(); y = 50; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text(`Vídeos / Áudios / Documentos (${avs.length})`, 40, y); y += 6;
     autoTable(doc, {
       startY: y + 4,
       head: [["Nome", "Tipo", "Descrição", "Data", "Responsável"]],
