@@ -21,6 +21,7 @@ import { Route as AuthenticatedPesquisaDisciplinarRouteImport } from './routes/_
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedMotivosRejeicaoRouteImport } from './routes/_authenticated/motivos-rejeicao'
+import { Route as AuthenticatedInteligenciaDisciplinarRouteImport } from './routes/_authenticated/inteligencia-disciplinar'
 import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
 import { Route as AuthenticatedFuncoesRouteImport } from './routes/_authenticated/funcoes'
 import { Route as AuthenticatedFechamentoRouteImport } from './routes/_authenticated/fechamento'
@@ -101,6 +102,12 @@ const AuthenticatedMotivosRejeicaoRoute =
   AuthenticatedMotivosRejeicaoRouteImport.update({
     id: '/motivos-rejeicao',
     path: '/motivos-rejeicao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInteligenciaDisciplinarRoute =
+  AuthenticatedInteligenciaDisciplinarRouteImport.update({
+    id: '/inteligencia-disciplinar',
+    path: '/inteligencia-disciplinar',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedInicioRoute = AuthenticatedInicioRouteImport.update({
@@ -225,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/fechamento': typeof AuthenticatedFechamentoRoute
   '/funcoes': typeof AuthenticatedFuncoesRoute
   '/inicio': typeof AuthenticatedInicioRoute
+  '/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -257,6 +265,7 @@ export interface FileRoutesByTo {
   '/fechamento': typeof AuthenticatedFechamentoRoute
   '/funcoes': typeof AuthenticatedFuncoesRoute
   '/inicio': typeof AuthenticatedInicioRoute
+  '/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -291,6 +300,7 @@ export interface FileRoutesById {
   '/_authenticated/fechamento': typeof AuthenticatedFechamentoRoute
   '/_authenticated/funcoes': typeof AuthenticatedFuncoesRoute
   '/_authenticated/inicio': typeof AuthenticatedInicioRoute
+  '/_authenticated/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/_authenticated/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
   '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/funcoes'
     | '/inicio'
+    | '/inteligencia-disciplinar'
     | '/motivos-rejeicao'
     | '/pagamentos'
     | '/perfil'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/fechamento'
     | '/funcoes'
     | '/inicio'
+    | '/inteligencia-disciplinar'
     | '/motivos-rejeicao'
     | '/pagamentos'
     | '/perfil'
@@ -390,6 +402,7 @@ export interface FileRouteTypes {
     | '/_authenticated/fechamento'
     | '/_authenticated/funcoes'
     | '/_authenticated/inicio'
+    | '/_authenticated/inteligencia-disciplinar'
     | '/_authenticated/motivos-rejeicao'
     | '/_authenticated/pagamentos'
     | '/_authenticated/perfil'
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/motivos-rejeicao'
       fullPath: '/motivos-rejeicao'
       preLoaderRoute: typeof AuthenticatedMotivosRejeicaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inteligencia-disciplinar': {
+      id: '/_authenticated/inteligencia-disciplinar'
+      path: '/inteligencia-disciplinar'
+      fullPath: '/inteligencia-disciplinar'
+      preLoaderRoute: typeof AuthenticatedInteligenciaDisciplinarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inicio': {
@@ -673,6 +693,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFechamentoRoute: typeof AuthenticatedFechamentoRoute
   AuthenticatedFuncoesRoute: typeof AuthenticatedFuncoesRoute
   AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
+  AuthenticatedInteligenciaDisciplinarRoute: typeof AuthenticatedInteligenciaDisciplinarRoute
   AuthenticatedMotivosRejeicaoRoute: typeof AuthenticatedMotivosRejeicaoRoute
   AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
@@ -701,6 +722,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFechamentoRoute: AuthenticatedFechamentoRoute,
   AuthenticatedFuncoesRoute: AuthenticatedFuncoesRoute,
   AuthenticatedInicioRoute: AuthenticatedInicioRoute,
+  AuthenticatedInteligenciaDisciplinarRoute:
+    AuthenticatedInteligenciaDisciplinarRoute,
   AuthenticatedMotivosRejeicaoRoute: AuthenticatedMotivosRejeicaoRoute,
   AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
