@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedRelatoriosDisciplinaresRouteImport } from './routes/_authenticated/relatorios-disciplinares'
 import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticated/recibos'
 import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -63,6 +64,12 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatoriosDisciplinaresRoute =
+  AuthenticatedRelatoriosDisciplinaresRouteImport.update({
+    id: '/relatorios-disciplinares',
+    path: '/relatorios-disciplinares',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRecibosRoute = AuthenticatedRecibosRouteImport.update({
   id: '/recibos',
   path: '/recibos',
@@ -216,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
+  '/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
@@ -246,6 +254,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/processos': typeof AuthenticatedProcessosRoute
   '/recibos': typeof AuthenticatedRecibosRouteWithChildren
+  '/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/processos': typeof AuthenticatedProcessosRoute
   '/_authenticated/recibos': typeof AuthenticatedRecibosRouteWithChildren
+  '/_authenticated/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
   '/_authenticated/aprovacoes/financeiro': typeof AuthenticatedAprovacoesFinanceiroRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/processos'
     | '/recibos'
+    | '/relatorios-disciplinares'
     | '/usuarios'
     | '/admin/importar-lotacao'
     | '/aprovacoes/financeiro'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/processos'
     | '/recibos'
+    | '/relatorios-disciplinares'
     | '/usuarios'
     | '/admin/importar-lotacao'
     | '/aprovacoes/financeiro'
@@ -371,6 +383,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/processos'
     | '/_authenticated/recibos'
+    | '/_authenticated/relatorios-disciplinares'
     | '/_authenticated/usuarios'
     | '/_authenticated/admin/importar-lotacao'
     | '/_authenticated/aprovacoes/financeiro'
@@ -425,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios-disciplinares': {
+      id: '/_authenticated/relatorios-disciplinares'
+      path: '/relatorios-disciplinares'
+      fullPath: '/relatorios-disciplinares'
+      preLoaderRoute: typeof AuthenticatedRelatoriosDisciplinaresRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/recibos': {
@@ -638,6 +658,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
   AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRouteWithChildren
+  AuthenticatedRelatoriosDisciplinaresRoute: typeof AuthenticatedRelatoriosDisciplinaresRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedAdminImportarLotacaoRoute: typeof AuthenticatedAdminImportarLotacaoRoute
   AuthenticatedAprovacoesFinanceiroRoute: typeof AuthenticatedAprovacoesFinanceiroRoute
@@ -664,6 +685,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
   AuthenticatedRecibosRoute: AuthenticatedRecibosRouteWithChildren,
+  AuthenticatedRelatoriosDisciplinaresRoute:
+    AuthenticatedRelatoriosDisciplinaresRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedAdminImportarLotacaoRoute:
     AuthenticatedAdminImportarLotacaoRoute,

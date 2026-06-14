@@ -101,7 +101,7 @@ function Page() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Relatórios Disciplinares" subtitle="Dashboard executivo com filtros e exportação" />
+      <PageHeader title="Relatórios Disciplinares" description="Dashboard executivo com filtros e exportação" />
 
       <Card>
         <CardContent className="pt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
