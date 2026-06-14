@@ -1,5 +1,4 @@
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
-import julianiLogo from "@/assets/juliani-logo.png.asset.json";
 
 export interface ReciboItemView {
   data: string; // YYYY-MM-DD
@@ -48,10 +47,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
       <div className="p-2 border-r border-[#060B5A] flex flex-col justify-between text-[11px] leading-tight">
         <div>
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-1.5">
-              <img src={julianiLogo.url} alt="" className="h-5 w-auto" />
-              <h2 className="text-sm font-bold tracking-wide text-[#060B5A]">RECIBO</h2>
-            </div>
+            <h2 className="text-sm font-bold tracking-wide text-[#060B5A]">RECIBO</h2>
             <span className="text-[9px] font-mono">Nº {String(r.numero).padStart(6, "0")}</span>
           </div>
           <div className="mt-1 flex items-center gap-2 border border-[#060B5A]/40 bg-[#E8EBF5] rounded p-1">
