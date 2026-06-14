@@ -53,7 +53,6 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
         colaborador_id: colab, semana_ref: semanaRef, gerado_por: userId, data_pagamento: data.data_pagamento, valor_total: grupo.total,
       }).select("id").single();
       if (e1) { erros.push(e1.message); continue; }
-      const itens = grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: 0 }));
       // valor_snapshot will be filled by trigger if 0/null? trigger sets to e.valor when null; we pass 0 but trigger checks `is null`. Use null:
       const { error: e2 } = await supabase.from("recibos_itens").insert(grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any })));
       if (e2) { erros.push(e2.message); continue; }
