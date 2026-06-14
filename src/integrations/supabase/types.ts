@@ -268,7 +268,7 @@ export type Database = {
           created_by: string | null
           data: string
           data_pagamento: string | null
-          emitente_id: string | null
+          emitente_id: string
           empresa_id: string | null
           faturado_em: string | null
           faturado_por: string | null
@@ -314,7 +314,7 @@ export type Database = {
           created_by?: string | null
           data: string
           data_pagamento?: string | null
-          emitente_id?: string | null
+          emitente_id: string
           empresa_id?: string | null
           faturado_em?: string | null
           faturado_por?: string | null
@@ -362,7 +362,7 @@ export type Database = {
           created_by?: string | null
           data?: string
           data_pagamento?: string | null
-          emitente_id?: string | null
+          emitente_id?: string
           empresa_id?: string | null
           faturado_em?: string | null
           faturado_por?: string | null
@@ -610,7 +610,7 @@ export type Database = {
           created_at: string
           data_pagamento: string
           gerado_em: string
-          gerado_por: string | null
+          gerado_por: string
           id: string
           motivo_cancelamento: string | null
           numero: number
@@ -629,7 +629,7 @@ export type Database = {
           created_at?: string
           data_pagamento: string
           gerado_em?: string
-          gerado_por?: string | null
+          gerado_por: string
           id?: string
           motivo_cancelamento?: string | null
           numero?: number
@@ -648,7 +648,7 @@ export type Database = {
           created_at?: string
           data_pagamento?: string
           gerado_em?: string
-          gerado_por?: string | null
+          gerado_por?: string
           id?: string
           motivo_cancelamento?: string | null
           numero?: number
