@@ -526,6 +526,7 @@ function EvidencesTab({
   const fileRef = useRef<HTMLInputElement>(null);
   const [descricao, setDescricao] = useState("");
   const [uploading, setUploading] = useState(false);
+  const log = useServerFn(logPrintAction);
 
   async function upload(file: File) {
     if (!userId) return;
