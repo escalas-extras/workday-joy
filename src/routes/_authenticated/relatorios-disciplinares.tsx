@@ -77,7 +77,7 @@ function Page() {
     );
     try { await log({ data: { entity_type: "relatorio", entity_id: relatorioId, action: "download" } }); } catch { /* noop */ }
   }
-  function exportPdf() {
+  async function exportPdf() {
     if (!data) return;
     const doc = new jsPDF({ format: "a4", unit: "pt", orientation: "landscape" });
     doc.setFontSize(16); doc.text("Relatório Disciplinar Executivo", 40, 40);
