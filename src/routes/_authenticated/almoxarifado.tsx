@@ -18,8 +18,8 @@ import {
   listMovimentacoes, listPendenciasDevolucao, importarEstoqueExcel,
 } from "@/lib/almoxarifado.functions";
 import { useAuth } from "@/hooks/use-auth";
-import { exportarExcel } from "@/lib/relatorios-export";
-import { FileSpreadsheet, Upload } from "lucide-react";
+import { exportarExcel, exportarPdf } from "@/lib/relatorios-export";
+import { FileSpreadsheet, FileText, Upload } from "lucide-react";
 import * as XLSX from "xlsx";
 
 export const Route = createFileRoute("/_authenticated/almoxarifado")({ component: Page });
@@ -44,27 +44,26 @@ function Page() {
   const regFn = useServerFn(registrarMovimentacao);
   const importFn = useServerFn(importarEstoqueExcel);
 
-  const [importPreview, setImportPreview] = useState<Array<{ empresa: string; item: string; tamanho?: string; quantidade_atual?: number; quantidade_minima?: number }> | null>(null);
+  const [filtroBaixo, setFiltroBaixo] = useState(false);
+
+  const [importModo, setImportModo] = useState<"ingresso" | "ajuste">("ingresso");
+  const [importPreview, setImportPreview] = useState<Array<{ item: string; tamanho?: string; quantidade?: number; quantidade_minima?: number }> | null>(null);
   const [importResult, setImportResult] = useState<{ ok: number; total: number; errors: { linha: number; motivo: string }[] } | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const [empresaSel, setEmpresaSel] = useState<string>("");
-  const [filtroBaixo, setFiltroBaixo] = useState(false);
-
   const base = useQuery({ queryKey: ["almox-base"], queryFn: () => baseFn() });
   const estoque = useQuery({
-    queryKey: ["almox-estoque", empresaSel, filtroBaixo],
-    queryFn: () => estoqueFn({ data: { empresa_id: empresaSel || null, abaixoMinimo: filtroBaixo } }),
+    queryKey: ["almox-estoque", filtroBaixo],
+    queryFn: () => estoqueFn({ data: { abaixoMinimo: filtroBaixo } }),
   });
   const movs = useQuery({
-    queryKey: ["almox-movs", empresaSel],
-    queryFn: () => movFn({ data: { empresa_id: empresaSel || null, limit: 200 } }),
+    queryKey: ["almox-movs"],
+    queryFn: () => movFn({ data: { limit: 500 } }),
   });
   const pendencias = useQuery({ queryKey: ["almox-pend"], queryFn: () => pendFn() });
 
-  // form de movimentação
   const [mov, setMov] = useState({
-    empresa_id: "", item_id: "", tamanho: "" as string,
+    item_id: "", tamanho: "" as string,
     tipo: "entrada" as "entrada" | "saida",
     motivo: "compra", quantidade: 1, observacao: "",
   });
@@ -72,13 +71,13 @@ function Page() {
   const catSel = useMemo(() => base.data?.categorias.find((c) => c.id === itemSel?.categoria_id), [base.data, itemSel]);
   const tamanhosDisp = catSel ? TAMANHOS[catSel.tipo_tamanho] ?? [] : [];
 
-  async function salvarMin(row: { empresa_id: string; item_id: string; tamanho: string | null; quantidade_minima: number }) {
+  async function salvarMin(row: { item_id: string; tamanho: string | null; quantidade_minima: number }) {
     const v = prompt(`Quantidade mínima:`, String(row.quantidade_minima));
     if (v == null) return;
     const n = parseInt(v, 10);
     if (!Number.isFinite(n) || n < 0) { toast.error("Valor inválido"); return; }
     try {
-      await upMinFn({ data: { empresa_id: row.empresa_id, item_id: row.item_id, tamanho: row.tamanho, quantidade_minima: n } });
+      await upMinFn({ data: { item_id: row.item_id, tamanho: row.tamanho, quantidade_minima: n } });
       toast.success("Mínimo atualizado");
       qc.invalidateQueries({ queryKey: ["almox-estoque"] });
     } catch (e) { toast.error((e as Error).message); }
@@ -86,10 +85,10 @@ function Page() {
 
   async function salvarMov(e: React.FormEvent) {
     e.preventDefault();
-    if (!mov.empresa_id || !mov.item_id || !mov.quantidade) { toast.error("Preencha empresa, item e quantidade"); return; }
+    if (!mov.item_id || !mov.quantidade) { toast.error("Preencha item e quantidade"); return; }
     try {
       await regFn({ data: {
-        empresa_id: mov.empresa_id, item_id: mov.item_id,
+        item_id: mov.item_id,
         tamanho: tamanhosDisp.length ? mov.tamanho || null : null,
         tipo: mov.tipo, motivo: mov.motivo, quantidade: mov.quantidade,
         observacao: mov.observacao || null,
@@ -115,16 +114,58 @@ function Page() {
     { v: "ajuste_saida", l: "Ajuste (saída)" },
   ];
 
+  function relatorioEstoquePdf() {
+    const rows = (estoque.data ?? []).map((r) => ({
+      item: r.almox_itens?.nome ?? "—",
+      tamanho: r.tamanho || "—",
+      atual: r.quantidade_atual,
+      minimo: r.quantidade_minima,
+      abaixo: r.quantidade_minima > 0 && r.quantidade_atual < r.quantidade_minima ? "Sim" : "Não",
+    }));
+    void exportarPdf(`almoxarifado_estoque_${new Date().toISOString().slice(0,10)}.pdf`,
+      "Relatório de Estoque - Almoxarifado",
+      [
+        { key: "item", label: "Item" }, { key: "tamanho", label: "Tamanho" },
+        { key: "atual", label: "Qtd Atual", align: "right" },
+        { key: "minimo", label: "Mínimo", align: "right" },
+        { key: "abaixo", label: "Abaixo mín." },
+      ], rows,
+      ["TOTAL", "", String(rows.reduce((a, r) => a + Number(r.atual), 0)), "", `${rows.filter(r => r.abaixo === "Sim").length} item(ns)`]
+    );
+  }
+
+  function relatorioMovimentacoesPdf() {
+    const rows = (movs.data ?? []).map((m) => ({
+      data: new Date(m.created_at).toLocaleString("pt-BR"),
+      tipo: m.tipo,
+      motivo: m.motivo,
+      item: m.almox_itens?.nome ?? "—",
+      tamanho: m.tamanho || "—",
+      qtd: m.quantidade,
+      colaborador: m.colaboradores?.nome ?? "—",
+      obs: m.observacao ?? "",
+    }));
+    void exportarPdf(`almoxarifado_movimentacoes_${new Date().toISOString().slice(0,10)}.pdf`,
+      "Relatório de Movimentações - Almoxarifado",
+      [
+        { key: "data", label: "Data" }, { key: "tipo", label: "Tipo" },
+        { key: "motivo", label: "Motivo" }, { key: "item", label: "Item" },
+        { key: "tamanho", label: "Tam." }, { key: "qtd", label: "Qtd", align: "right" },
+        { key: "colaborador", label: "Colaborador" }, { key: "obs", label: "Obs." },
+      ], rows
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Almoxarifado" description="Controle de uniformes e equipamentos" />
+      <PageHeader title="Almoxarifado" description="Controle único de uniformes e equipamentos" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Itens em estoque</p>
           <p className="text-3xl font-bold">{estoque.data?.length ?? 0}</p>
         </CardContent></Card>
-        <Card className="cursor-pointer hover:border-primary" onClick={() => { setFiltroBaixo(true); }}>
+        <Card className="cursor-pointer hover:border-primary" onClick={() => setFiltroBaixo(true)}>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Estoque baixo</p>
             <p className="text-3xl font-bold text-orange-600">
@@ -149,23 +190,13 @@ function Page() {
 
         <TabsContent value="estoque" className="space-y-3 pt-2">
           <Card><CardContent className="pt-4 flex flex-wrap items-end gap-3">
-            <div className="min-w-[220px]">
-              <Label>Empresa</Label>
-              <Select value={empresaSel || "all"} onValueChange={(v) => setEmpresaSel(v === "all" ? "" : v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {base.data?.empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={filtroBaixo} onChange={(e) => setFiltroBaixo(e.target.checked)} />
               Somente abaixo do mínimo
             </label>
+            <div className="flex-1" />
             <Button variant="outline" size="sm" onClick={() => {
               const rows = (estoque.data ?? []).map((r) => ({
-                empresa: r.empresas?.nome ?? "",
                 item: r.almox_itens?.nome ?? "",
                 tamanho: r.tamanho ?? "",
                 atual: r.quantidade_atual,
@@ -174,19 +205,22 @@ function Page() {
               }));
               exportarExcel(`almoxarifado_estoque_${new Date().toISOString().slice(0,10)}.xlsx`, "Estoque",
                 [
-                  { key: "empresa", label: "Empresa" }, { key: "item", label: "Item" },
-                  { key: "tamanho", label: "Tamanho" }, { key: "atual", label: "Atual" },
-                  { key: "minimo", label: "Mínimo" }, { key: "abaixo", label: "Abaixo do mínimo" },
+                  { key: "item", label: "Item" }, { key: "tamanho", label: "Tamanho" },
+                  { key: "atual", label: "Atual" }, { key: "minimo", label: "Mínimo" },
+                  { key: "abaixo", label: "Abaixo do mínimo" },
                 ], rows);
             }}>
               <FileSpreadsheet className="w-4 h-4 mr-1" />Excel
+            </Button>
+            <Button variant="outline" size="sm" onClick={relatorioEstoquePdf}>
+              <FileText className="w-4 h-4 mr-1" />PDF
             </Button>
           </CardContent></Card>
 
           <Card><CardContent className="pt-3">
             <Table>
               <TableHeader><TableRow>
-                <TableHead>Empresa</TableHead><TableHead>Item</TableHead><TableHead>Tamanho</TableHead>
+                <TableHead>Item</TableHead><TableHead>Tamanho</TableHead>
                 <TableHead className="text-right">Atual</TableHead><TableHead className="text-right">Mínimo</TableHead>
                 <TableHead></TableHead>
               </TableRow></TableHeader>
@@ -195,7 +229,6 @@ function Page() {
                   const baixo = r.quantidade_minima > 0 && r.quantidade_atual < r.quantidade_minima;
                   return (
                     <TableRow key={r.id} className={baixo ? "bg-orange-50" : ""}>
-                      <TableCell className="text-xs">{r.empresas?.nome}</TableCell>
                       <TableCell className="text-xs font-medium">{r.almox_itens?.nome}</TableCell>
                       <TableCell className="text-xs">{r.tamanho || "—"}</TableCell>
                       <TableCell className="text-right">
@@ -204,14 +237,14 @@ function Page() {
                       <TableCell className="text-right text-xs">{r.quantidade_minima}</TableCell>
                       <TableCell className="text-right">
                         {canWrite && (
-                          <Button size="sm" variant="outline" onClick={() => salvarMin(r)}>Min</Button>
+                          <Button size="sm" variant="outline" onClick={() => salvarMin({ item_id: r.item_id, tamanho: r.tamanho, quantidade_minima: r.quantidade_minima })}>Min</Button>
                         )}
                       </TableCell>
                     </TableRow>
                   );
                 })}
                 {!estoque.data?.length && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">Sem registros.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">Sem registros.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -240,15 +273,6 @@ function Page() {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {(mov.tipo === "entrada" ? MOTIVOS_ENT : MOTIVOS_SAI).map((m) => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Empresa</Label>
-                    <Select value={mov.empresa_id} onValueChange={(v) => setMov({ ...mov, empresa_id: v })}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {base.data?.empresas.map((e) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -288,12 +312,35 @@ function Page() {
           </TabsContent>
         )}
 
-        <TabsContent value="movs" className="pt-2">
+        <TabsContent value="movs" className="pt-2 space-y-3">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              const rows = (movs.data ?? []).map((m) => ({
+                data: new Date(m.created_at).toLocaleString("pt-BR"),
+                tipo: m.tipo, motivo: m.motivo,
+                item: m.almox_itens?.nome ?? "",
+                tamanho: m.tamanho || "",
+                qtd: m.quantidade,
+                colaborador: m.colaboradores?.nome ?? "",
+                obs: m.observacao ?? "",
+              }));
+              exportarExcel(`almoxarifado_movimentacoes_${new Date().toISOString().slice(0,10)}.xlsx`, "Movimentações",
+                [
+                  { key: "data", label: "Data" }, { key: "tipo", label: "Tipo" },
+                  { key: "motivo", label: "Motivo" }, { key: "item", label: "Item" },
+                  { key: "tamanho", label: "Tamanho" }, { key: "qtd", label: "Qtd" },
+                  { key: "colaborador", label: "Colaborador" }, { key: "obs", label: "Observação" },
+                ], rows);
+            }}><FileSpreadsheet className="w-4 h-4 mr-1" />Excel</Button>
+            <Button variant="outline" size="sm" onClick={relatorioMovimentacoesPdf}>
+              <FileText className="w-4 h-4 mr-1" />PDF
+            </Button>
+          </div>
           <Card><CardContent className="pt-3">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Motivo</TableHead>
-                <TableHead>Empresa</TableHead><TableHead>Item</TableHead><TableHead>Tam.</TableHead>
+                <TableHead>Item</TableHead><TableHead>Tam.</TableHead>
                 <TableHead className="text-right">Qtd</TableHead><TableHead>Colaborador</TableHead><TableHead>Obs.</TableHead>
               </TableRow></TableHeader>
               <TableBody>
@@ -302,7 +349,6 @@ function Page() {
                     <TableCell className="text-xs">{new Date(m.created_at).toLocaleString("pt-BR")}</TableCell>
                     <TableCell><Badge variant={m.tipo === "entrada" ? "default" : "secondary"}>{m.tipo}</Badge></TableCell>
                     <TableCell className="text-xs">{m.motivo}</TableCell>
-                    <TableCell className="text-xs">{m.empresas?.nome}</TableCell>
                     <TableCell className="text-xs">{m.almox_itens?.nome}</TableCell>
                     <TableCell className="text-xs">{m.tamanho || "—"}</TableCell>
                     <TableCell className="text-right">{m.quantidade}</TableCell>
@@ -311,7 +357,7 @@ function Page() {
                   </TableRow>
                 ))}
                 {!movs.data?.length && (
-                  <TableRow><TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-6">Sem movimentações.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-6">Sem movimentações.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -322,7 +368,7 @@ function Page() {
           <Card><CardContent className="pt-3">
             <Table>
               <TableHeader><TableRow>
-                <TableHead>Data entrega</TableHead><TableHead>Colaborador</TableHead><TableHead>Empresa</TableHead>
+                <TableHead>Data entrega</TableHead><TableHead>Colaborador</TableHead>
                 <TableHead>Item</TableHead><TableHead>Tam.</TableHead>
                 <TableHead className="text-right">Qtd</TableHead><TableHead className="text-right">Devolvido</TableHead>
                 <TableHead>Status</TableHead>
@@ -332,7 +378,6 @@ function Page() {
                   <TableRow key={p.id}>
                     <TableCell className="text-xs">{p.data_entrega}</TableCell>
                     <TableCell className="text-xs font-medium">{p.colaboradores?.nome}</TableCell>
-                    <TableCell className="text-xs">{p.empresas?.nome}</TableCell>
                     <TableCell className="text-xs">{p.almox_itens?.nome}</TableCell>
                     <TableCell className="text-xs">{p.tamanho || "—"}</TableCell>
                     <TableCell className="text-right">{p.quantidade}</TableCell>
@@ -341,7 +386,7 @@ function Page() {
                   </TableRow>
                 ))}
                 {!pendencias.data?.length && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-6">Sem pendências.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">Sem pendências.</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -352,24 +397,35 @@ function Page() {
           <TabsContent value="importar" className="pt-2 space-y-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Importar estoque atual via planilha</CardTitle>
+                <CardTitle className="text-base">Importar ingresso de estoque (planilha Excel)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p>A planilha deve conter as colunas (linha 1 com cabeçalho):</p>
-                  <code className="block bg-muted p-2 rounded">empresa | item | tamanho | quantidade_atual | quantidade_minima</code>
-                  <p>Os nomes de <b>empresa</b> e <b>item</b> são comparados sem distinção de maiúsculas/acentos. Itens não cadastrados são reportados como erro.</p>
-                  <p>Diferenças entre a quantidade da planilha e o estoque atual são registradas como ajustes em <b>Movimentações</b> (motivo: <code>ajuste_entrada</code> / <code>ajuste_saida</code>).</p>
+                  <p>Colunas obrigatórias (linha 1 = cabeçalho):</p>
+                  <code className="block bg-muted p-2 rounded">item | tamanho | quantidade | quantidade_minima</code>
+                  <p>O nome do <b>item</b> é comparado sem diferenciar maiúsculas/acentos. Itens não cadastrados são reportados como erro.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="min-w-[260px]">
+                    <Label>Modo de importação</Label>
+                    <Select value={importModo} onValueChange={(v) => setImportModo(v as "ingresso" | "ajuste")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ingresso">Ingresso (somar como entrada — banco externo)</SelectItem>
+                        <SelectItem value="ajuste">Ajuste (definir saldo igual à planilha)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button variant="outline" size="sm" onClick={() => {
                     const exemplo = [
-                      { empresa: "Nome da empresa", item: "Camisa Polo", tamanho: "M", quantidade_atual: 10, quantidade_minima: 5 },
+                      { item: "Camisa Polo", tamanho: "M", quantidade: 10, quantidade_minima: 5 },
+                      { item: "Bota de Segurança", tamanho: "42", quantidade: 4, quantidade_minima: 2 },
                     ];
                     exportarExcel("modelo_importacao_estoque.xlsx", "Estoque",
                       [
-                        { key: "empresa", label: "empresa" }, { key: "item", label: "item" },
-                        { key: "tamanho", label: "tamanho" }, { key: "quantidade_atual", label: "quantidade_atual" },
+                        { key: "item", label: "item" }, { key: "tamanho", label: "tamanho" },
+                        { key: "quantidade", label: "quantidade" },
                         { key: "quantidade_minima", label: "quantidade_minima" },
                       ], exemplo);
                   }}>
@@ -391,14 +447,15 @@ function Page() {
                             const key = Object.keys(r).find((kk) => kk.toLowerCase().trim() === k);
                             return key ? r[key] : undefined;
                           };
+                          const qRaw = lk("quantidade") ?? lk("quantidade_atual");
+                          const qMinRaw = lk("quantidade_minima");
                           return {
-                            empresa: String(lk("empresa") ?? "").trim(),
                             item: String(lk("item") ?? "").trim(),
                             tamanho: lk("tamanho") != null ? String(lk("tamanho")).trim() : "",
-                            quantidade_atual: Number(lk("quantidade_atual") ?? 0),
-                            quantidade_minima: lk("quantidade_minima") !== "" && lk("quantidade_minima") != null ? Number(lk("quantidade_minima")) : undefined,
+                            quantidade: qRaw !== "" && qRaw != null ? Number(qRaw) : 0,
+                            quantidade_minima: qMinRaw !== "" && qMinRaw != null ? Number(qMinRaw) : undefined,
                           };
-                        }).filter((r) => r.empresa || r.item);
+                        }).filter((r) => r.item);
                         setImportPreview(rows);
                         setImportResult(null);
                       } catch (err) {
@@ -416,16 +473,15 @@ function Page() {
                     <div className="max-h-64 overflow-auto border rounded">
                       <Table>
                         <TableHeader><TableRow>
-                          <TableHead>Empresa</TableHead><TableHead>Item</TableHead><TableHead>Tam.</TableHead>
-                          <TableHead className="text-right">Qtd Atual</TableHead><TableHead className="text-right">Mínimo</TableHead>
+                          <TableHead>Item</TableHead><TableHead>Tam.</TableHead>
+                          <TableHead className="text-right">Quantidade</TableHead><TableHead className="text-right">Mínimo</TableHead>
                         </TableRow></TableHeader>
                         <TableBody>
                           {importPreview.slice(0, 50).map((r, i) => (
                             <TableRow key={i}>
-                              <TableCell className="text-xs">{r.empresa}</TableCell>
                               <TableCell className="text-xs">{r.item}</TableCell>
                               <TableCell className="text-xs">{r.tamanho || "—"}</TableCell>
-                              <TableCell className="text-right">{r.quantidade_atual ?? 0}</TableCell>
+                              <TableCell className="text-right">{r.quantidade ?? 0}</TableCell>
                               <TableCell className="text-right">{r.quantidade_minima ?? "—"}</TableCell>
                             </TableRow>
                           ))}
@@ -437,7 +493,12 @@ function Page() {
                       <Button disabled={importing} onClick={async () => {
                         setImporting(true);
                         try {
-                          const res = await importFn({ data: { rows: importPreview } });
+                          const rowsToSend = importPreview.map((r) => ({
+                            item: r.item, tamanho: r.tamanho,
+                            quantidade: Number(r.quantidade ?? 0),
+                            quantidade_minima: r.quantidade_minima,
+                          }));
+                          const res = await importFn({ data: { rows: rowsToSend, modo: importModo } });
                           setImportResult(res);
                           toast.success(`Importação concluída: ${res.ok}/${res.total}`);
                           qc.invalidateQueries({ queryKey: ["almox-estoque"] });
