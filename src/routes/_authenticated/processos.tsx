@@ -959,6 +959,7 @@ function JustaCausaTab({
           <DialogFooter>
             <Button onClick={async () => {
               await gerarJustaCausaPdf(data, "preview-justa-causa.pdf", { autoPrint: false });
+              try { await log({ data: { entity_type: "justa_causa", entity_id: caseRow.id, action: "view" } }); } catch { /* noop */ }
             }}>
               <Download className="h-4 w-4 mr-2" />Baixar PDF
             </Button>
