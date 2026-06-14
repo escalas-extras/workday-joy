@@ -122,11 +122,11 @@ export const entregarItem = createServerFn({ method: "POST" })
     if (eErr) throw eErr;
     // 2) movimento de saída
     const { error: mErr } = await supabase.rpc("almox_registrar_movimentacao", {
-      p_empresa_id: data.empresa_id, p_item_id: data.item_id, p_tamanho: data.tamanho,
+      p_empresa_id: data.empresa_id, p_item_id: data.item_id, p_tamanho: data.tamanho ?? undefined,
       p_tipo: "saida", p_motivo: "entrega_colaborador", p_quantidade: data.quantidade,
       p_colaborador_id: data.colaborador_id, p_entrega_id: ent.id,
-      p_observacao: data.observacao ?? null,
-    });
+      p_observacao: data.observacao ?? undefined,
+    } as never);
     if (mErr) {
       // rollback entrega
       await supabase.from("almox_entregas").delete().eq("id", ent.id);
@@ -161,11 +161,11 @@ export const devolverItem = createServerFn({ method: "POST" })
     // 2) movimentação de entrada se retornar
     if (retorna) {
       await supabase.rpc("almox_registrar_movimentacao", {
-        p_empresa_id: ent.empresa_id, p_item_id: ent.item_id, p_tamanho: ent.tamanho,
+        p_empresa_id: ent.empresa_id, p_item_id: ent.item_id, p_tamanho: ent.tamanho ?? undefined,
         p_tipo: "entrada", p_motivo: "devolucao", p_quantidade: data.quantidade,
-        p_colaborador_id: null, p_entrega_id: ent.id,
+        p_colaborador_id: undefined, p_entrega_id: ent.id,
         p_observacao: `Devolução (${data.condicao})`,
-      });
+      } as never);
     }
     // 3) atualiza entrega
     const novoQtd = ent.quantidade_devolvida + data.quantidade;
