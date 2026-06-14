@@ -217,8 +217,8 @@ function Page() {
                   options={colabOptions}
                   value={colaboradorId}
                   onChange={onPickColab}
-                  placeholder="Buscar colaborador..."
-                  searchPlaceholder="Nome ou CPF..."
+                  placeholder="Selecionar"
+                  searchPlaceholder="Digite nome, matrícula ou CPF..."
                 />
               </div>
 
