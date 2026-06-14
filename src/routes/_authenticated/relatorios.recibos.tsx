@@ -44,6 +44,7 @@ function Page() {
   const [fCliente, setFCliente] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [printViews, setPrintViews] = useState<ReciboView[]>([]);
 
   // Recibos no período (por semana_ref). Inclui dados de empresa do colaborador.
   const list = useQuery({
@@ -114,11 +115,23 @@ function Page() {
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
 
-  const handleImprimir = (ids: string[]) => {
+  useEffect(() => {
+    if (!printViews.length) return;
+    const timer = window.setTimeout(() => {
+      window.focus();
+      window.print();
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [printViews]);
+
+  const handleImprimir = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
-    const params = new URLSearchParams({ ids: ids.join(","), action: "print" });
-    const janela = window.open(`/recibos/imprimir?${params.toString()}`, "_blank");
-    if (!janela) toast.error("Não foi possível abrir a impressão. Verifique se o navegador bloqueou a nova aba.");
+    try {
+      const views = await loadReciboViews(ids);
+      flushSync(() => setPrintViews(views));
+      window.focus();
+      window.print();
+    } catch (e) { toast.error((e as Error).message); }
   };
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
