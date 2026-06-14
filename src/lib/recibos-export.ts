@@ -141,7 +141,7 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
     doc.saveGraphicsState();
     // @ts-expect-error - GState exists at runtime
     doc.setGState(new doc.GState({ opacity: 0.15 }));
-    doc.setTextColor(220, 38, 38);
+    doc.setTextColor(...RED);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(28);
     doc.text("CANCELADO", x + w / 2, y + h / 2, { align: "center", angle: -15 });
