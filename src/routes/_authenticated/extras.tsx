@@ -14,6 +14,7 @@ import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_R
 import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Ban } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/extras")({ component: Page });
@@ -39,7 +40,8 @@ function Page() {
 
   function empty() {
     return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
-      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "extra_normal", classificacao_comercial: "contrato", motivo: "", observacoes: "", colaborador_coberto_id: "" };
+      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "extra_normal", classificacao_comercial: "contrato", motivo: "", observacoes: "", colaborador_coberto_id: "",
+      avulso: false, avulso_nome: "", avulso_cpf: "" };
   }
 
   const colabs = useQuery({ enabled: !!user, queryKey: ["colaboradores", user?.id], queryFn: async () => { const { data, error } = await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
@@ -65,8 +67,36 @@ function Page() {
       if (requerCoberto && !vals.colaborador_coberto_id) {
         throw new Error("Selecione o colaborador coberto");
       }
+
+      let colaboradorId = vals.colaborador_id;
+
+      // Cria colaborador avulso na hora
+      if (!editing && vals.avulso) {
+        const nome = (vals.avulso_nome || "").trim();
+        if (!nome) throw new Error("Informe o nome do colaborador avulso");
+        if (!vals.funcao_id) throw new Error("Selecione a função antes de criar o avulso");
+        const { data: emp, error: empErr } = await supabase.from("empresas").select("id").eq("nome", "AVULSO").maybeSingle();
+        if (empErr) throw empErr;
+        if (!emp) throw new Error("Empresa AVULSO não encontrada");
+        const matricula = `AVU-${Date.now()}`;
+        const { data: novo, error: cErr } = await supabase.from("colaboradores").insert({
+          nome: nome.toUpperCase(),
+          matricula,
+          empresa_id: emp.id,
+          funcao_id: vals.funcao_id,
+          cpf: vals.avulso_cpf ? vals.avulso_cpf.replace(/\D/g, "") : null,
+          situacao: "ativo",
+        }).select("id").single();
+        if (cErr) throw cErr;
+        colaboradorId = novo.id;
+      }
+
+      if (!colaboradorId) throw new Error("Selecione um colaborador");
+
+      const { avulso, avulso_nome, avulso_cpf, ...rest } = vals;
       const payload: any = {
-        ...vals,
+        ...rest,
+        colaborador_id: colaboradorId,
         valor: parseFloat(vals.valor),
         semana_ref: vals.data, // será sobrescrito pelo trigger
         emitente_id: user!.id,
@@ -81,7 +111,7 @@ function Page() {
         if (error) throw error;
       }
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["extras"] }); toast.success("Salvo"); setOpen(false); setEditing(null); setVals(empty()); },
+    onSuccess: () => { qc.invalidateQueries(); toast.success("Salvo"); setOpen(false); setEditing(null); setVals(empty()); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -161,21 +191,36 @@ function Page() {
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
-              <Label>Colaborador</Label>
-              <SearchableSelect
-                placeholder="Selecionar"
-                searchPlaceholder="Digite nome ou matrícula..."
-                options={(colabs.data ?? []).map((c: any) => ({
-                  value: c.id,
-                  label: `${c.matricula} - ${c.nome}`,
-                  keywords: `${c.nome} ${c.matricula}`,
-                }))}
-                value={vals.colaborador_id}
-                onChange={(v) => {
-                  const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
-                  setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" });
-                }}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <Label>Colaborador</Label>
+                {!editing && (
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <Checkbox checked={!!vals.avulso} onCheckedChange={(c) => setVals({ ...vals, avulso: !!c, colaborador_id: "" })} />
+                    Avulso (não cadastrado)
+                  </label>
+                )}
+              </div>
+              {vals.avulso ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Input className="sm:col-span-2" placeholder="Nome completo *" value={vals.avulso_nome} onChange={(e) => setVals({ ...vals, avulso_nome: e.target.value })} maxLength={120} required />
+                  <Input placeholder="CPF (opcional)" value={vals.avulso_cpf} onChange={(e) => setVals({ ...vals, avulso_cpf: e.target.value })} maxLength={14} />
+                </div>
+              ) : (
+                <SearchableSelect
+                  placeholder="Selecionar"
+                  searchPlaceholder="Digite nome ou matrícula..."
+                  options={(colabs.data ?? []).map((c: any) => ({
+                    value: c.id,
+                    label: `${c.matricula} - ${c.nome}`,
+                    keywords: `${c.nome} ${c.matricula}`,
+                  }))}
+                  value={vals.colaborador_id}
+                  onChange={(v) => {
+                    const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
+                    setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? vals.funcao_id });
+                  }}
+                />
+              )}
             </div>
             <div>
               <Label>Cliente</Label>
