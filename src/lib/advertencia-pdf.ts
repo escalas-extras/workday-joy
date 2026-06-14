@@ -83,15 +83,31 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   y += 6;
   doc.text(`Portador da CPF: ${data.employeeCpf || "—"}`, margin, y);
 
+  const isSusp = data.actionType === "suspensao";
+  const isOrient = data.actionType === "orientacao_verbal";
+  const title = isSusp
+    ? "AVISO DE SUSPENSÃO DISCIPLINAR"
+    : isOrient
+    ? "TERMO DE ORIENTAÇÃO VERBAL"
+    : "AVISO DE ADVERTENCIA AO EMPREGADO";
+
   y += 14;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text("AVISO DE ADVERTENCIA AO EMPREGADO", pageW / 2, y, { align: "center" });
+  doc.text(title, pageW / 2, y, { align: "center" });
 
   y += 10;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
-  const intro = "    Servimo-nos da presente para informar que Vossa Senhoria está sendo formalmente advertido em decorrência da seguinte conduta:";
+  const dias = data.suspensionDays ?? 0;
+  const periodo = data.suspensionStart && data.suspensionEnd
+    ? ` (período de ${data.suspensionStart} a ${data.suspensionEnd})`
+    : "";
+  const intro = isSusp
+    ? `    Servimo-nos da presente para comunicar que Vossa Senhoria está sendo suspenso de suas atividades laborais pelo período de ${dias} dia${dias > 1 ? "s" : ""}${periodo}, sem percepção de remuneração correspondente, em razão da seguinte conduta:`
+    : isOrient
+    ? "    Servimo-nos da presente para registrar formalmente a orientação verbal aplicada a Vossa Senhoria em decorrência da seguinte conduta:"
+    : "    Servimo-nos da presente para informar que Vossa Senhoria está sendo formalmente advertido em decorrência da seguinte conduta:";
   const introLines = doc.splitTextToSize(intro, contentW);
   doc.text(introLines, margin, y);
   y += introLines.length * 5.2 + 2;
