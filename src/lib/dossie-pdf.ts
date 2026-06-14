@@ -11,10 +11,12 @@ export interface DossieData {
   employeeCpf?: string | null;
   companyName?: string | null;
   warnings: Array<{ action_type: string; warning_date: string; conduct_description: string }>;
-  evidences: Array<{ file_name?: string | null; description?: string | null; mime_type?: string | null; uploaded_at?: string | null; uploaded_by?: string | null }>;
+  evidences: Array<{ file_name?: string | null; description?: string | null; mime_type?: string | null; uploaded_at?: string | null; uploaded_by?: string | null; data_url?: string | null }>;
   witnesses: Array<{ witness_name: string; witness_cpf?: string | null }>;
   approvals: Array<{ approver_role: string; approver_name?: string | null; decision: string; decided_at?: string | null; notes?: string | null }>;
   auditTrail: Array<{ created_at: string; action: string; user_email?: string | null; ip_address?: string | null }>;
+  imagesEmbedded?: number;
+  imagesTotal?: number;
 }
 
 const ACT: Record<string, string> = {
