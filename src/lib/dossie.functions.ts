@@ -30,9 +30,9 @@ export const getDossieData = createServerFn({ method: "POST" })
       employeeCpf: emp?.cpf ?? null,
       companyName: cmp?.nome ?? null,
       warnings: warnings.data ?? [],
-      evidences: evidences.data ?? [],
-      witnesses: witnesses.data ?? [],
-      approvals: approvals.data ?? [],
+      evidences: (evidences.data ?? []).map((e) => ({ file_name: e.file_name, description: e.descricao, uploaded_at: e.created_at })),
+      witnesses: (witnesses.data ?? []).map((w) => ({ witness_name: w.nome, witness_cpf: w.cpf })),
+      approvals: (approvals.data ?? []).map((a) => ({ approver_role: a.step, approver_name: a.approved_by, decision: a.decision, decided_at: a.created_at, notes: a.observacao })),
       auditTrail: audit.data ?? [],
     };
   });
