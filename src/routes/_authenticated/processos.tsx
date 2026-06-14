@@ -410,6 +410,7 @@ function CaseDetail({
           <JustaCausaTab
             caseRow={caseRow} empresa={empresa} colab={colab}
             witnesses={witnesses.data ?? []} evidences={evidences.data ?? []}
+            history={histWarnings.data ?? []}
             checklist={{
               fato: !!caseRow.description.trim(),
               evid: (evidences.data?.length ?? 0) > 0,
