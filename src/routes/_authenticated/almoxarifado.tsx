@@ -68,10 +68,23 @@ function Page() {
     item_id: "", tamanho: "" as string,
     tipo: "entrada" as "entrada" | "saida",
     motivo: "compra", quantidade: 1, observacao: "",
+    colaborador_id: "" as string,
   });
   const itemSel = useMemo(() => base.data?.itens.find((i) => i.id === mov.item_id), [base.data, mov.item_id]);
   const catSel = useMemo(() => base.data?.categorias.find((c) => c.id === itemSel?.categoria_id), [base.data, itemSel]);
   const tamanhosDisp = catSel ? TAMANHOS[catSel.tipo_tamanho] ?? [] : [];
+
+  const colabs = useQuery({
+    queryKey: ["almox-colabs-ativos"],
+    queryFn: async () => ((await supabase.from("colaboradores")
+      .select("id,nome,matricula,cpf").eq("situacao", "ativo").order("nome")).data ?? []),
+  });
+  const colabOptions = useMemo(() => (colabs.data ?? []).map((c) => ({
+    value: c.id,
+    label: c.matricula ? `${c.matricula} - ${c.nome}` : c.nome,
+    keywords: `${c.nome} ${c.matricula ?? ""} ${c.cpf ?? ""}`,
+  })), [colabs.data]);
+  const colabObrigatorio = mov.motivo === "entrega_colaborador" || mov.motivo === "devolucao";
 
   async function salvarMin(row: { item_id: string; tamanho: string | null; quantidade_minima: number }) {
     const v = prompt(`Quantidade mínima:`, String(row.quantidade_minima));
