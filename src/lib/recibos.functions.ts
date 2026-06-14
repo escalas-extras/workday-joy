@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// Normaliza qualquer data para a quinta-feira de referência da semana (igual ao backend semana_ref_de)
+function normalizaSemanaRef(input: string): string {
+  const [y, m, d] = input.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  const dow = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay(); // ISO: seg=1..dom=7
+  const diff = (dow - 4 + 7) % 7; // quinta=4
+  dt.setUTCDate(dt.getUTCDate() - diff);
+  return dt.toISOString().slice(0, 10);
+}
+
 export const gerarRecibosSemana = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { semana_ref: string; data_pagamento: string }) => d)
@@ -12,15 +22,17 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
     if (!isAdm && !isFin) throw new Error("Sem permissão");
 
+    const semanaRef = normalizaSemanaRef(data.semana_ref);
+
     // Busca extras elegíveis: aprovado_financeiro + pago, sem recibo ativo
     const { data: extras, error } = await supabase
       .from("extras")
       .select("id, colaborador_id, valor")
-      .eq("semana_ref", data.semana_ref)
+      .eq("semana_ref", semanaRef)
       .eq("status", "aprovado_financeiro")
       .eq("situacao_financeira", "pago");
     if (error) throw error;
-    if (!extras?.length) return { criados: 0, mensagem: "Nenhum extra elegível" };
+    if (!extras?.length) return { criados: 0, mensagem: `Nenhum extra elegível para semana ${semanaRef}` };
 
     // Agrupa por colaborador
     const grupos = new Map<string, { ids: string[]; total: number }>();
