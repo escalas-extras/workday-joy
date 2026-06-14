@@ -357,6 +357,9 @@ function CaseDetail({
     );
   }, [caseRow, evidences.data, witnesses.data, rhOk, diretoriaOk]);
 
+  const canConvertJC = isAdmin || isGestorOp; // Supervisor não pode converter
+  const [activeTab, setActiveTab] = useState<string>("dados");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -365,9 +368,19 @@ function CaseDetail({
         <span className="text-muted-foreground text-sm">· {empresa?.razao_social ?? empresa?.nome ?? "—"}</span>
         {statusBadge(caseRow.status)}
         <span className="text-xs text-muted-foreground ml-auto">Aberto em {fmtDateBR(caseRow.opened_at)}</span>
+        {canConvertJC && caseRow.status !== "convertido_justa_causa" && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setActiveTab("jc")}
+            title="Abrir painel de conversão em Justa Causa"
+          >
+            <Gavel className="h-4 w-4 mr-1" />Converter em Justa Causa
+          </Button>
+        )}
       </div>
 
-      <Tabs defaultValue="dados">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="dados"><FileText className="h-4 w-4 mr-1" />Dados</TabsTrigger>
           <TabsTrigger value="evid"><Upload className="h-4 w-4 mr-1" />Evidências Visuais ({evidences.data?.length ?? 0})</TabsTrigger>
@@ -407,21 +420,33 @@ function CaseDetail({
         </TabsContent>
 
         <TabsContent value="jc">
-          <JustaCausaTab
-            caseRow={caseRow} empresa={empresa} colab={colab}
-            witnesses={witnesses.data ?? []} evidences={evidences.data ?? []}
-            history={histWarnings.data ?? []}
-            checklist={{
-              fato: !!caseRow.description.trim(),
-              evid: (evidences.data?.length ?? 0) > 0,
-              test: (witnesses.data?.length ?? 0) > 0,
-              hist: (histWarnings.data?.length ?? 0) >= 0,
-              rh: rhOk, diretoria: diretoriaOk, supervisor: supervisorOk,
-              alineas: caseRow.legal_basis.length > 0,
-            }}
-            canJC={canJC}
-            onGenerated={reload}
-          />
+          {!canConvertJC ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Acesso restrito</AlertTitle>
+              <AlertDescription>
+                A conversão em Justa Causa é restrita à Gerência Operacional e à Administração.
+                Encaminhe o processo ao gerente responsável para análise e decisão.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <JustaCausaTab
+              caseRow={caseRow} empresa={empresa} colab={colab}
+              witnesses={witnesses.data ?? []} evidences={evidences.data ?? []}
+              history={histWarnings.data ?? []}
+              userRole={isAdmin ? "admin" : "gestor_operacional"}
+              checklist={{
+                fato: !!caseRow.description.trim(),
+                evid: (evidences.data?.length ?? 0) > 0,
+                test: (witnesses.data?.length ?? 0) > 0,
+                hist: (histWarnings.data?.length ?? 0) >= 0,
+                rh: rhOk, diretoria: diretoriaOk, supervisor: supervisorOk,
+                alineas: caseRow.legal_basis.length > 0,
+              }}
+              canJC={canJC}
+              onGenerated={reload}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="equip">
