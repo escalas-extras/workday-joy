@@ -227,25 +227,125 @@ export type Database = {
           },
         ]
       }
+      disciplinary_warnings: {
+        Row: {
+          city: string
+          clt_article: string
+          clt_subsections: string[]
+          colaborador_id: string
+          conduct_description: string
+          created_at: string
+          created_by: string | null
+          employee_cpf: string | null
+          employee_name: string
+          employee_role: string | null
+          employee_signature_url: string | null
+          empresa_cnpj: string | null
+          empresa_id: string
+          empresa_razao_social: string | null
+          generated_document_url: string | null
+          id: string
+          observacoes: string | null
+          updated_at: string
+          warning_date: string
+          warning_reason_id: string | null
+          witness_signature_url: string | null
+        }
+        Insert: {
+          city?: string
+          clt_article?: string
+          clt_subsections?: string[]
+          colaborador_id: string
+          conduct_description: string
+          created_at?: string
+          created_by?: string | null
+          employee_cpf?: string | null
+          employee_name: string
+          employee_role?: string | null
+          employee_signature_url?: string | null
+          empresa_cnpj?: string | null
+          empresa_id: string
+          empresa_razao_social?: string | null
+          generated_document_url?: string | null
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+          warning_date?: string
+          warning_reason_id?: string | null
+          witness_signature_url?: string | null
+        }
+        Update: {
+          city?: string
+          clt_article?: string
+          clt_subsections?: string[]
+          colaborador_id?: string
+          conduct_description?: string
+          created_at?: string
+          created_by?: string | null
+          employee_cpf?: string | null
+          employee_name?: string
+          employee_role?: string | null
+          employee_signature_url?: string | null
+          empresa_cnpj?: string | null
+          empresa_id?: string
+          empresa_razao_social?: string | null
+          generated_document_url?: string | null
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+          warning_date?: string
+          warning_reason_id?: string | null
+          witness_signature_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_warnings_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_warnings_warning_reason_id_fkey"
+            columns: ["warning_reason_id"]
+            isOneToOne: false
+            referencedRelation: "warning_reasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
+          cnpj: string | null
           created_at: string
           id: string
           nome: string
+          razao_social: string | null
           situacao: Database["public"]["Enums"]["entity_status"]
           updated_at: string
         }
         Insert: {
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome: string
+          razao_social?: string | null
           situacao?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Update: {
+          cnpj?: string | null
           created_at?: string
           id?: string
           nome?: string
+          razao_social?: string | null
           situacao?: Database["public"]["Enums"]["entity_status"]
           updated_at?: string
         }
@@ -720,6 +820,39 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      warning_reasons: {
+        Row: {
+          ativo: boolean
+          clt_article: string
+          clt_subsections: string[]
+          created_at: string
+          descricao_padrao: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          clt_article?: string
+          clt_subsections?: string[]
+          created_at?: string
+          descricao_padrao: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          clt_article?: string
+          clt_subsections?: string[]
+          created_at?: string
+          descricao_padrao?: string
+          id?: string
+          nome?: string
+          updated_at?: string
         }
         Relationships: []
       }

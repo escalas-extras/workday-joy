@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Building2, Briefcase, Users, UserCog, ListChecks, FileText, LogOut, Menu, Home,
   ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Banknote, ShieldCheck, X,
-  BarChart3, FileSpreadsheet, FileBarChart, Upload, UserCircle,
+  BarChart3, FileSpreadsheet, FileBarChart, Upload, UserCircle, AlertTriangle,
 } from "lucide-react";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/faturamento", label: "Faturamento", icon: Banknote, roles: ["admin", "gestor_financeiro"] },
       { to: "/fechamento", label: "Fechamento", icon: CalendarCheck, roles: ["admin", "gestor_operacional", "gestor_financeiro"] },
       { to: "/recibos", label: "Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
+      { to: "/advertencias", label: "Advertências", icon: AlertTriangle, roles: ["admin", "gestor_operacional", "supervisor"] },
     ],
   },
   {
