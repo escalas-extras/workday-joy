@@ -148,7 +148,7 @@ function Page() {
       conduct_description: d.conductDescription,
       observacoes: obs.trim() || null,
       clt_article: reason!.clt_article,
-      clt_subsections: reason!.cltSubsections ?? reason!.clt_subsections,
+      clt_subsections: reason!.clt_subsections,
       created_by: user.id,
     });
     if (error) return toast.error(error.message);

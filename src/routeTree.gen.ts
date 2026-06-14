@@ -27,6 +27,7 @@ import { Route as AuthenticatedEmpresasRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authenticated/colaboradores'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
+import { Route as AuthenticatedAdvertenciasRouteImport } from './routes/_authenticated/advertencias'
 import { Route as AuthenticatedRelatoriosRecibosRouteImport } from './routes/_authenticated/relatorios.recibos'
 import { Route as AuthenticatedRelatoriosOperacionalRouteImport } from './routes/_authenticated/relatorios.operacional'
 import { Route as AuthenticatedRelatoriosFinanceiroRouteImport } from './routes/_authenticated/relatorios.financeiro'
@@ -129,6 +130,12 @@ const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdvertenciasRoute =
+  AuthenticatedAdvertenciasRouteImport.update({
+    id: '/advertencias',
+    path: '/advertencias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRelatoriosRecibosRoute =
   AuthenticatedRelatoriosRecibosRouteImport.update({
     id: '/relatorios/recibos',
@@ -188,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/advertencias': typeof AuthenticatedAdvertenciasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -216,6 +224,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/advertencias': typeof AuthenticatedAdvertenciasRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -246,6 +255,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/advertencias': typeof AuthenticatedAdvertenciasRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
   '/_authenticated/colaboradores': typeof AuthenticatedColaboradoresRoute
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/advertencias'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/advertencias'
     | '/auditoria'
     | '/clientes'
     | '/colaboradores'
@@ -333,6 +345,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/advertencias'
     | '/_authenticated/auditoria'
     | '/_authenticated/clientes'
     | '/_authenticated/colaboradores'
@@ -493,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/advertencias': {
+      id: '/_authenticated/advertencias'
+      path: '/advertencias'
+      fullPath: '/advertencias'
+      preLoaderRoute: typeof AuthenticatedAdvertenciasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/relatorios/recibos': {
       id: '/_authenticated/relatorios/recibos'
       path: '/relatorios/recibos'
@@ -584,6 +604,7 @@ const AuthenticatedRecibosRouteWithChildren =
   AuthenticatedRecibosRoute._addFileChildren(AuthenticatedRecibosRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdvertenciasRoute: typeof AuthenticatedAdvertenciasRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
   AuthenticatedColaboradoresRoute: typeof AuthenticatedColaboradoresRoute
@@ -608,6 +629,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdvertenciasRoute: AuthenticatedAdvertenciasRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
   AuthenticatedColaboradoresRoute: AuthenticatedColaboradoresRoute,
