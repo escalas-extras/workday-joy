@@ -771,6 +771,8 @@ export type Database = {
         | "extra_normal"
         | "cobertura_folga"
         | "treinamento"
+        | "solicitacao_cliente"
+        | "sem_efetivo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -929,6 +931,8 @@ export const Constants = {
         "extra_normal",
         "cobertura_folga",
         "treinamento",
+        "solicitacao_cliente",
+        "sem_efetivo",
       ],
     },
   },

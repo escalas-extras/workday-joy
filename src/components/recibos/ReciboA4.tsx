@@ -23,11 +23,22 @@ function fmtDate(d: string): string {
   return `${day}/${m}/${y}`;
 }
 
-function semanaDescricao(semana_ref: string): string {
-  if (!semana_ref) return "";
+const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const ORDINAIS = ["1ª", "2ª", "3ª", "4ª", "5ª"];
+
+function addDays(d: string, n: number): string {
+  const [y, m, day] = d.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, day + n));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+function semanaDoMes(semana_ref: string): { label: string; periodo: string } {
+  if (!semana_ref) return { label: "", periodo: "" };
   const [y, m, d] = semana_ref.split("-").map(Number);
-  const meses = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"];
-  return `EXTRAS SEMANA ${String(d).padStart(2, "0")}/${meses[m - 1]}/${y}`;
+  const ord = ORDINAIS[Math.min(Math.ceil(d / 7), 5) - 1] ?? `${Math.ceil(d / 7)}ª`;
+  const label = `${ord} Semana de ${MESES[m - 1]}/${y}`;
+  const fim = addDays(semana_ref, 6);
+  return { label, periodo: `${fmtDate(semana_ref)} a ${fmtDate(fim)}` };
 }
 
 function ReciboBloco({ r }: { r: ReciboView }) {
@@ -58,10 +69,21 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             ({valorPorExtenso(r.valor_total)})
           </p>
           <div className="mt-1 space-y-0.5 text-[9px]">
-            <p>
-              <span className="font-semibold">Ref.: </span>
-              {semanaDescricao(r.semana_ref)}
-            </p>
+            {(() => {
+              const s = semanaDoMes(r.semana_ref);
+              return (
+                <>
+                  <p>
+                    <span className="font-semibold">Semana Ref.: </span>
+                    {s.label}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Período: </span>
+                    {s.periodo}
+                  </p>
+                </>
+              );
+            })()}
             <p className="truncate">
               <span className="font-semibold">Colaborador: </span>
               {r.colaborador}

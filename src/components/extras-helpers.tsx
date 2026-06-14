@@ -14,6 +14,8 @@ export const SITUACAO_SERVICO_OPTS = [
   { v: "cobertura_ferias", l: "Cobertura de Férias" },
   { v: "cobertura_atestado", l: "Cobertura de Atestado" },
   { v: "cobertura_folga", l: "Cobertura de Folga" },
+  { v: "solicitacao_cliente", l: "Solicitação do Cliente" },
+  { v: "sem_efetivo", l: "Sem Efetivo" },
   { v: "treinamento", l: "Treinamento" },
   { v: "apoio_operacional", l: "Apoio Operacional" },
 ];
@@ -24,13 +26,15 @@ export const SITUACAO_SERVICO_LABEL: Record<string, string> = {
   cobertura_ferias: "Cobertura de Férias",
   cobertura_atestado: "Cobertura de Atestado",
   cobertura_folga: "Cobertura de Folga",
+  solicitacao_cliente: "Solicitação do Cliente",
+  sem_efetivo: "Sem Efetivo",
   treinamento: "Treinamento",
   apoio_operacional: "Apoio Operacional",
   evento: "Evento",
   outro: "Outro",
 };
 
-export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado"]);
+export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado", "cobertura_folga"]);
 
 export const CLASSIFICACAO_COMERCIAL_OPTS = [
   { v: "contrato", l: "Contrato" },
