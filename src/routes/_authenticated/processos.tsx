@@ -739,10 +739,11 @@ function ApprovalCard({
 }
 
 function JustaCausaTab({
-  caseRow, empresa, colab, witnesses, evidences, history, checklist, canJC, onGenerated,
+  caseRow, empresa, colab, witnesses, evidences, history, userRole, checklist, canJC, onGenerated,
 }: {
   caseRow: CaseRow; empresa: Empresa | null; colab: Colab | null;
   witnesses: Witness[]; evidences: Evidence[]; history: HistWarning[];
+  userRole: "admin" | "gestor_operacional";
   checklist: { fato: boolean; evid: boolean; test: boolean; hist: boolean; rh: boolean; diretoria: boolean; supervisor: boolean; alineas: boolean };
   canJC: boolean; onGenerated: () => void;
 }) {
