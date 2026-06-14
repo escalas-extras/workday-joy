@@ -211,21 +211,24 @@ export const getDashboardData = createServerFn({ method: "POST" })
     };
   });
 
-/** Pesquisa global: CPF, nome, número processo, testemunha, empresa, cliente. */
+/** Pesquisa global: CPF, nome, processo, testemunha, empresa, cliente, supervisor, texto. */
 export const disciplinaryGlobalSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { term: string }) => d)
   .handler(async ({ data, context }) => {
     const term = data.term.trim();
-    if (term.length < 2) return { colaboradores: [], processos: [], testemunhas: [], empresas: [], clientes: [] };
+    if (term.length < 2) return { colaboradores: [], processos: [], testemunhas: [], empresas: [], clientes: [], supervisores: [], medidas: [] };
     const { supabase } = context;
     const like = `%${term}%`;
-    const [cols, procs, wits, emps, clis] = await Promise.all([
+    const isUuid = /^[0-9a-f-]{36}$/i.test(term);
+    const [cols, procs, wits, emps, clis, sups, meds] = await Promise.all([
       supabase.from("colaboradores").select("id, nome, cpf, matricula").or(`nome.ilike.${like},cpf.ilike.${like},matricula.ilike.${like}`).limit(15),
-      supabase.from("disciplinary_cases").select("id, status, description, opened_at, employee_id").or(`description.ilike.${like},id.eq.${/^[0-9a-f-]{36}$/i.test(term) ? term : "00000000-0000-0000-0000-000000000000"}`).limit(15),
-      supabase.from("disciplinary_case_witnesses").select("id, nome, cpf, case_id").or(`nome.ilike.${like},cpf.ilike.${like}`).limit(15),
+      supabase.from("disciplinary_cases").select("id, status, description, opened_at, employee_id").eq("active", true).or(`description.ilike.${like}${isUuid ? `,id.eq.${term}` : ""}`).limit(15),
+      supabase.from("disciplinary_case_witnesses").select("id, nome, cpf, case_id").eq("active", true).or(`nome.ilike.${like},cpf.ilike.${like}`).limit(15),
       supabase.from("empresas").select("id, nome, razao_social, cnpj").or(`nome.ilike.${like},razao_social.ilike.${like},cnpj.ilike.${like}`).limit(10),
       supabase.from("clientes").select("id, nome_fantasia, razao_social").or(`nome_fantasia.ilike.${like},razao_social.ilike.${like}`).limit(10),
+      supabase.from("profiles").select("id, nome, email").or(`nome.ilike.${like},email.ilike.${like}`).limit(10),
+      supabase.from("disciplinary_warnings").select("id, action_type, warning_date, employee_name, conduct_description").eq("active", true).or(`conduct_description.ilike.${like},employee_name.ilike.${like}`).limit(15),
     ]);
     return {
       colaboradores: cols.data ?? [],
@@ -233,6 +236,8 @@ export const disciplinaryGlobalSearch = createServerFn({ method: "POST" })
       testemunhas: wits.data ?? [],
       empresas: emps.data ?? [],
       clientes: clis.data ?? [],
+      supervisores: sups.data ?? [],
+      medidas: meds.data ?? [],
     };
   });
 
