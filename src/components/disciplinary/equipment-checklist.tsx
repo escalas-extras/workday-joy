@@ -30,7 +30,7 @@ export function EquipmentChecklist({ caseId }: { caseId: string }) {
   const [completed, setCompleted] = useState(false);
   useEffect(() => {
     if (data) {
-      setItems((data.items as Item[]) ?? DEFAULT_ITEMS.map((i) => ({ item: i, returned: false })));
+      setItems((data.items as unknown as Item[]) ?? DEFAULT_ITEMS.map((i) => ({ item: i, returned: false })));
       setReturnDate(data.return_date ?? "");
       setObservations(data.observations ?? "");
       setCompleted(data.completed ?? false);
