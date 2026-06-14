@@ -262,7 +262,7 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
     const filename = `${prefix}-${(colab?.nome ?? "").replace(/\s+/g, "_")}-${warningDate}.pdf`;
     const suspEnd = isSusp && suspStart ? addDaysISO(suspStart, Math.max(0, suspDays - 1)) : null;
 
-    const { error } = await supabase.from("disciplinary_warnings").insert({
+    const { data: ins, error } = await supabase.from("disciplinary_warnings").insert({
       empresa_id: empresaId,
       colaborador_id: colaboradorId,
       warning_date: warningDate,
@@ -282,10 +282,13 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
       suspension_days: isSusp ? suspDays : null,
       suspension_start_date: isSusp ? (suspStart || null) : null,
       suspension_end_date: isSusp ? (suspEnd || null) : null,
-    });
+    }).select("id").single();
     if (error) return toast.error(error.message);
 
     await gerarAdvertenciaPdf(d, filename);
+    try {
+      await log({ data: { entity_type: entityFor(actionType), entity_id: ins!.id, action: "download" } });
+    } catch { /* não bloquear emissão por falha de log */ }
     toast.success(`${ACTION_LABEL[actionType]} registrada.`);
     setConduct(""); setObs(""); setReasonId("");
     if (isSusp) { setSuspStart(""); setSuspDays(1); }
