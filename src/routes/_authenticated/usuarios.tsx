@@ -1,18 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { listUsuarios, inviteUsuario, updateUsuarioRoles, setUsuarioAtivo, sendPasswordResetByAdmin, resendInvite } from "@/lib/usuarios.functions";
+import { listUsuarios, inviteUsuario, updateUsuarioRoles, setUsuarioAtivo, sendPasswordResetByAdmin, resendInvite, deleteUsuario } from "@/lib/usuarios.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/app-shell";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, KeyRound, Power, Shield, Mail } from "lucide-react";
+import { Plus, KeyRound, Power, Shield, Mail, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/usuarios")({ component: Page });
 
