@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { DesligarColaboradorButton } from "@/components/almoxarifado/desligar-colaborador";
 
 export const Route = createFileRoute("/_authenticated/colaboradores")({ component: Page });
 
