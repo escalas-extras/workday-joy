@@ -132,7 +132,9 @@ export function AppShell() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <aside className="relative w-72 max-w-[80vw] h-full bg-[var(--sidebar)] text-[var(--sidebar-foreground)] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <img src={julianiLogo.url} alt="Grupo Juliani" className="h-10 w-auto" />
+              <div className="bg-white/90 rounded-md px-2 py-1 shadow-sm">
+                <img src={julianiLogo.url} alt="Grupo Juliani" className="h-10 w-auto" />
+              </div>
               <Button size="icon" variant="ghost" onClick={() => setOpen(false)} className="text-primary hover:bg-primary/10"><X className="h-4 w-4" /></Button>
             </div>
             <div className="flex-1 overflow-y-auto">{renderNav(true)}</div>
