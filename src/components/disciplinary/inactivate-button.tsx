@@ -70,7 +70,6 @@ export function InactivateButton({
     <>
       <Button variant={variant} size={size} onClick={() => setOpen(true)} title={label}>
         <Archive className="h-4 w-4" />
-        {size !== "icon" && size === "sm" ? null : null}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
