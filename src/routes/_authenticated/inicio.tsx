@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/app-shell";
-import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users, AlertTriangle, ShieldCheck, Package } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   component: Inicio,
