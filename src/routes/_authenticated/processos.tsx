@@ -714,20 +714,36 @@ function ApprovalCard({
 }
 
 function JustaCausaTab({
-  caseRow, empresa, colab, witnesses, evidences, checklist, canJC, onGenerated,
+  caseRow, empresa, colab, witnesses, evidences, history, checklist, canJC, onGenerated,
 }: {
   caseRow: CaseRow; empresa: Empresa | null; colab: Colab | null;
-  witnesses: Witness[]; evidences: Evidence[];
+  witnesses: Witness[]; evidences: Evidence[]; history: HistWarning[];
   checklist: { fato: boolean; evid: boolean; test: boolean; hist: boolean; rh: boolean; diretoria: boolean; supervisor: boolean; alineas: boolean };
   canJC: boolean; onGenerated: () => void;
 }) {
   const { user } = useAuth();
   const log = useServerFn(logPrintAction);
+  const audit = useServerFn(recordAudit);
   const [city, setCity] = useState("Londrina");
   const [date, setDate] = useState(todayISO());
   const [customBody, setCustomBody] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+
+  const histSummary = useMemo(() => {
+    const active = history.filter((h) => h.action_type !== "justa_causa");
+    const adv = active.filter((h) => h.action_type === "advertencia_escrita").length;
+    const susp = active.filter((h) => h.action_type === "suspensao").length;
+    const ori = active.filter((h) => h.action_type === "orientacao_verbal").length;
+    const jc = history.filter((h) => h.action_type === "justa_causa").length;
+    return { adv, susp, ori, jc, total: history.length };
+  }, [history]);
+
+  // Quebra de escalonamento: nenhuma suspensão prévia registrada no colaborador.
+  const escalationBreak = histSummary.susp === 0;
+  const needsJustification = escalationBreak;
+  const justificationOk = !needsJustification || overrideReason.trim().length >= 20;
 
   const evidenceTypes = useMemo(() => {
     const set = new Set<string>();
@@ -760,6 +776,9 @@ function JustaCausaTab({
   async function generate() {
     if (!user) return;
     if (!canJC) return toast.error("Checklist incompleto.");
+    if (needsJustification && !justificationOk) {
+      return toast.error("Justificativa obrigatória (mín. 20 caracteres) — quebra de escalonamento detectada.");
+    }
     setGenerating(true);
     const filename = `justa-causa-${(colab?.nome ?? "").replace(/\s+/g, "_")}-${date}.pdf`;
 
@@ -785,6 +804,26 @@ function JustaCausaTab({
     await supabase.from("disciplinary_cases")
       .update({ status: "convertido_justa_causa", warning_id: warn!.id })
       .eq("id", caseRow.id);
+
+    // Auditoria da exceção (quebra de escalonamento)
+    if (needsJustification) {
+      try {
+        await audit({ data: {
+          action: "create",
+          entity_type: "justa_causa_escalation_override",
+          entity_id: warn!.id,
+          company_id: caseRow.company_id,
+          reason: overrideReason.trim(),
+          new_value: {
+            case_id: caseRow.id,
+            employee_id: caseRow.employee_id,
+            employee_name: colab?.nome ?? null,
+            history_summary: histSummary,
+            applied_at: new Date().toISOString(),
+          },
+        } });
+      } catch { /* noop */ }
+    }
 
     await gerarJustaCausaPdf(data, filename);
     try { await log({ data: { entity_type: "justa_causa", entity_id: warn!.id, action: "download" } }); } catch { /* noop */ }
