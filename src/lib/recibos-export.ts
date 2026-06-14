@@ -2,6 +2,27 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ReciboView } from "@/components/recibos/ReciboA4";
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
+import julianiLogo from "@/assets/juliani-logo.png.asset.json";
+
+// Cores Grupo Juliani
+const NAVY: [number, number, number] = [6, 11, 90];
+const RED: [number, number, number] = [214, 30, 30];
+const NAVY_SOFT: [number, number, number] = [232, 235, 245];
+
+async function loadLogoDataUrl(): Promise<string | null> {
+  try {
+    const res = await fetch(julianiLogo.url);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 function fmtDate(d: string): string {
   if (!d) return "";
