@@ -191,21 +191,36 @@ function Page() {
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div><Label>Data</Label><Input type="date" value={vals.data} onChange={(e) => setVals({ ...vals, data: e.target.value })} required /></div>
             <div>
-              <Label>Colaborador</Label>
-              <SearchableSelect
-                placeholder="Selecionar"
-                searchPlaceholder="Digite nome ou matrícula..."
-                options={(colabs.data ?? []).map((c: any) => ({
-                  value: c.id,
-                  label: `${c.matricula} - ${c.nome}`,
-                  keywords: `${c.nome} ${c.matricula}`,
-                }))}
-                value={vals.colaborador_id}
-                onChange={(v) => {
-                  const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
-                  setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? "" });
-                }}
-              />
+              <div className="flex items-center justify-between mb-1">
+                <Label>Colaborador</Label>
+                {!editing && (
+                  <label className="flex items-center gap-1 text-xs cursor-pointer">
+                    <Checkbox checked={!!vals.avulso} onCheckedChange={(c) => setVals({ ...vals, avulso: !!c, colaborador_id: "" })} />
+                    Avulso (não cadastrado)
+                  </label>
+                )}
+              </div>
+              {vals.avulso ? (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Input className="sm:col-span-2" placeholder="Nome completo *" value={vals.avulso_nome} onChange={(e) => setVals({ ...vals, avulso_nome: e.target.value })} maxLength={120} required />
+                  <Input placeholder="CPF (opcional)" value={vals.avulso_cpf} onChange={(e) => setVals({ ...vals, avulso_cpf: e.target.value })} maxLength={14} />
+                </div>
+              ) : (
+                <SearchableSelect
+                  placeholder="Selecionar"
+                  searchPlaceholder="Digite nome ou matrícula..."
+                  options={(colabs.data ?? []).map((c: any) => ({
+                    value: c.id,
+                    label: `${c.matricula} - ${c.nome}`,
+                    keywords: `${c.nome} ${c.matricula}`,
+                  }))}
+                  value={vals.colaborador_id}
+                  onChange={(v) => {
+                    const c: any = (colabs.data ?? []).find((x: any) => x.id === v);
+                    setVals({ ...vals, colaborador_id: v, funcao_id: c?.funcao_id ?? vals.funcao_id });
+                  }}
+                />
+              )}
             </div>
             <div>
               <Label>Cliente</Label>
