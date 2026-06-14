@@ -41,6 +41,7 @@ const ACTION_LABEL: Record<DisciplinaryActionType, string> = {
   orientacao_verbal: "Orientação Verbal",
   advertencia_escrita: "Advertência Escrita",
   suspensao: "Suspensão",
+  justa_causa: "Justa Causa",
 };
 
 function fmtDateBR(iso: string | null | undefined) {
