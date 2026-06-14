@@ -136,7 +136,8 @@ export const getDisciplinaryIntel = createServerFn({ method: "POST" })
       .slice(0, 50);
 
     // Timeline agrupada por ano/mês
-    const timelineMap = new Map<string, Map<string, Array<Record<string, unknown>>>>();
+    type TLItem = { id: string; action_type: string; warning_date: string; reason: string; empresa: string; colaborador: string; supervisor: string };
+    const timelineMap = new Map<string, Map<string, TLItem[]>>();
     for (const r of rows) {
       const dt = (r.warning_date as string) ?? "";
       const year = dt.slice(0, 4);
@@ -145,8 +146,12 @@ export const getDisciplinaryIntel = createServerFn({ method: "POST" })
       const ym = timelineMap.get(year)!;
       if (!ym.has(month)) ym.set(month, []);
       ym.get(month)!.push({
-        id: r.id, action_type: r.action_type, warning_date: r.warning_date,
-        reason: r.reason_nome, empresa: r.empresa_nome, colaborador: r.colaborador_nome,
+        id: (r.id as string) ?? "",
+        action_type: (r.action_type as string) ?? "",
+        warning_date: (r.warning_date as string) ?? "",
+        reason: (r.reason_nome as string) ?? "—",
+        empresa: (r.empresa_nome as string) ?? "—",
+        colaborador: (r.colaborador_nome as string) ?? "—",
         supervisor: supervisorMap.get(r.created_by as string) ?? "—",
       });
     }
