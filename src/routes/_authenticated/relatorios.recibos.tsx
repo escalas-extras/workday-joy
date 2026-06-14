@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -114,15 +114,6 @@ function Page() {
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
-
-  useEffect(() => {
-    if (!printViews.length) return;
-    const timer = window.setTimeout(() => {
-      window.focus();
-      window.print();
-    }, 100);
-    return () => window.clearTimeout(timer);
-  }, [printViews]);
 
   const handleImprimir = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
