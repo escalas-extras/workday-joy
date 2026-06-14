@@ -15,6 +15,9 @@ export const SITUACAO_SERVICO_OPTS = [
   { v: "cobertura_atestado", l: "Cobertura de Atestado" },
   { v: "cobertura_folga", l: "Cobertura de Folga" },
   { v: "falta", l: "Falta" },
+  { v: "atraso_rendicao", l: "Atraso na Rendição" },
+  { v: "sdf", l: "SDF" },
+  { v: "reciclagem", l: "Reciclagem" },
   { v: "solicitacao_cliente", l: "Solicitação do Cliente" },
   { v: "sem_efetivo", l: "Sem Efetivo" },
   { v: "treinamento", l: "Treinamento" },
@@ -28,6 +31,9 @@ export const SITUACAO_SERVICO_LABEL: Record<string, string> = {
   cobertura_atestado: "Cobertura de Atestado",
   cobertura_folga: "Cobertura de Folga",
   falta: "Falta",
+  atraso_rendicao: "Atraso na Rendição",
+  sdf: "SDF",
+  reciclagem: "Reciclagem",
   solicitacao_cliente: "Solicitação do Cliente",
   sem_efetivo: "Sem Efetivo",
   treinamento: "Treinamento",
@@ -37,6 +43,7 @@ export const SITUACAO_SERVICO_LABEL: Record<string, string> = {
 };
 
 export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado", "cobertura_folga", "falta"]);
+
 
 
 export const CLASSIFICACAO_COMERCIAL_OPTS = [
