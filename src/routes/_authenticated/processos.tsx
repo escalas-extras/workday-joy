@@ -24,7 +24,7 @@ import { EvidenceGallery } from "@/components/disciplinary/evidence-gallery";
 import { useServerFn } from "@tanstack/react-start";
 import { getDossieData } from "@/lib/dossie.functions";
 import { gerarDossiePdf } from "@/lib/dossie-pdf";
-import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+import { logPrintAction, recordAudit } from "@/lib/disciplinary-audit.functions";
 
 
 function DossieTab({ caseId }: { caseId: string }) {
