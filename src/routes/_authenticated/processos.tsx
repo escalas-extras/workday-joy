@@ -643,12 +643,6 @@ function WitnessesTab({
     onChanged();
   }
 
-  async function remove(id: string) {
-    if (!confirm("Remover testemunha?")) return;
-    const { error } = await supabase.from("disciplinary_case_witnesses").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    onChanged();
-  }
 
   return (
     <Card>
