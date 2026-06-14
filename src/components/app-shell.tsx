@@ -104,17 +104,20 @@ export function AppShell() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r bg-card print:hidden">
-        <div className="px-5 py-4 border-b">
-          <h1 className="text-lg font-bold">Horas Extras</h1>
-          <p className="text-xs text-muted-foreground">Gestão MVP</p>
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-white/10 bg-[var(--sidebar)] text-[var(--sidebar-foreground)] print:hidden">
+        <div className="px-4 py-4 border-b border-white/10 bg-white/95 flex items-center justify-center">
+          <img src={julianiLogo.url} alt="Grupo Juliani" className="h-14 w-auto" />
+        </div>
+        <div className="px-4 py-3 border-b border-white/10">
+          <p className="text-sm font-bold leading-tight">Gestão de Horas Extras</p>
+          <p className="text-[10px] uppercase tracking-wider text-white/60">Grupo Juliani</p>
         </div>
         <div className="flex-1 overflow-y-auto">{renderNav()}</div>
-        <div className="border-t p-4">
-          <p className="text-sm font-medium truncate">{profile?.nome ?? "—"}</p>
-          <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
-          <p className="text-xs text-muted-foreground mt-1">{roles.join(", ") || "sem papel"}</p>
-          <Button variant="outline" size="sm" className="w-full mt-3" onClick={signOut}>
+        <div className="border-t border-white/10 p-4">
+          <p className="text-sm font-medium truncate text-white">{profile?.nome ?? "—"}</p>
+          <p className="text-xs text-white/70 truncate">{profile?.email}</p>
+          <p className="text-xs text-white/60 mt-1">{roles.join(", ") || "sem papel"}</p>
+          <Button variant="destructive" size="sm" className="w-full mt-3" onClick={signOut}>
             <LogOut className="h-3 w-3 mr-2" />Sair
           </Button>
         </div>
@@ -124,14 +127,14 @@ export function AppShell() {
       {open && (
         <div className="fixed inset-0 z-50 md:hidden print:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="relative w-72 max-w-[80vw] h-full bg-card flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h1 className="text-base font-bold">Horas Extras</h1>
-              <Button size="icon" variant="ghost" onClick={() => setOpen(false)}><X className="h-4 w-4" /></Button>
+          <aside className="relative w-72 max-w-[80vw] h-full bg-[var(--sidebar)] text-[var(--sidebar-foreground)] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/95">
+              <img src={julianiLogo.url} alt="Grupo Juliani" className="h-10 w-auto" />
+              <Button size="icon" variant="ghost" onClick={() => setOpen(false)} className="text-primary hover:bg-primary/10"><X className="h-4 w-4" /></Button>
             </div>
             <div className="flex-1 overflow-y-auto">{renderNav(true)}</div>
-            <div className="border-t p-4">
-              <Button variant="outline" size="sm" className="w-full" onClick={signOut}>
+            <div className="border-t border-white/10 p-4">
+              <Button variant="destructive" size="sm" className="w-full" onClick={signOut}>
                 <LogOut className="h-3 w-3 mr-2" />Sair
               </Button>
             </div>
@@ -140,10 +143,10 @@ export function AppShell() {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden flex items-center justify-between border-b bg-card px-4 py-3 print:hidden">
-          <Button size="icon" variant="ghost" onClick={() => setOpen(true)}><Menu className="h-5 w-5" /></Button>
-          <h1 className="text-sm font-bold">Horas Extras</h1>
-          <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/" })}><Home className="h-5 w-5" /></Button>
+        <header className="md:hidden flex items-center justify-between border-b bg-primary text-primary-foreground px-4 py-3 print:hidden">
+          <Button size="icon" variant="ghost" onClick={() => setOpen(true)} className="text-primary-foreground hover:bg-white/10"><Menu className="h-5 w-5" /></Button>
+          <h1 className="text-sm font-bold">Horas Extras · Juliani</h1>
+          <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/" })} className="text-primary-foreground hover:bg-white/10"><Home className="h-5 w-5" /></Button>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-x-auto print:p-0 print:overflow-visible">
           <Outlet />
