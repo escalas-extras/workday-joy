@@ -377,7 +377,10 @@ function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, 
           <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
         </div>
 
-        {colaboradorId && historico.length > 0 && (
+        {colaboradorId && (
+          <div className="md:col-span-2"><RecidivismAlert employeeId={colaboradorId} reasonId={reasonId || null} /></div>
+        )}
+
           <div className="md:col-span-2">
             <Label>Histórico disciplinar do colaborador</Label>
             <div className="rounded-md border mt-1 max-h-48 overflow-auto">
