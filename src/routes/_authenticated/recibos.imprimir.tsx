@@ -34,7 +34,7 @@ function Page() {
       return () => clearTimeout(t);
     }
     if (action === "pdf") {
-      gerarPdfRecibos(q.data, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
+      void gerarPdfRecibos(q.data, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
     }
   }, [q.data, action]);
 
