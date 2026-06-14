@@ -20,23 +20,48 @@ const ACT_ORDER: Record<string, number> = {
   justa_causa: 4,
 };
 
-function suggestNextAction(history: { action_type: string; reason_id?: string | null }[], currentReason?: string | null) {
-  const sameReason = currentReason ? history.filter((h) => h.reason_id === currentReason).length : 0;
+type HistItem = { action_type: string; reason_id?: string | null };
+
+function suggestNextAction(history: HistItem[], currentReason?: string | null) {
   const total = history.length;
-  const hasSuspension = history.some((h) => h.action_type === "suspensao");
   const hasJustaCausa = history.some((h) => h.action_type === "justa_causa");
-  if (hasJustaCausa) return { suggested: "justa_causa", label: "Justa Causa registrada", rationale: "Já existe Justa Causa no histórico" };
-  if (sameReason >= 3 || (hasSuspension && total >= 4)) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência grave detectada — avaliar Justa Causa" };
+  if (hasJustaCausa) return { suggested: "justa_causa", label: "Justa Causa registrada", rationale: "Já existe Justa Causa no histórico do colaborador" };
+
+  // Progressão por MESMO motivo (princípio da gradação da pena pela mesma conduta)
+  const sameHist = currentReason ? history.filter((h) => h.reason_id === currentReason) : [];
+  const sameAdv = sameHist.filter((h) => h.action_type === "advertencia_escrita").length;
+  const sameSusp = sameHist.filter((h) => h.action_type === "suspensao").length;
+  const sameOri = sameHist.filter((h) => h.action_type === "orientacao_verbal").length;
+  const sameTotal = sameHist.length;
+
+  if (currentReason) {
+    if (sameSusp >= 2) return { suggested: "justa_causa", label: "Avaliar Justa Causa", rationale: `Reincidência grave no mesmo motivo após ${sameSusp} suspensão(ões) — avaliar Justa Causa` };
+    if (sameSusp >= 1 && sameAdv >= 1) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Novo evento da mesma conduta após suspensão" };
+    if (sameAdv >= 2) return { suggested: "suspensao", label: "Suspensão", rationale: `Já existem ${sameAdv} advertências pelo mesmo motivo` };
+    if (sameAdv === 1 || (sameOri >= 1 && sameTotal >= 1)) return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Reincidência da mesma conduta — gradação da pena" };
+    if (sameTotal === 0) {
+      // Primeira ocorrência DESSE motivo; considerar histórico geral para proporcionalidade
+      const hasSusp = history.some((h) => h.action_type === "suspensao");
+      const advTotal = history.filter((h) => h.action_type === "advertencia_escrita").length;
+      if (hasSusp || advTotal >= 3) return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Motivo novo, mas histórico disciplinar relevante" };
+      if (total === 0) return { suggested: "orientacao_verbal", label: "Orientação Verbal", rationale: "Primeira ocorrência do colaborador" };
+      return { suggested: "orientacao_verbal", label: "Orientação Verbal", rationale: "Primeira ocorrência deste motivo" };
+    }
+  }
+
+  // Fallback sem motivo informado — usa histórico total
+  const hasSuspensionAny = history.some((h) => h.action_type === "suspensao");
+  if (hasSuspensionAny && total >= 4) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência geral após suspensão" };
   if (total === 0) return { suggested: "orientacao_verbal", label: "Orientação Verbal", rationale: "Primeira ocorrência" };
   if (total === 1) return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Segunda ocorrência" };
   if (total === 2) return { suggested: "advertencia_escrita", label: "Advertência Formal", rationale: "Terceira ocorrência" };
-  if (total >= 3) return { suggested: "suspensao", label: "Suspensão", rationale: "Quarta ocorrência ou mais" };
-  return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Padrão" };
+  return { suggested: "suspensao", label: "Suspensão", rationale: "Quarta ocorrência ou mais" };
 }
 
-function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number, hasJustaCausa = false) {
+function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number, hasJustaCausa = false, sameReasonSusp = 0) {
   if (hasJustaCausa) return { level: "critica", label: "Crítica (Justa Causa)", color: "destructive" };
-  if (d180 >= 3 || sameReason >= 2 || d30 >= 2) return { level: "critica", label: "Crítica", color: "destructive" };
+  if (sameReasonSusp >= 1 || sameReason >= 3) return { level: "critica", label: "Crítica (mesma conduta)", color: "destructive" };
+  if (sameReason >= 2 || d180 >= 3 || d30 >= 2) return { level: "critica", label: "Crítica", color: "destructive" };
   if (d90 >= 2 || d180 >= 2) return { level: "alta", label: "Alta", color: "destructive" };
   if (d365 >= 2) return { level: "media", label: "Média", color: "default" };
   if (d365 >= 1) return { level: "baixa", label: "Baixa", color: "secondary" };
