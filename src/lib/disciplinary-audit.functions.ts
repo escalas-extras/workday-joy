@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
+
+const asJson = (v: unknown): Json | null =>
+  v == null ? null : (JSON.parse(JSON.stringify(v)) as Json);
 
 type AuditAction =
   | "create" | "update" | "delete" | "deactivate" | "view" | "print"
