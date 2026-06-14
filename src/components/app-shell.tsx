@@ -25,6 +25,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/faturamento", label: "Faturamento", icon: Banknote, roles: ["admin", "gestor_financeiro"] },
       { to: "/fechamento", label: "Fechamento", icon: CalendarCheck, roles: ["admin", "gestor_operacional", "gestor_financeiro"] },
       { to: "/recibos", label: "Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
+      { to: "/advertencias", label: "Advertências", icon: AlertTriangle, roles: ["admin", "gestor_operacional", "supervisor"] },
     ],
   },
   {
