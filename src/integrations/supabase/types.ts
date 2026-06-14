@@ -84,7 +84,6 @@ export type Database = {
           colaborador_id: string
           created_at: string
           data_entrega: string
-          empresa_id: string
           id: string
           item_id: string
           observacao: string | null
@@ -98,7 +97,6 @@ export type Database = {
           colaborador_id: string
           created_at?: string
           data_entrega?: string
-          empresa_id: string
           id?: string
           item_id: string
           observacao?: string | null
@@ -112,7 +110,6 @@ export type Database = {
           colaborador_id?: string
           created_at?: string
           data_entrega?: string
-          empresa_id?: string
           id?: string
           item_id?: string
           observacao?: string | null
@@ -138,13 +135,6 @@ export type Database = {
             referencedColumns: ["colaborador_id"]
           },
           {
-            foreignKeyName: "almox_entregas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "almox_entregas_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -156,42 +146,32 @@ export type Database = {
       almox_estoque: {
         Row: {
           ativo: boolean
-          empresa_id: string
           id: string
           item_id: string
           quantidade_atual: number
           quantidade_minima: number
-          tamanho: string | null
+          tamanho: string
           updated_at: string
         }
         Insert: {
           ativo?: boolean
-          empresa_id: string
           id?: string
           item_id: string
           quantidade_atual?: number
           quantidade_minima?: number
-          tamanho?: string | null
+          tamanho?: string
           updated_at?: string
         }
         Update: {
           ativo?: boolean
-          empresa_id?: string
           id?: string
           item_id?: string
           quantidade_atual?: number
           quantidade_minima?: number
-          tamanho?: string | null
+          tamanho?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "almox_estoque_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "almox_estoque_item_id_fkey"
             columns: ["item_id"]
@@ -237,7 +217,6 @@ export type Database = {
         Row: {
           colaborador_id: string | null
           created_at: string
-          empresa_id: string
           entrega_id: string | null
           id: string
           item_id: string
@@ -251,7 +230,6 @@ export type Database = {
         Insert: {
           colaborador_id?: string | null
           created_at?: string
-          empresa_id: string
           entrega_id?: string | null
           id?: string
           item_id: string
@@ -265,7 +243,6 @@ export type Database = {
         Update: {
           colaborador_id?: string | null
           created_at?: string
-          empresa_id?: string
           entrega_id?: string | null
           id?: string
           item_id?: string
@@ -290,13 +267,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_disciplinary_stats_by_employee"
             referencedColumns: ["colaborador_id"]
-          },
-          {
-            foreignKeyName: "almox_movimentacoes_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "almox_movimentacoes_item_id_fkey"
@@ -1734,7 +1704,6 @@ export type Database = {
       almox_registrar_movimentacao: {
         Args: {
           p_colaborador_id?: string
-          p_empresa_id: string
           p_entrega_id?: string
           p_item_id: string
           p_motivo: string
