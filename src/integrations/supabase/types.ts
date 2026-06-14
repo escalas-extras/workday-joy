@@ -227,6 +227,208 @@ export type Database = {
           },
         ]
       }
+      disciplinary_case_approvals: {
+        Row: {
+          approved_by: string
+          case_id: string
+          created_at: string
+          decision: string
+          id: string
+          observacao: string | null
+          step: string
+        }
+        Insert: {
+          approved_by: string
+          case_id: string
+          created_at?: string
+          decision: string
+          id?: string
+          observacao?: string | null
+          step: string
+        }
+        Update: {
+          approved_by?: string
+          case_id?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          observacao?: string | null
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_case_approvals_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinary_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disciplinary_case_evidences: {
+        Row: {
+          case_id: string
+          created_at: string
+          descricao: string | null
+          file_name: string
+          file_path: string
+          id: string
+          mime_type: string
+          size_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          descricao?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          mime_type: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          descricao?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_case_evidences_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinary_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disciplinary_case_witnesses: {
+        Row: {
+          cargo: string | null
+          case_id: string
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          relato: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          case_id: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          relato?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          case_id?: string
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          relato?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_case_witnesses_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinary_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disciplinary_cases: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          employee_id: string
+          final_decision: string | null
+          id: string
+          legal_basis: string[]
+          observations: string | null
+          occurrence_date: string | null
+          opened_at: string
+          opened_by: string | null
+          status: string
+          updated_at: string
+          warning_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description: string
+          employee_id: string
+          final_decision?: string | null
+          id?: string
+          legal_basis?: string[]
+          observations?: string | null
+          occurrence_date?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+          updated_at?: string
+          warning_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          employee_id?: string
+          final_decision?: string | null
+          id?: string
+          legal_basis?: string[]
+          observations?: string | null
+          occurrence_date?: string | null
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+          updated_at?: string
+          warning_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disciplinary_cases_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_cases_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinary_cases_warning_id_fkey"
+            columns: ["warning_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinary_warnings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disciplinary_warnings: {
         Row: {
           action_type: string
