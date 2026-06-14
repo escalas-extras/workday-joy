@@ -53,7 +53,7 @@ function Page() {
   });
   const colabs = useQuery({
     queryKey: ["adv-colabs"],
-    queryFn: async () => ((await supabase.from("colaboradores").select("id,nome,cpf,empresa_id,funcao_id").eq("situacao", "ativo").order("nome")).data ?? []) as Colab[],
+    queryFn: async () => ((await supabase.from("colaboradores").select("id,nome,matricula,cpf,empresa_id,funcao_id").eq("situacao", "ativo").order("nome")).data ?? []) as Colab[],
   });
   const funcoes = useQuery({
     queryKey: ["adv-funcoes"],
