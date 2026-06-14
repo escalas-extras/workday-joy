@@ -53,7 +53,7 @@ function Page() {
   });
   const { data: motivos } = useQuery({
     queryKey: ["int-motivos"],
-    queryFn: async () => (await supabase.from("warning_reasons").select("id, motivo").order("motivo")).data ?? [],
+    queryFn: async () => (await supabase.from("warning_reasons").select("id, nome").order("motivo")).data ?? [],
   });
   const { data: supers } = useQuery({
     queryKey: ["int-supers"],
@@ -166,7 +166,7 @@ function Page() {
             <Label>Motivo</Label>
             <Select value={filters.reason_id ?? "all"} onValueChange={(v) => upd("reason_id", v === "all" ? "" : v)}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-              <SelectContent><SelectItem value="all">Todos</SelectItem>{motivos?.map((m) => <SelectItem key={m.id} value={m.id}>{m.motivo}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="all">Todos</SelectItem>{motivos?.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
