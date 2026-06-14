@@ -24,7 +24,9 @@ function suggestNextAction(history: { action_type: string; reason_id?: string | 
   const sameReason = currentReason ? history.filter((h) => h.reason_id === currentReason).length : 0;
   const total = history.length;
   const hasSuspension = history.some((h) => h.action_type === "suspensao");
-  if (sameReason >= 3 || (hasSuspension && total >= 4)) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência grave detectada" };
+  const hasJustaCausa = history.some((h) => h.action_type === "justa_causa");
+  if (hasJustaCausa) return { suggested: "justa_causa", label: "Justa Causa registrada", rationale: "Já existe Justa Causa no histórico" };
+  if (sameReason >= 3 || (hasSuspension && total >= 4)) return { suggested: "processo_disciplinar", label: "Processo Disciplinar", rationale: "Reincidência grave detectada — avaliar Justa Causa" };
   if (total === 0) return { suggested: "orientacao_verbal", label: "Orientação Verbal", rationale: "Primeira ocorrência" };
   if (total === 1) return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Segunda ocorrência" };
   if (total === 2) return { suggested: "advertencia_escrita", label: "Advertência Formal", rationale: "Terceira ocorrência" };
@@ -32,8 +34,8 @@ function suggestNextAction(history: { action_type: string; reason_id?: string | 
   return { suggested: "advertencia_escrita", label: "Advertência", rationale: "Padrão" };
 }
 
-function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number) {
-  // Crítica: 3+ em 180 ou mesmo motivo recorrente
+function classifyRecidivism(d30: number, d90: number, d180: number, d365: number, sameReason: number, hasJustaCausa = false) {
+  if (hasJustaCausa) return { level: "critica", label: "Crítica (Justa Causa)", color: "destructive" };
   if (d180 >= 3 || sameReason >= 2 || d30 >= 2) return { level: "critica", label: "Crítica", color: "destructive" };
   if (d90 >= 2 || d180 >= 2) return { level: "alta", label: "Alta", color: "destructive" };
   if (d365 >= 2) return { level: "media", label: "Média", color: "default" };
