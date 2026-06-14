@@ -175,6 +175,10 @@ function Page() {
 
   return (
     <div>
+      <div className="hidden print:block">
+        {printViews.length ? <ReciboA4 recibos={printViews} /> : null}
+      </div>
+      <div className="print:hidden">
       <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados). Filtros mostram apenas registros com recibos no período." />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
@@ -278,6 +282,7 @@ function Page() {
         </Table>
       </div>
       <div className="mt-3 text-right text-sm font-semibold">Total: {formatBRL(totalValor)} — {filtrados.length} recibo(s)</div>
+      </div>
     </div>
   );
 }
