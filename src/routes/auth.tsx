@@ -33,9 +33,17 @@ function AuthPage() {
   const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    const res = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
-    if (error) toast.error(error.message);
+    // Log temporário para diagnóstico
+    console.log("[signIn] email=", normalizedEmail, "len(senha)=", password.length, "res=", {
+      user: res.data?.user?.id,
+      email_confirmed_at: res.data?.user?.email_confirmed_at,
+      banned_until: (res.data?.user as any)?.banned_until,
+      error: res.error ? { name: res.error.name, status: (res.error as any).status, code: (res.error as any).code, message: res.error.message } : null,
+    });
+    if (res.error) toast.error(`${res.error.message}${(res.error as any).code ? ` (${(res.error as any).code})` : ""}`);
     else navigate({ to: "/inicio" });
   };
 
