@@ -319,11 +319,8 @@ export const desligarColaborador = createServerFn({ method: "POST" })
       tabela: "colaboradores",
       registro_id: data.colaborador_id,
       usuario_id: userId,
-      detalhes: {
-        justificativa: data.justificativa.trim(),
-        pendencias_almoxarifado: pendentes.length,
-        forcado: !!data.forcar,
-      } as never,
+      justificativa: data.justificativa.trim(),
+      valor_novo: `pendencias=${pendentes.length}; forcado=${!!data.forcar}`,
     } as never);
     return { ok: true, pendencias: pendentes };
   });
