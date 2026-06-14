@@ -315,15 +315,15 @@ function CaseDetail({
   const qc = useQueryClient();
   const evidences = useQuery({
     queryKey: ["proc-evid", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_evidences").select("*").eq("case_id", caseRow.id).order("created_at", { ascending: false })).data ?? []) as Evidence[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_evidences").select("*").eq("case_id", caseRow.id).eq("active", true).order("created_at", { ascending: false })).data ?? []) as Evidence[],
   });
   const witnesses = useQuery({
     queryKey: ["proc-wit", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_witnesses").select("*").eq("case_id", caseRow.id).order("created_at")).data ?? []) as Witness[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_witnesses").select("*").eq("case_id", caseRow.id).eq("active", true).order("created_at")).data ?? []) as Witness[],
   });
   const approvals = useQuery({
     queryKey: ["proc-appr", caseRow.id],
-    queryFn: async () => ((await supabase.from("disciplinary_case_approvals").select("*").eq("case_id", caseRow.id)).data ?? []) as Approval[],
+    queryFn: async () => ((await supabase.from("disciplinary_case_approvals").select("*").eq("case_id", caseRow.id).eq("active", true)).data ?? []) as Approval[],
   });
   const histWarnings = useQuery({
     queryKey: ["proc-hist", caseRow.employee_id],
