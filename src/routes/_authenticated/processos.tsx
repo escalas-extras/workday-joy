@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -20,10 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SearchableSelect } from "@/components/searchable-select";
 import { EquipmentChecklist } from "@/components/disciplinary/equipment-checklist";
+import { EvidenceGallery } from "@/components/disciplinary/evidence-gallery";
 import { useServerFn } from "@tanstack/react-start";
 import { getDossieData } from "@/lib/dossie.functions";
 import { gerarDossiePdf } from "@/lib/dossie-pdf";
 import { logPrintAction } from "@/lib/disciplinary-audit.functions";
+
 
 function DossieTab({ caseId }: { caseId: string }) {
   const fn = useServerFn(getDossieData);
@@ -368,7 +370,7 @@ function CaseDetail({
       <Tabs defaultValue="dados">
         <TabsList className="flex-wrap">
           <TabsTrigger value="dados"><FileText className="h-4 w-4 mr-1" />Dados</TabsTrigger>
-          <TabsTrigger value="evid"><Upload className="h-4 w-4 mr-1" />Evidências ({evidences.data?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="evid"><Upload className="h-4 w-4 mr-1" />Evidências Visuais ({evidences.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="test"><UsersIcon className="h-4 w-4 mr-1" />Testemunhas ({witnesses.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="hist"><HistoryIcon className="h-4 w-4 mr-1" />Histórico ({histWarnings.data?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="aprov"><ShieldCheck className="h-4 w-4 mr-1" />Aprovações</TabsTrigger>
@@ -382,8 +384,9 @@ function CaseDetail({
         </TabsContent>
 
         <TabsContent value="evid">
-          <EvidencesTab caseId={caseRow.id} list={evidences.data ?? []} loading={evidences.isLoading} userId={userId}
-            canWrite={isAdmin || isGestorOp || isSupervisor} onChanged={reload} />
+          <EvidenceGallery caseId={caseRow.id} userId={userId}
+            canWrite={isAdmin || isGestorOp || isSupervisor}
+            onCountChange={() => reload()} />
         </TabsContent>
 
         <TabsContent value="test">
@@ -518,110 +521,7 @@ function DadosTab({
   );
 }
 
-function EvidencesTab({
-  caseId, list, loading, userId, canWrite, onChanged,
-}: {
-  caseId: string; list: Evidence[]; loading: boolean; userId?: string; canWrite: boolean; onChanged: () => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [descricao, setDescricao] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const log = useServerFn(logPrintAction);
-
-  async function upload(file: File) {
-    if (!userId) return;
-    setUploading(true);
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${caseId}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("disciplinary-evidences").upload(path, file, {
-      contentType: file.type || "application/octet-stream", upsert: false,
-    });
-    if (upErr) { setUploading(false); return toast.error(upErr.message); }
-    const { error: insErr } = await supabase.from("disciplinary_case_evidences").insert({
-      case_id: caseId, file_path: path, file_name: file.name,
-      mime_type: file.type || "application/octet-stream", size_bytes: file.size,
-      descricao: descricao.trim() || null, uploaded_by: userId,
-    });
-    setUploading(false);
-    if (insErr) return toast.error(insErr.message);
-    toast.success("Evidência enviada.");
-    setDescricao(""); if (fileRef.current) fileRef.current.value = "";
-    onChanged();
-  }
-
-  async function baixar(ev: Evidence) {
-    const { data, error } = await supabase.storage.from("disciplinary-evidences").createSignedUrl(ev.file_path, 60);
-    if (error) return toast.error(error.message);
-    try { await log({ data: { entity_type: "case", entity_id: caseId, action: "download" } }); } catch { /* noop */ }
-    window.open(data.signedUrl, "_blank");
-  }
-
-
-
-  return (
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        {canWrite && (
-          <div className="grid gap-2 md:grid-cols-[1fr_2fr_auto] items-end">
-            <div>
-              <Label>Arquivo</Label>
-              <Input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.mp4,.mp3" />
-            </div>
-            <div>
-              <Label>Descrição</Label>
-              <Input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: vídeo da câmera 2" />
-            </div>
-            <Button disabled={uploading} onClick={() => {
-              const f = fileRef.current?.files?.[0];
-              if (!f) return toast.error("Selecione um arquivo.");
-              void upload(f);
-            }}>
-              {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}Enviar
-            </Button>
-          </div>
-        )}
-
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Arquivo</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Enviado em</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell>{e.file_name}</TableCell>
-                  <TableCell className="text-xs">{e.mime_type}</TableCell>
-                  <TableCell>{e.descricao ?? "—"}</TableCell>
-                  <TableCell>{fmtDateBR(e.created_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => baixar(e)}><Download className="h-4 w-4" /></Button>
-                    {canWrite && (
-                      <InactivateButton
-                        table="disciplinary_case_evidences"
-                        id={e.id}
-                        invalidateKeys={[["proc-evid", caseId]]}
-                        onDone={onChanged}
-                      />
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!loading && list.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Nenhuma evidência.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+// EvidencesTab removido — substituído por <EvidenceGallery /> (Fase 2.7).
 
 function WitnessesTab({
   caseId, list, loading, userId, canWrite, onChanged,

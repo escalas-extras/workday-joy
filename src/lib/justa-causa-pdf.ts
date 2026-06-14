@@ -99,7 +99,11 @@ export async function gerarJustaCausaPdf(d: JustaCausaData, filename = "justa-ca
 
   y += 8;
   const body = d.customBody?.trim() ? d.customBody : buildBaseBody(d);
-  const paragraphs = body.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const hasEv = !!(d.evidenceTypes && d.evidenceTypes.length);
+  const fullBody = hasEv
+    ? body + "\n\nExistem evidências eletrônicas vinculadas ao presente registro disciplinar."
+    : body;
+  const paragraphs = fullBody.split(/\n+/).map((p) => p.trim()).filter(Boolean);
   for (const p of paragraphs) {
     const lines = doc.splitTextToSize(`    ${p}`, contentW);
     if (y + lines.length * 5.2 > 270) { doc.addPage(); y = 20; }

@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { CATEGORY_LABEL, decodeMeta, isImageMime } from "@/lib/evidence-meta";
 
 export interface DossieData {
   caseId: string;
@@ -10,7 +11,7 @@ export interface DossieData {
   employeeCpf?: string | null;
   companyName?: string | null;
   warnings: Array<{ action_type: string; warning_date: string; conduct_description: string }>;
-  evidences: Array<{ file_name?: string | null; description?: string | null; uploaded_at?: string | null }>;
+  evidences: Array<{ file_name?: string | null; description?: string | null; mime_type?: string | null; uploaded_at?: string | null; uploaded_by?: string | null }>;
   witnesses: Array<{ witness_name: string; witness_cpf?: string | null }>;
   approvals: Array<{ approver_role: string; approver_name?: string | null; decision: string; decided_at?: string | null; notes?: string | null }>;
   auditTrail: Array<{ created_at: string; action: string; user_email?: string | null; ip_address?: string | null }>;
@@ -106,6 +107,72 @@ export function gerarDossiePdf(d: DossieData) {
     ]),
     styles: { fontSize: 7 }, headStyles: { fillColor: [6, 11, 90] },
   });
+  y = ((doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? y) + 20;
+
+  // ANEXO I — EVIDÊNCIAS VISUAIS
+  doc.addPage(); y = 50;
+  doc.setFontSize(15); doc.setFont("helvetica", "bold");
+  doc.text("ANEXO I — EVIDÊNCIAS VISUAIS", W / 2, y, { align: "center" });
+  y += 18;
+  doc.setFontSize(9); doc.setFont("helvetica", "italic");
+  doc.text("Conforme política interna, mídias originais não são embutidas neste dossiê.", W / 2, y, { align: "center" });
+  doc.text("Os arquivos eletrônicos permanecem custodiados no sistema e disponíveis para perícia.", W / 2, y + 10, { align: "center" });
+  y += 24;
+  doc.setFont("helvetica", "normal");
+
+  const imgs = d.evidences.filter((e) => isImageMime(e.mime_type));
+  const avs = d.evidences.filter((e) => !isImageMime(e.mime_type));
+
+  const evRow = (e: DossieData["evidences"][number]) => {
+    const m = decodeMeta(e.description ?? null);
+    return [
+      e.file_name ?? "—",
+      m ? CATEGORY_LABEL[m.cat] : "—",
+      m?.desc ?? "—",
+      m?.local ?? "—",
+      m?.dataOc ? m.dataOc.split("-").reverse().join("/") : (e.uploaded_at ? new Date(e.uploaded_at).toLocaleDateString("pt-BR") : "—"),
+      e.uploaded_by ?? "—",
+    ];
+  };
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text(`Imagens (${imgs.length})`, 40, y); y += 6;
+  if (imgs.length === 0) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.text("Nenhuma imagem registrada.", 40, y); y += 12;
+  } else {
+    autoTable(doc, {
+      startY: y + 4,
+      head: [["Arquivo", "Categoria", "Descrição", "Local", "Data ocorrência", "Responsável"]],
+      body: imgs.map(evRow),
+      styles: { fontSize: 7 }, headStyles: { fillColor: [6, 11, 90] },
+    });
+    y = ((doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable?.finalY ?? y) + 16;
+  }
+
+  if (y > 700) { doc.addPage(); y = 50; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text(`Vídeos / Áudios / Documentos (${avs.length})`, 40, y); y += 6;
+  if (avs.length === 0) {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.text("Nenhum item registrado.", 40, y);
+  } else {
+    autoTable(doc, {
+      startY: y + 4,
+      head: [["Nome", "Tipo", "Descrição", "Data", "Responsável"]],
+      body: avs.map((e) => {
+        const m = decodeMeta(e.description ?? null);
+        return [
+          e.file_name ?? "—",
+          m ? CATEGORY_LABEL[m.cat] : (e.mime_type ?? "—"),
+          m?.desc ?? "—",
+          e.uploaded_at ? new Date(e.uploaded_at).toLocaleString("pt-BR") : "—",
+          e.uploaded_by ?? "—",
+        ];
+      }),
+      styles: { fontSize: 7 }, headStyles: { fillColor: [6, 11, 90] },
+    });
+  }
 
   doc.save(`dossie_disciplinar_${d.caseId.slice(0, 8)}.pdf`);
 }
