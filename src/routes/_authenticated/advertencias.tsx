@@ -448,6 +448,12 @@ function Historico({ warnings, reasons, empMap, isLoading }: HistoricoProps) {
   const log = useServerFn(logPrintAction);
   const { isAdmin, isGestorOp } = useAuth();
   const canInactivate = isAdmin || isGestorOp;
+  const [tipoFilter, setTipoFilter] = useState<"todos" | DisciplinaryActionType>("todos");
+  const filtered = useMemo(
+    () => tipoFilter === "todos" ? warnings : warnings.filter((w) => w.action_type === tipoFilter),
+    [warnings, tipoFilter]
+  );
+  const jcCount = useMemo(() => warnings.filter((w) => w.action_type === "justa_causa").length, [warnings]);
   async function reimprimir(w: Warning, autoPrint: boolean) {
     if (w.action_type === "justa_causa") {
       const { gerarJustaCausaPdf } = await import("@/lib/justa-causa-pdf");
