@@ -48,7 +48,7 @@ function Page() {
             <CardHeader><CardTitle className="text-base">Testemunhas <Badge variant="secondary">{data.testemunhas.length}</Badge></CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
               {data.testemunhas.map((w) => (
-                <div key={w.id} className="border-b py-1">{w.witness_name} — CPF {w.witness_cpf ?? "—"}</div>
+                <div key={w.id} className="border-b py-1">{w.nome} — CPF {w.cpf ?? "—"}</div>
               ))}
             </CardContent>
           </Card>
@@ -63,7 +63,7 @@ function Page() {
           <Card>
             <CardHeader><CardTitle className="text-base">Clientes <Badge variant="secondary">{data.clientes.length}</Badge></CardTitle></CardHeader>
             <CardContent className="space-y-1 text-sm">
-              {data.clientes.map((c) => (<div key={c.id} className="border-b py-1">{c.nome}</div>))}
+              {data.clientes.map((c) => (<div key={c.id} className="border-b py-1">{c.nome_fantasia} — {c.razao_social}</div>))}
             </CardContent>
           </Card>
         </div>
