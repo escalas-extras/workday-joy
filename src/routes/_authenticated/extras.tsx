@@ -40,7 +40,8 @@ function Page() {
 
   function empty() {
     return { data: new Date().toISOString().slice(0, 10), colaborador_id: "", cliente_id: "", funcao_id: "",
-      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "extra_normal", classificacao_comercial: "contrato", motivo: "", observacoes: "", colaborador_coberto_id: "" };
+      hora_inicio: "19:00", hora_termino: "07:00", valor: "", situacao_servico: "extra_normal", classificacao_comercial: "contrato", motivo: "", observacoes: "", colaborador_coberto_id: "",
+      avulso: false, avulso_nome: "", avulso_cpf: "" };
   }
 
   const colabs = useQuery({ enabled: !!user, queryKey: ["colaboradores", user?.id], queryFn: async () => { const { data, error } = await supabase.from("colaboradores").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
