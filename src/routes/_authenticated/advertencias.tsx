@@ -173,6 +173,7 @@ interface MedidaFormProps {
 
 function MedidaForm({ actionType, canManage, userId, empresas, colabs, reasons, empMap, colabMap, funMap, warnings, onSaved }: MedidaFormProps) {
   const isSusp = actionType === "suspensao";
+  const log = useServerFn(logPrintAction);
   const [empresaId, setEmpresaId] = useState("");
   const [colaboradorId, setColaboradorId] = useState("");
   const [warningDate, setWarningDate] = useState(todayISO());
