@@ -84,12 +84,12 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
 
   cy += 3;
   // Caixa azul do valor (compacta)
-  doc.setFillColor(239, 246, 255);
-  doc.setDrawColor(147, 197, 253);
+  doc.setFillColor(...NAVY_SOFT);
+  doc.setDrawColor(...NAVY);
   doc.roundedRect(x + 3, cy, colW - 6, 6, 0.5, 0.5, "FD");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6.5);
-  doc.setTextColor(29, 78, 216);
+  doc.setTextColor(...NAVY);
   doc.text("VALOR:", x + 4.5, cy + 4.2);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
