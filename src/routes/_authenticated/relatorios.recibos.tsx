@@ -79,7 +79,7 @@ function Page() {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
       const views = await loadReciboViews(ids);
-      gerarPdfRecibos(views, `recibos-arquivados-${hoje}.pdf`);
+      await gerarPdfRecibos(views, `recibos-arquivados-${hoje}.pdf`);
     } catch (e) { toast.error((e as Error).message); }
   };
   const handleDesarquivar = async (id: string) => {
