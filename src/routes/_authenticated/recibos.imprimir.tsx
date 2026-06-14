@@ -30,8 +30,30 @@ function Page() {
   useEffect(() => {
     if (!q.data?.length) return;
     if (action === "print") {
-      const t = setTimeout(() => window.print(), 400);
-      return () => clearTimeout(t);
+      let cancelled = false;
+      const dispararPrint = async () => {
+        try {
+          if (document.fonts?.ready) await document.fonts.ready;
+          const imgs = Array.from(document.images);
+          await Promise.all(
+            imgs.map((img) =>
+              img.complete
+                ? Promise.resolve()
+                : new Promise((res) => {
+                    img.onload = img.onerror = () => res(null);
+                  }),
+            ),
+          );
+        } catch { /* ignore */ }
+        if (cancelled) return;
+        // Pequeno delay extra para garantir layout final
+        await new Promise((r) => setTimeout(r, 150));
+        if (cancelled) return;
+        window.focus();
+        window.print();
+      };
+      void dispararPrint();
+      return () => { cancelled = true; };
     }
     if (action === "pdf") {
       void gerarPdfRecibos(q.data, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
