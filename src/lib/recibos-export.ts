@@ -40,41 +40,46 @@ function semanaDescricao(semana_ref: string): string {
 /**
  * Desenha os recibos diretamente em jsPDF (5 por página A4 retrato).
  */
-export function gerarPdfRecibos(recibos: ReciboView[], filename = "recibos.pdf") {
+export async function gerarPdfRecibos(recibos: ReciboView[], filename = "recibos.pdf") {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210;
   const margin = 10;
   const blockH = 51;
   const gap = 3;
+  const logo = await loadLogoDataUrl();
 
   recibos.forEach((r, i) => {
     const indexNaPagina = i % 5;
     if (i > 0 && indexNaPagina === 0) doc.addPage();
     const y = margin + indexNaPagina * (blockH + gap);
-    drawRecibo(doc, r, margin, y, pageW - 2 * margin, blockH);
+    drawRecibo(doc, r, margin, y, pageW - 2 * margin, blockH, logo);
   });
 
   doc.save(filename);
 }
 
-function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, h: number) {
-  // Moldura azul arredondada
-  doc.setDrawColor(37, 99, 235);
+function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, h: number, logo: string | null) {
+  // Moldura azul Juliani arredondada
+  doc.setDrawColor(...NAVY);
   doc.setLineWidth(0.5);
   doc.roundedRect(x, y, w, h, 2, 2);
 
   const colW = w / 2;
-  // Linha divisória
+  doc.setDrawColor(...NAVY);
   doc.line(x + colW, y, x + colW, y + h);
 
   // ============ ESQUERDA ============
   let cy = y + 4.5;
+  if (logo) {
+    try { doc.addImage(logo, "PNG", x + 2, y + 1.8, 13, 6); } catch { /* ignore */ }
+  }
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text("RECIBO", x + 3, cy);
+  doc.setFontSize(9.5);
+  doc.setTextColor(...NAVY);
+  doc.text("RECIBO", x + 17, cy);
   doc.setFont("courier", "normal");
   doc.setFontSize(7.5);
+  doc.setTextColor(0, 0, 0);
   doc.text(`Nº ${String(r.numero).padStart(6, "0")}`, x + colW - 3, cy, { align: "right" });
 
   cy += 3;
