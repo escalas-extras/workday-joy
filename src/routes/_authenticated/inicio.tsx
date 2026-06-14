@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/app-shell";
-import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users } from "lucide-react";
+import { ClipboardList, CheckCircle2, Wallet, Receipt, CalendarCheck, Users, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/inicio")({
   component: Inicio,
@@ -18,6 +18,7 @@ function Inicio() {
     { to: "/faturamento", t: "Faturamento", d: "Cobrança ao cliente", icon: Receipt },
     { to: "/fechamento", t: "Fechamento", d: "Semana operacional", icon: CalendarCheck },
     { to: "/recibos", t: "Recibos", d: "Geração e cancelamento", icon: Receipt },
+    { to: "/advertencias", t: "Advertências", d: "Geração e histórico", icon: AlertTriangle },
     { to: "/colaboradores", t: "Colaboradores", d: "Cadastro", icon: Users },
   ];
   return (
