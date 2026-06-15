@@ -58,6 +58,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { to: "/perfil", label: "Meu Perfil", icon: UserCircle },
       { to: "/ajuda", label: "Ajuda / Manual", icon: HelpCircle },
+      { to: "/auditoria", label: "Auditoria", icon: FileText, roles: ["admin"] },
       { to: "/admin/importar-lotacao", label: "Importar Lotação", icon: Upload, roles: ["admin"] },
     ],
   },
