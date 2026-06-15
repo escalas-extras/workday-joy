@@ -32,6 +32,7 @@ import { Route as AuthenticatedColaboradoresRouteImport } from './routes/_authen
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
+import { Route as AuthenticatedAjudaRouteImport } from './routes/_authenticated/ajuda'
 import { Route as AuthenticatedAdvertenciasRouteImport } from './routes/_authenticated/advertencias'
 import { Route as AuthenticatedRelatoriosRecibosRouteImport } from './routes/_authenticated/relatorios.recibos'
 import { Route as AuthenticatedRelatoriosOperacionalRouteImport } from './routes/_authenticated/relatorios.operacional'
@@ -164,6 +165,11 @@ const AuthenticatedAlmoxarifadoRoute =
     path: '/almoxarifado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAjudaRoute = AuthenticatedAjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdvertenciasRoute =
   AuthenticatedAdvertenciasRouteImport.update({
     id: '/advertencias',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/ajuda': typeof AuthenticatedAjudaRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/ajuda': typeof AuthenticatedAjudaRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/clientes': typeof AuthenticatedClientesRouteWithChildren
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/advertencias': typeof AuthenticatedAdvertenciasRoute
+  '/_authenticated/ajuda': typeof AuthenticatedAjudaRoute
   '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/clientes': typeof AuthenticatedClientesRouteWithChildren
@@ -336,6 +345,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/advertencias'
+    | '/ajuda'
     | '/almoxarifado'
     | '/auditoria'
     | '/clientes'
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/advertencias'
+    | '/ajuda'
     | '/almoxarifado'
     | '/auditoria'
     | '/clientes'
@@ -405,6 +416,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/advertencias'
+    | '/_authenticated/ajuda'
     | '/_authenticated/almoxarifado'
     | '/_authenticated/auditoria'
     | '/_authenticated/clientes'
@@ -605,6 +617,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ajuda': {
+      id: '/_authenticated/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof AuthenticatedAjudaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/advertencias': {
       id: '/_authenticated/advertencias'
       path: '/advertencias'
@@ -704,6 +723,7 @@ const AuthenticatedRecibosRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdvertenciasRoute: typeof AuthenticatedAdvertenciasRoute
+  AuthenticatedAjudaRoute: typeof AuthenticatedAjudaRoute
   AuthenticatedAlmoxarifadoRoute: typeof AuthenticatedAlmoxarifadoRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRouteWithChildren
@@ -734,6 +754,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdvertenciasRoute: AuthenticatedAdvertenciasRoute,
+  AuthenticatedAjudaRoute: AuthenticatedAjudaRoute,
   AuthenticatedAlmoxarifadoRoute: AuthenticatedAlmoxarifadoRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedClientesRoute: AuthenticatedClientesRouteWithChildren,
@@ -782,13 +803,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
