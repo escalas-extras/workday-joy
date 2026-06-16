@@ -380,9 +380,9 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     .order("numero");
   const { data: its } = await supabase
     .from("recibos_itens")
-    .select("recibo_id, valor_snapshot, extras(data, emitente_id, clientes(nome_fantasia))")
+    .select("recibo_id, valor_snapshot, extras(data, emitente_id, clientes(nome_fantasia), empresas(nome))")
     .in("recibo_id", ids);
-  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; emitente_id?: string | null; clientes?: { nome_fantasia?: string } } };
+  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; emitente_id?: string | null; clientes?: { nome_fantasia?: string }; empresas?: { nome?: string } } };
   const items = (its ?? []) as Item[];
   const emitenteIds = Array.from(new Set(items.map((i) => i.extras?.emitente_id).filter(Boolean) as string[]));
   const nomeById: Record<string, string> = {};
@@ -390,12 +390,13 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", emitenteIds);
     for (const p of (profs ?? []) as { id: string; nome: string }[]) nomeById[p.id] = p.nome;
   }
-  const byRec: Record<string, { data: string; cliente: string; valor: number }[]> = {};
+  const byRec: Record<string, { data: string; cliente: string; empresa?: string; valor: number }[]> = {};
   const emitByRec: Record<string, Set<string>> = {};
   for (const it of items) {
     (byRec[it.recibo_id] ||= []).push({
       data: it.extras?.data ?? "",
       cliente: it.extras?.clientes?.nome_fantasia ?? "",
+      empresa: it.extras?.empresas?.nome ?? "",
       valor: Number(it.valor_snapshot),
     });
     const nome = it.extras?.emitente_id ? nomeById[it.extras.emitente_id] : null;
