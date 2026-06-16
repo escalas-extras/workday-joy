@@ -60,7 +60,7 @@ function Page() {
   }, [q.data]);
 
   const rows = (q.data ?? []).map((r) => ({
-    data: r.data, cliente: r.cliente, colaborador: r.colaborador,
+    data: r.data, cliente: r.cliente, empresa: r.empresa, colaborador: r.colaborador,
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
@@ -68,12 +68,13 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "data", label: "Data", width: 22 },
-    { key: "cliente", label: "Cliente", width: 50 },
-    { key: "colaborador", label: "Colaborador", width: 45 },
-    { key: "classificacao", label: "Classificação", width: 25 },
-    { key: "status", label: "Status", width: 30 },
-    { key: "situacao", label: "Situação Fin.", width: 25 },
-    { key: "valor_fmt", label: "Valor", align: "right", width: 25 },
+    { key: "cliente", label: "Cliente", width: 42 },
+    { key: "empresa", label: "Empresa", width: 30 },
+    { key: "colaborador", label: "Colaborador", width: 40 },
+    { key: "classificacao", label: "Classificação", width: 22 },
+    { key: "status", label: "Status", width: 26 },
+    { key: "situacao", label: "Situação Fin.", width: 22 },
+    { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
 
   return (
