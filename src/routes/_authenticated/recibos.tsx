@@ -332,12 +332,13 @@ function Page() {
             <DialogDescription>Extras incluídas neste recibo.</DialogDescription>
           </DialogHeader>
           <Table>
-            <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Horário</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome_fantasia?: string } } }) => (
+              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome_fantasia?: string }; empresas?: { nome?: string } } }) => (
                 <TableRow key={i.id}>
                   <TableCell>{i.extras?.data}</TableCell>
                   <TableCell>{i.extras?.clientes?.nome_fantasia}</TableCell>
+                  <TableCell>{i.extras?.empresas?.nome ?? "—"}</TableCell>
                   <TableCell>{i.extras?.hora_inicio} → {i.extras?.hora_termino}</TableCell>
                   <TableCell className="text-right">{formatBRL(i.valor_snapshot)}</TableCell>
                 </TableRow>
