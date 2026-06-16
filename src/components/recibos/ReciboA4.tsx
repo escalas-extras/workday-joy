@@ -129,9 +129,12 @@ function ReciboBloco({ r }: { r: ReciboView }) {
           <tbody>
             {r.itens.slice(0, 4).map((it, i) => (
               <tr key={i} className="border-b border-[#060B5A]/15">
-                <td className="py-0.5">{fmtDate(it.data)}</td>
-                <td className="py-0.5 truncate max-w-[100px]">{it.cliente}</td>
-                <td className="py-0.5 text-right">{formatBRL(it.valor)}</td>
+                <td className="py-0.5 align-top">{fmtDate(it.data)}</td>
+                <td className="py-0.5 max-w-[100px]">
+                  <div className="truncate">{it.cliente}</div>
+                  {it.empresa && <div className="truncate text-[8px] text-gray-600">{it.empresa}</div>}
+                </td>
+                <td className="py-0.5 text-right align-top">{formatBRL(it.valor)}</td>
               </tr>
             ))}
             {r.itens.length > 4 && (
