@@ -380,16 +380,26 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     .order("numero");
   const { data: its } = await supabase
     .from("recibos_itens")
-    .select("recibo_id, valor_snapshot, extras(data, clientes(nome_fantasia))")
+    .select("recibo_id, valor_snapshot, extras(data, emitente_id, clientes(nome_fantasia))")
     .in("recibo_id", ids);
-  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; clientes?: { nome_fantasia?: string } } };
+  type Item = { recibo_id: string; valor_snapshot: number; extras?: { data?: string; emitente_id?: string | null; clientes?: { nome_fantasia?: string } } };
+  const items = (its ?? []) as Item[];
+  const emitenteIds = Array.from(new Set(items.map((i) => i.extras?.emitente_id).filter(Boolean) as string[]));
+  const nomeById: Record<string, string> = {};
+  if (emitenteIds.length) {
+    const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", emitenteIds);
+    for (const p of (profs ?? []) as { id: string; nome: string }[]) nomeById[p.id] = p.nome;
+  }
   const byRec: Record<string, { data: string; cliente: string; valor: number }[]> = {};
-  for (const it of (its ?? []) as Item[]) {
+  const emitByRec: Record<string, Set<string>> = {};
+  for (const it of items) {
     (byRec[it.recibo_id] ||= []).push({
       data: it.extras?.data ?? "",
       cliente: it.extras?.clientes?.nome_fantasia ?? "",
       valor: Number(it.valor_snapshot),
     });
+    const nome = it.extras?.emitente_id ? nomeById[it.extras.emitente_id] : null;
+    if (nome) (emitByRec[it.recibo_id] ||= new Set()).add(nome);
   }
   type Rec = { id: string; numero: number; semana_ref: string; data_pagamento: string; valor_total: number; ativo: boolean; colaboradores?: { nome?: string } };
   return ((recs ?? []) as Rec[]).map((r) => ({
@@ -401,5 +411,6 @@ export async function loadReciboViews(ids: string[]): Promise<ReciboView[]> {
     valor_total: Number(r.valor_total),
     ativo: r.ativo,
     itens: (byRec[r.id] ?? []).sort((a, b) => a.data.localeCompare(b.data)),
+    lancado_por: Array.from(emitByRec[r.id] ?? []).join(", "),
   }));
 }
