@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/relatorios/financeiro")({ 
 type Linha = {
   id: string; data: string; valor: number; classificacao: "contrato" | "a_cobrar";
   situacao_financeira: string | null; status: string;
-  cliente: string; colaborador: string;
+  cliente: string; empresa: string; colaborador: string;
 };
 
 function Page() {
@@ -30,7 +30,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),colaboradores!colaborador_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),empresas(nome),colaboradores!colaborador_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       return (data ?? []).map((r): Linha => ({
@@ -38,6 +38,7 @@ function Page() {
         classificacao: r.classificacao_comercial as "contrato" | "a_cobrar",
         situacao_financeira: r.situacao_financeira, status: r.status,
         cliente: r.clientes?.nome_fantasia ?? "",
+        empresa: r.empresas?.nome ?? "—",
         colaborador: r.colaboradores?.nome ?? "",
       }));
     },
@@ -59,7 +60,7 @@ function Page() {
   }, [q.data]);
 
   const rows = (q.data ?? []).map((r) => ({
-    data: r.data, cliente: r.cliente, colaborador: r.colaborador,
+    data: r.data, cliente: r.cliente, empresa: r.empresa, colaborador: r.colaborador,
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
@@ -67,12 +68,13 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "data", label: "Data", width: 22 },
-    { key: "cliente", label: "Cliente", width: 50 },
-    { key: "colaborador", label: "Colaborador", width: 45 },
-    { key: "classificacao", label: "Classificação", width: 25 },
-    { key: "status", label: "Status", width: 30 },
-    { key: "situacao", label: "Situação Fin.", width: 25 },
-    { key: "valor_fmt", label: "Valor", align: "right", width: 25 },
+    { key: "cliente", label: "Cliente", width: 42 },
+    { key: "empresa", label: "Empresa", width: 30 },
+    { key: "colaborador", label: "Colaborador", width: 40 },
+    { key: "classificacao", label: "Classificação", width: 22 },
+    { key: "status", label: "Status", width: 26 },
+    { key: "situacao", label: "Situação Fin.", width: 22 },
+    { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
 
   return (
@@ -106,19 +108,19 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Colaborador</TableHead>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead>
             <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.colaborador}</TableCell>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

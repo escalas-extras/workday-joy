@@ -19,9 +19,10 @@ type ExtraRow = {
   id: string; data: string; hora_inicio: string; hora_termino: string;
   valor: number; classificacao_comercial: string; situacao_servico: string;
   status: string; situacao_financeira: string | null;
-  cliente_id: string; colaborador_id: string; funcao_id: string;
+  cliente_id: string; colaborador_id: string; funcao_id: string; empresa_id: string | null;
   clientes?: { nome_fantasia: string };
-  colaboradores?: { id: string; nome: string; empresa_id?: string; empresas?: { id: string; nome: string } };
+  empresas?: { id: string; nome: string } | null;
+  colaboradores?: { id: string; nome: string };
   coberto?: { nome: string };
   funcoes?: { id: string; nome: string };
 };
@@ -44,9 +45,10 @@ function Page() {
       const { data, error } = await supabase.from("extras")
         .select(
           "id,data,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
-          "cliente_id,colaborador_id,funcao_id," +
+          "cliente_id,colaborador_id,funcao_id,empresa_id," +
           "clientes(nome_fantasia)," +
-          "colaboradores!colaborador_id(id,nome,empresa_id,empresas(id,nome))," +
+          "empresas(id,nome)," +
+          "colaboradores!colaborador_id(id,nome)," +
           "coberto:colaboradores!colaborador_coberto_id(nome)," +
           "funcoes(id,nome)"
         )
@@ -64,7 +66,7 @@ function Page() {
     const colabs = new Map<string, string>();
     const funcoes = new Map<string, string>();
     for (const r of q.data ?? []) {
-      if (r.colaboradores?.empresas) empresas.set(r.colaboradores.empresas.id, r.colaboradores.empresas.nome);
+      if (r.empresas) empresas.set(r.empresas.id, r.empresas.nome);
       if (r.clientes) clientes.set(r.cliente_id, r.clientes.nome_fantasia);
       if (r.colaboradores) colabs.set(r.colaborador_id, r.colaboradores.nome);
       if (r.funcoes) funcoes.set(r.funcao_id, r.funcoes.nome);
@@ -76,7 +78,7 @@ function Page() {
 
   const filtrados = useMemo(() => (q.data ?? []).filter((r) => {
     if (cliente && r.cliente_id !== cliente) return false;
-    if (empresa && r.colaboradores?.empresa_id !== empresa) return false;
+    if (empresa && r.empresa_id !== empresa) return false;
     if (colab && r.colaborador_id !== colab) return false;
     if (funcao && r.funcao_id !== funcao) return false;
     if (situacao) {
@@ -89,7 +91,7 @@ function Page() {
   const rows = useMemo(() => filtrados.map((r) => ({
     data: r.data,
     cliente: r.clientes?.nome_fantasia ?? "",
-    empresa: r.colaboradores?.empresas?.nome ?? "—",
+    empresa: r.empresas?.nome ?? "—",
     colaborador: r.colaboradores?.nome ?? "",
     funcao: r.funcoes?.nome ?? "",
     horario: `${r.hora_inicio?.slice(0, 5) ?? ""} - ${r.hora_termino?.slice(0, 5) ?? ""}`,
