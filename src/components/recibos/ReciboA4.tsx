@@ -15,6 +15,7 @@ export interface ReciboView {
   valor_total: number;
   ativo: boolean;
   itens: ReciboItemView[];
+  lancado_por?: string;
 }
 
 function fmtDate(d: string): string {
