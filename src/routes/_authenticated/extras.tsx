@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
-import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_REQUEREM_COBERTO, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
+import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_REQUEREM_COBERTO, labelColaboradorCoberto, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
