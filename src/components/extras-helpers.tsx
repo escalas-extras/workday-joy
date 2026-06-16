@@ -42,7 +42,18 @@ export const SITUACAO_SERVICO_LABEL: Record<string, string> = {
   outro: "Outro",
 };
 
-export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado", "cobertura_folga", "falta"]);
+export const SITUACOES_REQUEREM_COBERTO = new Set(["cobertura_ferias", "cobertura_atestado", "cobertura_folga", "falta", "reciclagem"]);
+
+export function labelColaboradorCoberto(situacao: string): string {
+  switch (situacao) {
+    case "reciclagem": return "Colaborador em Reciclagem *";
+    case "falta": return "Colaborador que Faltou *";
+    case "cobertura_ferias": return "Colaborador em Férias *";
+    case "cobertura_atestado": return "Colaborador em Atestado *";
+    case "cobertura_folga": return "Colaborador em Folga *";
+    default: return "Colaborador Coberto *";
+  }
+}
 
 
 
