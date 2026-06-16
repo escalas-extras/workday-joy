@@ -78,7 +78,7 @@ function Page() {
 
   const filtrados = useMemo(() => (q.data ?? []).filter((r) => {
     if (cliente && r.cliente_id !== cliente) return false;
-    if (empresa && r.colaboradores?.empresa_id !== empresa) return false;
+    if (empresa && r.empresa_id !== empresa) return false;
     if (colab && r.colaborador_id !== colab) return false;
     if (funcao && r.funcao_id !== funcao) return false;
     if (situacao) {
