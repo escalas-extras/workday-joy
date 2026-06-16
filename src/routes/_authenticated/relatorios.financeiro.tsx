@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/relatorios/financeiro")({ 
 type Linha = {
   id: string; data: string; valor: number; classificacao: "contrato" | "a_cobrar";
   situacao_financeira: string | null; status: string;
-  cliente: string; colaborador: string;
+  cliente: string; empresa: string; colaborador: string;
 };
 
 function Page() {
@@ -30,7 +30,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),colaboradores!colaborador_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia),empresas(nome),colaboradores!colaborador_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       return (data ?? []).map((r): Linha => ({
@@ -38,6 +38,7 @@ function Page() {
         classificacao: r.classificacao_comercial as "contrato" | "a_cobrar",
         situacao_financeira: r.situacao_financeira, status: r.status,
         cliente: r.clientes?.nome_fantasia ?? "",
+        empresa: r.empresas?.nome ?? "—",
         colaborador: r.colaboradores?.nome ?? "",
       }));
     },
