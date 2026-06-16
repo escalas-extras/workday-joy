@@ -3,6 +3,7 @@ import { valorPorExtenso, formatBRL } from "@/lib/extenso";
 export interface ReciboItemView {
   data: string; // YYYY-MM-DD
   cliente: string;
+  empresa?: string;
   valor: number;
 }
 
