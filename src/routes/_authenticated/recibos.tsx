@@ -113,7 +113,7 @@ function Page() {
   const itens = useQuery({
     queryKey: ["recibo_itens", detalheId],
     queryFn: async () => detalheId
-      ? (await supabase.from("recibos_itens").select("*, extras(data,hora_inicio,hora_termino,valor,cliente_id,clientes(nome_fantasia))").eq("recibo_id", detalheId)).data ?? []
+      ? (await supabase.from("recibos_itens").select("*, extras(data,hora_inicio,hora_termino,valor,cliente_id,clientes(nome_fantasia),empresas(nome))").eq("recibo_id", detalheId)).data ?? []
       : [],
     enabled: !!detalheId,
   });
