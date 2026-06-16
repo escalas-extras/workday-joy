@@ -66,7 +66,7 @@ function Page() {
     const colabs = new Map<string, string>();
     const funcoes = new Map<string, string>();
     for (const r of q.data ?? []) {
-      if (r.colaboradores?.empresas) empresas.set(r.colaboradores.empresas.id, r.colaboradores.empresas.nome);
+      if (r.empresas) empresas.set(r.empresas.id, r.empresas.nome);
       if (r.clientes) clientes.set(r.cliente_id, r.clientes.nome_fantasia);
       if (r.colaboradores) colabs.set(r.colaborador_id, r.colaboradores.nome);
       if (r.funcoes) funcoes.set(r.funcao_id, r.funcoes.nome);
