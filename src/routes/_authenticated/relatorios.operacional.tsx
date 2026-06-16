@@ -91,7 +91,7 @@ function Page() {
   const rows = useMemo(() => filtrados.map((r) => ({
     data: r.data,
     cliente: r.clientes?.nome_fantasia ?? "",
-    empresa: r.colaboradores?.empresas?.nome ?? "—",
+    empresa: r.empresas?.nome ?? "—",
     colaborador: r.colaboradores?.nome ?? "",
     funcao: r.funcoes?.nome ?? "",
     horario: `${r.hora_inicio?.slice(0, 5) ?? ""} - ${r.hora_termino?.slice(0, 5) ?? ""}`,
