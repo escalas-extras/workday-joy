@@ -252,7 +252,7 @@ function Page() {
             </div>
             {SITUACOES_REQUEREM_COBERTO.has(vals.situacao_servico) && (
               <div className="md:col-span-2">
-                <Label>Colaborador Coberto *</Label>
+                <Label>{labelColaboradorCoberto(vals.situacao_servico)}</Label>
                 <SearchableSelect
                   placeholder="Pesquisar colaborador coberto"
                   searchPlaceholder="Digite nome ou matrícula..."
