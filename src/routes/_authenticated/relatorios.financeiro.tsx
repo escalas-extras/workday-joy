@@ -108,19 +108,19 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Colaborador</TableHead>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead>
             <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.colaborador}</TableCell>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
