@@ -185,8 +185,8 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   const sigImg = await loadAssetDataUrl(assinaturaRep.url);
   const placeSig = (cx: number, lineY: number) => {
     if (!sigImg) return;
-    const w = 28, h = 14;
-    try { doc.addImage(sigImg, "PNG", cx - w / 2, lineY - h + 1, w, h); } catch { /* ignore */ }
+    const w = 44.8, h = 22.4;
+    try { doc.addImage(sigImg, "PNG", cx - w / 2, lineY - h * 0.8, w, h); } catch { /* ignore */ }
   };
   if (isSusp) {
     const col = (contentW - 10) / 3;

@@ -139,8 +139,8 @@ export async function gerarJustaCausaPdf(d: JustaCausaData, filename = "justa-ca
   })();
   const drawSig = (x: number, w: number, label: string, sub?: string, withSig?: boolean) => {
     if (withSig && sigImg) {
-      const iw = 28, ih = 14;
-      try { doc.addImage(sigImg, "PNG", x + w / 2 - iw / 2, y - ih + 1, iw, ih); } catch { /* ignore */ }
+      const iw = 44.8, ih = 22.4;
+      try { doc.addImage(sigImg, "PNG", x + w / 2 - iw / 2, y - ih * 0.8, iw, ih); } catch { /* ignore */ }
     }
     doc.line(x, y, x + w, y);
     doc.setFontSize(9);
