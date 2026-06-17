@@ -33,6 +33,10 @@ function Page() {
 
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroSemana, setFiltroSemana] = useState<string>("");
+  const [busca, setBusca] = useState<string>("");
+  const [dataIni, setDataIni] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
+  const [filtroSituacao, setFiltroSituacao] = useState<string>("todas");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Extra | null>(null);
   const [cancelarId, setCancelarId] = useState<string | null>(null);
@@ -49,15 +53,31 @@ function Page() {
   const funcoes = useQuery({ enabled: !!user, queryKey: ["funcoes", user?.id], queryFn: async () => { const { data, error } = await supabase.from("funcoes").select("*").eq("situacao", "ativo").order("nome"); if (error) throw error; return data ?? []; } });
 
   const extras = useQuery({
-    queryKey: ["extras", filtroStatus, filtroSemana],
+    queryKey: ["extras", filtroStatus, filtroSemana, dataIni, dataFim, filtroSituacao],
     queryFn: async () => {
       const q = supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), coberto:colaboradores!colaborador_coberto_id(nome,matricula), clientes(nome_fantasia), empresas(nome), funcoes(nome)").order("data", { ascending: false });
       if (filtroStatus !== "todos") q.eq("status", filtroStatus as any);
       if (filtroSemana) q.eq("semana_ref", filtroSemana);
+      if (dataIni) q.gte("data", dataIni);
+      if (dataFim) q.lte("data", dataFim);
+      if (filtroSituacao !== "todas") q.eq("situacao_servico", filtroSituacao as any);
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  const extrasFiltrados = (extras.data ?? []).filter((e: any) => {
+    if (!busca.trim()) return true;
+    const s = busca.toLowerCase();
+    return (
+      (e.colaboradores?.nome ?? "").toLowerCase().includes(s) ||
+      (e.colaboradores?.matricula ?? "").toLowerCase().includes(s) ||
+      (e.clientes?.nome_fantasia ?? "").toLowerCase().includes(s) ||
+      (e.empresas?.nome ?? "").toLowerCase().includes(s) ||
+      (e.funcoes?.nome ?? "").toLowerCase().includes(s) ||
+      (e.motivo ?? "").toLowerCase().includes(s)
+    );
   });
 
 
@@ -131,19 +151,50 @@ function Page() {
         podeLancar && <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Extra</Button>
       } />
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="pendente">Pendente</SelectItem>
-            <SelectItem value="aprovado_operacional">Aprov. Operacional</SelectItem>
-            <SelectItem value="rejeitado">Rejeitado</SelectItem>
-            <SelectItem value="aprovado_financeiro">Aprov. Financeiro</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input type="date" placeholder="Semana ref" value={filtroSemana} onChange={(e) => setFiltroSemana(e.target.value)} className="w-48" />
-        {filtroSemana && <Button variant="outline" size="sm" onClick={() => setFiltroSemana("")}>Limpar</Button>}
+      <div className="flex flex-wrap gap-2 mb-4 items-end">
+        <div className="flex-1 min-w-[220px]">
+          <Label className="text-xs">Pesquisar</Label>
+          <Input placeholder="Colaborador, matrícula, cliente, empresa, função, motivo..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        <div>
+          <Label className="text-xs">Status</Label>
+          <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="pendente">Pendente</SelectItem>
+              <SelectItem value="aprovado_operacional">Aprov. Operacional</SelectItem>
+              <SelectItem value="rejeitado">Rejeitado</SelectItem>
+              <SelectItem value="aprovado_financeiro">Aprov. Financeiro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Situação</Label>
+          <Select value={filtroSituacao} onValueChange={setFiltroSituacao}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas situações</SelectItem>
+              {SITUACAO_SERVICO_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Data início</Label>
+          <Input type="date" value={dataIni} onChange={(e) => setDataIni(e.target.value)} className="w-40" />
+        </div>
+        <div>
+          <Label className="text-xs">Data fim</Label>
+          <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-40" />
+        </div>
+        <div>
+          <Label className="text-xs">Semana ref</Label>
+          <Input type="date" value={filtroSemana} onChange={(e) => setFiltroSemana(e.target.value)} className="w-40" />
+        </div>
+        {(busca || dataIni || dataFim || filtroSemana || filtroStatus !== "todos" || filtroSituacao !== "todas") && (
+          <Button variant="outline" size="sm" onClick={() => { setBusca(""); setDataIni(""); setDataFim(""); setFiltroSemana(""); setFiltroStatus("todos"); setFiltroSituacao("todas"); }}>Limpar filtros</Button>
+        )}
+        <div className="text-xs text-muted-foreground ml-auto">{extrasFiltrados.length} registro(s)</div>
       </div>
 
       <div className="rounded-md border bg-card overflow-x-auto">
@@ -157,7 +208,7 @@ function Page() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(extras.data ?? []).map((e: any) => (
+            {extrasFiltrados.map((e: any) => (
               <TableRow key={e.id}>
                 <TableCell className="whitespace-nowrap">{e.data}</TableCell>
                 <TableCell>{e.colaboradores?.nome}<div className="text-xs text-muted-foreground">{e.colaboradores?.matricula}</div></TableCell>
