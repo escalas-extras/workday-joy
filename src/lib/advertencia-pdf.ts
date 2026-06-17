@@ -182,21 +182,31 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   // Assinaturas
   y += 18;
   doc.setLineWidth(0.3);
+  const sigImg = await loadAssetDataUrl(assinaturaRep.url);
+  const placeSig = (cx: number, lineY: number) => {
+    if (!sigImg) return;
+    const w = 28, h = 14;
+    try { doc.addImage(sigImg, "PNG", cx - w / 2, lineY - h + 1, w, h); } catch { /* ignore */ }
+  };
   if (isSusp) {
     const col = (contentW - 10) / 3;
     const labels = ["Representante da Empresa", "Empregado", "Testemunha"];
     for (let i = 0; i < 3; i++) {
       const x = margin + i * (col + 5);
+      if (i === 0) placeSig(x + col / 2, y);
       doc.line(x, y, x + col, y);
       doc.setFontSize(9);
       doc.text(labels[i], x + col / 2, y + 4, { align: "center" });
     }
     y += 8;
   } else {
+    placeSig(margin + contentW / 2, y);
     doc.line(margin, y, pageW - margin, y);
     y += 4;
     doc.setFontSize(10);
-    doc.text("Ciente do empregado", margin, y);
+    doc.text("Representante da Empresa", margin + contentW / 2, y, { align: "center" });
+    y += 5;
+    doc.text("Ciente do empregado: ____________________________________", margin, y);
   }
 
   // Página 2: rodapé com Art. 482 completo
