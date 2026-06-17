@@ -1,5 +1,21 @@
 import { jsPDF } from "jspdf";
 import julianiLogo from "@/assets/juliani-logo-v2.png.asset.json";
+import assinaturaRep from "@/assets/assinatura-representante.png.asset.json";
+
+async function loadAssetDataUrl(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url);
+    const b = await r.blob();
+    return await new Promise((res) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result as string);
+      fr.onerror = () => res(null);
+      fr.readAsDataURL(b);
+    });
+  } catch {
+    return null;
+  }
+}
 
 export type DisciplinaryActionType = "orientacao_verbal" | "advertencia_escrita" | "suspensao" | "justa_causa";
 
