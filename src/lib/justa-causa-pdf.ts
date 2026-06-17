@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import julianiLogo from "@/assets/juliani-logo-v2.png.asset.json";
+import assinaturaRep from "@/assets/assinatura-representante.png.asset.json";
 
 export const ART_482 = [
   ["a", "ato de improbidade"],
@@ -124,7 +125,23 @@ export async function gerarJustaCausaPdf(d: JustaCausaData, filename = "justa-ca
   y += 18;
   if (y > 260) { doc.addPage(); y = 30; }
   doc.setLineWidth(0.3);
-  const drawSig = (x: number, w: number, label: string, sub?: string) => {
+  const sigImg = await (async () => {
+    try {
+      const r = await fetch(assinaturaRep.url);
+      const b = await r.blob();
+      return await new Promise<string | null>((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result as string);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch { return null; }
+  })();
+  const drawSig = (x: number, w: number, label: string, sub?: string, withSig?: boolean) => {
+    if (withSig && sigImg) {
+      const iw = 28, ih = 14;
+      try { doc.addImage(sigImg, "PNG", x + w / 2 - iw / 2, y - ih + 1, iw, ih); } catch { /* ignore */ }
+    }
     doc.line(x, y, x + w, y);
     doc.setFontSize(9);
     doc.text(label, x + w / 2, y + 4, { align: "center" });
@@ -133,7 +150,7 @@ export async function gerarJustaCausaPdf(d: JustaCausaData, filename = "justa-ca
 
   // Linha 1: Empresa | RH | Empregado
   const col3 = (contentW - 10) / 3;
-  drawSig(margin, col3, "Representante Legal");
+  drawSig(margin, col3, "Representante Legal", undefined, true);
   drawSig(margin + col3 + 5, col3, "RH");
   drawSig(margin + (col3 + 5) * 2, col3, "Empregado", d.employeeName.toUpperCase());
 
