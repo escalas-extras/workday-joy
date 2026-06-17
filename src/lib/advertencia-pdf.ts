@@ -205,7 +205,7 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
     y += 4;
     doc.setFontSize(10);
     doc.text("Representante da Empresa", margin + contentW / 2, y, { align: "center" });
-    y += 5;
+    y += 22;
     doc.text("Ciente do empregado: ____________________________________", margin, y);
   }
 
