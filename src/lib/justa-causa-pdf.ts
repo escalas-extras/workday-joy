@@ -125,7 +125,18 @@ export async function gerarJustaCausaPdf(d: JustaCausaData, filename = "justa-ca
   y += 18;
   if (y > 260) { doc.addPage(); y = 30; }
   doc.setLineWidth(0.3);
-  const sigImg = await loadLogoDataUrl().then(() => fetch(assinaturaRep.url).then(r => r.blob()).then(b => new Promise<string | null>((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result as string); fr.onerror = () => res(null); fr.readAsDataURL(b); })).catch(() => null));
+  const sigImg = await (async () => {
+    try {
+      const r = await fetch(assinaturaRep.url);
+      const b = await r.blob();
+      return await new Promise<string | null>((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result as string);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      });
+    } catch { return null; }
+  })();
   const drawSig = (x: number, w: number, label: string, sub?: string, withSig?: boolean) => {
     if (withSig && sigImg) {
       const iw = 28, ih = 14;
