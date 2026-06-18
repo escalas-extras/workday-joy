@@ -5,6 +5,7 @@ export interface ReciboItemView {
   cliente: string;
   empresa?: string;
   valor: number;
+  lancado_por?: string;
 }
 
 export interface ReciboView {
@@ -123,6 +124,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             <tr className="border-b border-[#060B5A]">
               <th className="text-left py-0.5">DATA</th>
               <th className="text-left py-0.5">CLIENTE</th>
+              <th className="text-left py-0.5">LANÇADO POR</th>
               <th className="text-right py-0.5">VALOR</th>
             </tr>
           </thead>
@@ -130,16 +132,19 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             {r.itens.slice(0, 4).map((it, i) => (
               <tr key={i} className="border-b border-[#060B5A]/15">
                 <td className="py-0.5 align-top">{fmtDate(it.data)}</td>
-                <td className="py-0.5 max-w-[100px]">
+                <td className="py-0.5 max-w-[80px]">
                   <div className="truncate">{it.cliente}</div>
                   {it.empresa && <div className="truncate text-[8px] text-gray-600">{it.empresa}</div>}
+                </td>
+                <td className="py-0.5 align-top max-w-[70px]">
+                  <div className="truncate text-[8px]">{it.lancado_por ?? ""}</div>
                 </td>
                 <td className="py-0.5 text-right align-top">{formatBRL(it.valor)}</td>
               </tr>
             ))}
             {r.itens.length > 4 && (
               <tr>
-                <td colSpan={3} className="text-[8px] text-gray-500 italic py-0.5">
+                <td colSpan={4} className="text-[8px] text-gray-500 italic py-0.5">
                   + {r.itens.length - 4} item(ns) ocultado(s)
                 </td>
               </tr>
@@ -147,7 +152,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
           </tbody>
           <tfoot>
             <tr className="border-t border-[#060B5A] font-bold">
-              <td colSpan={2} className="py-0.5 text-right">TOTAL</td>
+              <td colSpan={3} className="py-0.5 text-right">TOTAL</td>
               <td className="py-0.5 text-right">{formatBRL(r.valor_total)}</td>
             </tr>
           </tfoot>
