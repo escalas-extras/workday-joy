@@ -679,6 +679,29 @@ function ApprovalsTab({
       case_id: caseRow.id, step, approved_by: userId, decision, observacao: observacao.trim() || null,
     });
     if (error) return toast.error(error.message);
+
+    // Avança o status do processo conforme o fluxo: supervisor → RH → diretoria → aprovado.
+    // Rejeição em qualquer etapa arquiva o processo.
+    if (caseRow.status !== "convertido_justa_causa") {
+      let nextStatus: CaseRow["status"] | null = null;
+      if (decision === "rejeitado") {
+        nextStatus = "arquivado";
+      } else if (step === "supervisor" && caseRow.status === "aberto") {
+        nextStatus = "aguardando_rh";
+      } else if (step === "rh") {
+        nextStatus = "aguardando_diretoria";
+      } else if (step === "diretoria") {
+        nextStatus = "aprovado";
+      }
+      if (nextStatus && nextStatus !== caseRow.status) {
+        const { error: upErr } = await supabase
+          .from("disciplinary_cases")
+          .update({ status: nextStatus })
+          .eq("id", caseRow.id);
+        if (upErr) toast.error(`Aprovação registrada, mas falhou ao atualizar status: ${upErr.message}`);
+      }
+    }
+
     toast.success("Decisão registrada.");
     onChanged();
   }
