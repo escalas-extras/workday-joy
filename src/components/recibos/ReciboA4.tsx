@@ -5,6 +5,7 @@ export interface ReciboItemView {
   cliente: string;
   empresa?: string;
   valor: number;
+  lancado_por?: string;
 }
 
 export interface ReciboView {
