@@ -75,22 +75,29 @@ export async function exportarPdf(
 
   doc.setTextColor(0, 0, 0);
 
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginX = 6;
+  const usableW = pageW - marginX * 2;
+  const totalDeclared = columns.reduce((s, c) => s + (c.width ?? 20), 0);
+  const scale = totalDeclared > 0 ? usableW / totalDeclared : 1;
+
   autoTable(doc, {
     startY: 28,
+    margin: { left: marginX, right: marginX },
+    tableWidth: usableW,
     head: [columns.map((c) => c.label)],
     body: rows.map((r) => columns.map((c) => String(r[c.key] ?? ""))),
     foot: totaisLinha ? [totaisLinha.map(String)] : undefined,
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    headStyles: { fillColor: JULIANI_NAVY, textColor: 255 },
+    styles: { fontSize: 7, cellPadding: 1, overflow: "linebreak" },
+    headStyles: { fillColor: JULIANI_NAVY, textColor: 255, fontSize: 7 },
     footStyles: { fillColor: JULIANI_BG_SOFT, textColor: JULIANI_NAVY, fontStyle: "bold" },
     columnStyles: Object.fromEntries(
-      columns.map((c, i) => [i, { halign: c.align ?? "left", cellWidth: c.width }])
+      columns.map((c, i) => [i, { halign: c.align ?? "left", cellWidth: (c.width ?? 20) * scale }]),
     ),
     didDrawPage: () => {
-      const h = doc.internal.pageSize.getHeight();
       doc.setFontSize(7);
       doc.setTextColor(120, 120, 120);
-      doc.text("Grupo Juliani · Gestão de Escalas Extras", 8, h - 4);
+      doc.text("Grupo Juliani · Gestão de Escalas Extras", marginX, pageH - 4);
     },
   });
   doc.save(filename);
