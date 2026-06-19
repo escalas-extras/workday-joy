@@ -347,14 +347,14 @@ function Page() {
                 <TableCell>{r.semana_ref}</TableCell>
                 <TableCell>{r.data_pagamento}</TableCell>
                 <TableCell>{formatBRL(r.valor_total)}</TableCell>
-                <TableCell><Badge variant={r.ativo ? "default" : "secondary"}>{r.ativo ? "Ativo" : "Cancelado"}</Badge></TableCell>
+                <TableCell><Badge variant="default">Ativo</Badge></TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => setPreviewIds([r.id])} title="Visualizar"><Eye className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} title="Imprimir"><Printer className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => setDetalheId(r.id)}>Itens</Button>
-                    {r.ativo && <Button size="sm" variant="destructive" onClick={() => setCancelarId(r.id)}><Ban className="h-3 w-3" /></Button>}
+                    <Button size="sm" variant="destructive" onClick={() => setExcluirId(r.id)} title="Excluir (admin)"><Ban className="h-3 w-3" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
