@@ -19,7 +19,6 @@ import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedPesquisaDisciplinarRouteImport } from './routes/_authenticated/pesquisa-disciplinar'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedPagamentosRouteImport } from './routes/_authenticated/pagamentos'
 import { Route as AuthenticatedMotivosRejeicaoRouteImport } from './routes/_authenticated/motivos-rejeicao'
 import { Route as AuthenticatedInteligenciaDisciplinarRouteImport } from './routes/_authenticated/inteligencia-disciplinar'
 import { Route as AuthenticatedInicioRouteImport } from './routes/_authenticated/inicio'
@@ -94,11 +93,6 @@ const AuthenticatedPesquisaDisciplinarRoute =
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPagamentosRoute = AuthenticatedPagamentosRouteImport.update({
-  id: '/pagamentos',
-  path: '/pagamentos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMotivosRejeicaoRoute =
@@ -256,7 +250,6 @@ export interface FileRoutesByFullPath {
   '/inicio': typeof AuthenticatedInicioRoute
   '/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
-  '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/processos': typeof AuthenticatedProcessosRoute
@@ -292,7 +285,6 @@ export interface FileRoutesByTo {
   '/inicio': typeof AuthenticatedInicioRoute
   '/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
-  '/pagamentos': typeof AuthenticatedPagamentosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/processos': typeof AuthenticatedProcessosRoute
@@ -329,7 +321,6 @@ export interface FileRoutesById {
   '/_authenticated/inicio': typeof AuthenticatedInicioRoute
   '/_authenticated/inteligencia-disciplinar': typeof AuthenticatedInteligenciaDisciplinarRoute
   '/_authenticated/motivos-rejeicao': typeof AuthenticatedMotivosRejeicaoRoute
-  '/_authenticated/pagamentos': typeof AuthenticatedPagamentosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/_authenticated/processos': typeof AuthenticatedProcessosRoute
@@ -367,7 +358,6 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/inteligencia-disciplinar'
     | '/motivos-rejeicao'
-    | '/pagamentos'
     | '/perfil'
     | '/pesquisa-disciplinar'
     | '/processos'
@@ -403,7 +393,6 @@ export interface FileRouteTypes {
     | '/inicio'
     | '/inteligencia-disciplinar'
     | '/motivos-rejeicao'
-    | '/pagamentos'
     | '/perfil'
     | '/pesquisa-disciplinar'
     | '/processos'
@@ -439,7 +428,6 @@ export interface FileRouteTypes {
     | '/_authenticated/inicio'
     | '/_authenticated/inteligencia-disciplinar'
     | '/_authenticated/motivos-rejeicao'
-    | '/_authenticated/pagamentos'
     | '/_authenticated/perfil'
     | '/_authenticated/pesquisa-disciplinar'
     | '/_authenticated/processos'
@@ -535,13 +523,6 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pagamentos': {
-      id: '/_authenticated/pagamentos'
-      path: '/pagamentos'
-      fullPath: '/pagamentos'
-      preLoaderRoute: typeof AuthenticatedPagamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/motivos-rejeicao': {
@@ -756,7 +737,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInicioRoute: typeof AuthenticatedInicioRoute
   AuthenticatedInteligenciaDisciplinarRoute: typeof AuthenticatedInteligenciaDisciplinarRoute
   AuthenticatedMotivosRejeicaoRoute: typeof AuthenticatedMotivosRejeicaoRoute
-  AuthenticatedPagamentosRoute: typeof AuthenticatedPagamentosRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPesquisaDisciplinarRoute: typeof AuthenticatedPesquisaDisciplinarRoute
   AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
@@ -788,7 +768,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInteligenciaDisciplinarRoute:
     AuthenticatedInteligenciaDisciplinarRoute,
   AuthenticatedMotivosRejeicaoRoute: AuthenticatedMotivosRejeicaoRoute,
-  AuthenticatedPagamentosRoute: AuthenticatedPagamentosRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPesquisaDisciplinarRoute: AuthenticatedPesquisaDisciplinarRoute,
   AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,

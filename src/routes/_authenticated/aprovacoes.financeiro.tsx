@@ -56,8 +56,15 @@ function Page() {
     },
   });
   const aprovar = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("extras").update({ status: "aprovado_financeiro" }).eq("id", id);
+    mutationFn: async (row: { id: string; classificacao_comercial: string }) => {
+      const patch: Record<string, any> = { status: "aprovado_financeiro" };
+      // À Cobrar segue para Faturamento; os demais já vão direto para Recibos como "pago"
+      if (row.classificacao_comercial !== "a_cobrar") {
+        patch.situacao_financeira = "pago";
+        patch.forma_pagamento = "dinheiro";
+        patch.data_pagamento = new Date().toISOString().slice(0, 10);
+      }
+      const { error } = await supabase.from("extras").update(patch as any).eq("id", row.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries(); toast.success("Aprovado financeiramente"); },
@@ -97,7 +104,7 @@ function Page() {
                   </Select>
                 </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
-                <TableCell><Button size="sm" onClick={() => aprovar.mutate(e.id)}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
+                <TableCell><Button size="sm" onClick={() => aprovar.mutate({ id: e.id, classificacao_comercial: e.classificacao_comercial })}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
               </TableRow>
             ))}
             {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}

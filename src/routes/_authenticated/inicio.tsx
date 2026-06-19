@@ -14,7 +14,7 @@ function Inicio() {
     { to: "/extras", t: "Extras", d: "Lançamentos", icon: ClipboardList },
     { to: "/aprovacoes/operacional", t: "Aprov. Operacional", d: "Validar lançamentos", icon: CheckCircle2 },
     { to: "/aprovacoes/financeiro", t: "Aprov. Financeira", d: "Liberar pagamentos", icon: CheckCircle2 },
-    { to: "/pagamentos", t: "Pagamentos", d: "Forma e data", icon: Wallet },
+    
     { to: "/faturamento", t: "Faturamento", d: "Cobrança ao cliente", icon: Receipt },
     { to: "/fechamento", t: "Fechamento", d: "Semana operacional", icon: CalendarCheck },
     { to: "/recibos", t: "Recibos", d: "Geração e cancelamento", icon: Receipt },
