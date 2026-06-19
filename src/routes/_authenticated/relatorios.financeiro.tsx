@@ -30,7 +30,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome))")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const empresaNome = (r: any): string => {
@@ -38,8 +38,9 @@ function Page() {
         const ces: any[] = r.clientes?.cliente_empresas ?? [];
         const ativas = ces.filter((ce) => ce.situacao === "ativo" && ce.empresas);
         const lista = ativas.length ? ativas : ces.filter((ce) => ce.empresas);
-        if (!lista.length) return "—";
-        return lista.map((ce) => ce.empresas.nome).join(" / ");
+        if (lista.length) return lista.map((ce) => ce.empresas.nome).join(" / ");
+        if (r.colaboradores?.empresas?.nome) return r.colaboradores.empresas.nome;
+        return "—";
       };
       return (data ?? []).map((r: any): Linha => ({
         id: r.id, data: r.data, valor: Number(r.valor),
