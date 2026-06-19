@@ -69,6 +69,9 @@ function Page() {
     <div>
       <PageHeader title="Aprovação Operacional" description="Validar lançamentos pendentes" />
       <ExtrasFilters value={filters} onChange={setFilters} />
+      <div className="flex justify-end mb-2">
+        <ExtrasExportActions rows={list.data ?? []} titulo="Aprovação Operacional — Pendentes" filename="aprovacao-operacional" variant="operacional" />
+      </div>
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
