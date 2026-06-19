@@ -111,6 +111,8 @@ function Page() {
     { key: "situacao", label: "Situação Fin.", width: 22 },
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
+  // PDF compacto: remove "Situação Fin." para caber na página
+  const pdfCols: ColunaRelatorio[] = cols.filter((c) => c.key !== "situacao");
 
   const tabela = (rs: Linha[], emptyMsg: string) => {
     const rows = toExport(rs);
