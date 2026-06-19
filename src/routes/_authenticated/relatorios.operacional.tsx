@@ -65,7 +65,12 @@ function Page() {
   // prevalece a outra empresa (não-JSP). Fallback final: empresa do colaborador.
   const isVigilante = (r: ExtraRow) => /vigilante/i.test(r.funcoes?.nome ?? "");
   const isJSP = (nome: string) => /\bjsp\b/i.test(nome);
-  const empresaDe = (r: ExtraRow): { id: string; nome: string } | null => {
+  // Colaboradores avulsos ficam atrelados à empresa "AVULSO"; no relatório esses casos
+  // devem aparecer como J.A.
+  const JA_ID = "067e9a1f-18de-45b3-afa1-d57dc6a12a40";
+  const remapAvulso = (e: { id: string; nome: string } | null): { id: string; nome: string } | null =>
+    e && /^avulso$/i.test(e.nome) ? { id: JA_ID, nome: "J.A" } : e;
+  const empresaDeRaw = (r: ExtraRow): { id: string; nome: string } | null => {
     if (r.empresas) return r.empresas;
     const todas = (r.clientes?.cliente_empresas ?? [])
       .filter((ce) => ce.empresas)
@@ -83,12 +88,12 @@ function Page() {
         const naoJsp = lista.find((e) => !isJSP(e.nome));
         if (naoJsp) return naoJsp;
       }
-      // fallback: primeira da lista
       return lista[0];
     }
     if (r.colaboradores?.empresas) return r.colaboradores.empresas;
     return null;
   };
+  const empresaDe = (r: ExtraRow) => remapAvulso(empresaDeRaw(r));
 
   // Opções dinâmicas — somente entidades com extras no período.
   const opts = useMemo(() => {
