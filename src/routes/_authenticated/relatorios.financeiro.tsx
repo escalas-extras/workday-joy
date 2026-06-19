@@ -34,7 +34,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome))")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const isJSP = (n: string) => /\bjsp\b/i.test(n);
@@ -62,6 +62,7 @@ function Page() {
         cliente: r.clientes?.nome_fantasia ?? "",
         empresa: empresaNome(r),
         colaborador: r.colaboradores?.nome ?? "",
+        coberto: r.coberto?.nome ?? "",
       }));
     },
   });
