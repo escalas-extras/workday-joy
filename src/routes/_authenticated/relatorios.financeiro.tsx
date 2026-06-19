@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PageHeader } from "@/components/app-shell";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { formatBRL } from "@/lib/extenso";
 import { FileDown, FileSpreadsheet } from "lucide-react";
+import { buildMesesOpts, buildSemanasOpts, derivePeriodo, agruparMesSemana } from "@/lib/semana-buckets";
 
 export const Route = createFileRoute("/_authenticated/relatorios/financeiro")({ component: Page });
 
@@ -21,10 +23,12 @@ type Linha = {
 };
 
 function Page() {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const mesAtras = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const [de, setDe] = useState(mesAtras);
-  const [ate, setAte] = useState(hoje);
+  const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7));
+  const [semana, setSemana] = useState<string>("_all");
+
+  const mesesOpts = useMemo(() => buildMesesOpts(), []);
+  const semanasOpts = useMemo(() => buildSemanasOpts(mesRef), [mesRef]);
+  const { de, ate } = useMemo(() => derivePeriodo(mesRef, semana, semanasOpts), [mesRef, semana, semanasOpts]);
 
   const q = useQuery({
     queryKey: ["rel-financeiro", de, ate],
@@ -62,6 +66,12 @@ function Page() {
     },
   });
 
+  // Pendentes vs Fechados (manipulados): pago / faturado / cancelado = fechado
+  const isFechado = (r: Linha) =>
+    r.status === "cancelado" || r.situacao_financeira === "pago" || r.situacao_financeira === "faturado";
+  const pendentes = useMemo(() => (q.data ?? []).filter((r) => !isFechado(r)), [q.data]);
+  const arquivados = useMemo(() => (q.data ?? []).filter(isFechado), [q.data]);
+
   const totais = useMemo(() => {
     const rows = q.data ?? [];
     const calc = (filtroClasse: "contrato" | "a_cobrar") => {
@@ -77,7 +87,7 @@ function Page() {
     return { contrato: calc("contrato"), a_cobrar: calc("a_cobrar") };
   }, [q.data]);
 
-  const rows = (q.data ?? []).map((r) => ({
+  const toExport = (rs: Linha[]) => rs.map((r) => ({
     data: r.data, cliente: r.cliente, empresa: r.empresa, colaborador: r.colaborador,
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
@@ -95,16 +105,60 @@ function Page() {
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
 
+  const tabela = (rs: Linha[], emptyMsg: string) => {
+    const rows = toExport(rs);
+    return (
+      <div className="rounded-md border bg-card overflow-x-auto">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead>
+            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
+            <TableHead className="text-right">Valor</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {rows.map((r, i) => (
+              <TableRow key={i}>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell>
+                <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
+                <TableCell className="text-right">{r.valor_fmt}</TableCell>
+              </TableRow>
+            ))}
+            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const buckets = useMemo(() => agruparMesSemana(arquivados, (r) => r.data), [arquivados]);
+  const totalGeral = (q.data ?? []).reduce((s, r) => s + r.valor, 0);
+  const onChangeMes = (v: string) => { setMesRef(v); setSemana("_all"); };
+
   return (
     <div>
       <PageHeader title="Relatório Financeiro" description="Totais por status, separados por Contrato e À Cobrar" />
-      <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">De</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
-        <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
-        <Button size="sm" variant="outline" onClick={() => exportarExcel(`financeiro-${de}-${ate}.xlsx`, "Financeiro", cols, rows)}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 items-end rounded-md border p-3 bg-card">
+        <div>
+          <Label className="text-xs">Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Semana</Label>
+          <Select value={semana} onValueChange={setSemana}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Mês inteiro</SelectItem>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => exportarExcel(`financeiro-${de}-${ate}.xlsx`, "Financeiro", cols, toExport(q.data ?? []))}>
           <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
         </Button>
-        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", cols, rows)}>
+        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", cols, toExport(q.data ?? []))}>
           <FileDown className="h-4 w-4 mr-1" />PDF
         </Button>
       </div>
@@ -123,25 +177,47 @@ function Page() {
         ))}
       </div>
 
-      <div className="rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead>
-            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
-            <TableHead className="text-right">Valor</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {rows.map((r, i) => (
-              <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell>
-                <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
-                <TableCell className="text-right">{r.valor_fmt}</TableCell>
-              </TableRow>
-            ))}
-            {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      </div>
+      <Accordion type="multiple" defaultValue={["pendentes"]} className="space-y-2">
+        <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
+          <AccordionTrigger className="text-sm font-semibold">
+            Pendentes — aguardando processamento ({pendentes.length})
+          </AccordionTrigger>
+          <AccordionContent>{tabela(pendentes, "Nenhum registro pendente")}</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="arquivados" className="border rounded-md bg-card px-3">
+          <AccordionTrigger className="text-sm font-semibold">
+            Arquivos fechados — pago / faturado / cancelado ({arquivados.length})
+          </AccordionTrigger>
+          <AccordionContent>
+            {!buckets.length
+              ? <div className="text-sm text-muted-foreground py-3">Nenhum registro fechado</div>
+              : (
+                <Accordion type="multiple" className="space-y-2">
+                  {buckets.map((mes) => {
+                    const total = mes.semanas.reduce((s, w) => s + w.rows.length, 0);
+                    return (
+                      <AccordionItem key={mes.key} value={mes.key} className="border rounded-md bg-muted/30 px-3">
+                        <AccordionTrigger className="text-sm">{mes.label} ({total})</AccordionTrigger>
+                        <AccordionContent>
+                          <Accordion type="multiple" className="space-y-2">
+                            {mes.semanas.map((sb) => (
+                              <AccordionItem key={sb.key} value={sb.key} className="border rounded-md bg-card px-3">
+                                <AccordionTrigger className="text-sm">{sb.label} ({sb.rows.length})</AccordionTrigger>
+                                <AccordionContent>{tabela(sb.rows, "—")}</AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <div className="mt-3 text-right text-sm font-semibold">Total geral: {formatBRL(totalGeral)} — {(q.data ?? []).length} registro(s)</div>
     </div>
   );
 }
