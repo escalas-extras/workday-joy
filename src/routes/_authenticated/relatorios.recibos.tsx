@@ -206,7 +206,7 @@ function Page() {
   }));
   const totalValor = filtrados.reduce((s, r) => s + Number(r.valor_total), 0);
 
-  const limpar = () => { setFColab(""); setFEmpresa(""); setFCliente(""); setFStatus(""); };
+  const limpar = () => { setFColab(""); setFEmpresa(""); setFCliente(""); };
 
   return (
     <div>
