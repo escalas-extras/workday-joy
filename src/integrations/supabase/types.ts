@@ -1350,6 +1350,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fechamentos_snapshots: {
+        Row: {
+          agregados: Json
+          created_at: string
+          extras: Json
+          fechamento_id: string
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          semana_ref: string
+          total_registros: number
+          total_valor: number
+        }
+        Insert: {
+          agregados?: Json
+          created_at?: string
+          extras?: Json
+          fechamento_id: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          semana_ref: string
+          total_registros?: number
+          total_valor?: number
+        }
+        Update: {
+          agregados?: Json
+          created_at?: string
+          extras?: Json
+          fechamento_id?: string
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          semana_ref?: string
+          total_registros?: number
+          total_valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fechamentos_snapshots_fechamento_id_fkey"
+            columns: ["fechamento_id"]
+            isOneToOne: false
+            referencedRelation: "fechamentos_semanais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcoes: {
         Row: {
           created_at: string
