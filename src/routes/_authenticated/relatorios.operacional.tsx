@@ -20,7 +20,7 @@ type ExtraRow = {
   valor: number; classificacao_comercial: string; situacao_servico: string;
   status: string; situacao_financeira: string | null;
   cliente_id: string; colaborador_id: string; funcao_id: string; empresa_id: string | null;
-  clientes?: { nome_fantasia: string };
+  clientes?: { nome_fantasia: string; cliente_empresas?: Array<{ situacao: string; empresas?: { id: string; nome: string } | null }> };
   empresas?: { id: string; nome: string } | null;
   colaboradores?: { id: string; nome: string };
   coberto?: { nome: string };
