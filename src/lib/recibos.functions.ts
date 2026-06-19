@@ -61,14 +61,12 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     return { criados, erros };
   });
 
-export const cancelarRecibo = createServerFn({ method: "POST" })
+export const excluirRecibo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { reciboId: string; motivo: string }) => d)
+  .inputValidator((d: { reciboId: string }) => d)
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { error } = await supabase.from("recibos").update({
-      ativo: false, cancelado_em: new Date().toISOString(), cancelado_por: userId, motivo_cancelamento: data.motivo,
-    }).eq("id", data.reciboId);
+    const { supabase } = context;
+    const { error } = await supabase.rpc("excluir_recibo", { p_id: data.reciboId });
     if (error) throw error;
     return { ok: true };
   });
