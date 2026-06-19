@@ -34,20 +34,21 @@ function Page() {
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const isJSP = (n: string) => /\bjsp\b/i.test(n);
+      const remapAvulso = (n: string) => (/^avulso$/i.test(n) ? "J.A" : n);
       const empresaNome = (r: any): string => {
-        if (r.empresas?.nome) return r.empresas.nome;
+        if (r.empresas?.nome) return remapAvulso(r.empresas.nome);
         const ces: any[] = r.clientes?.cliente_empresas ?? [];
         const ativas = ces.filter((ce) => ce.situacao === "ativo" && ce.empresas).map((ce) => ce.empresas);
         const lista = ativas.length ? ativas : ces.filter((ce) => ce.empresas).map((ce) => ce.empresas);
-        if (lista.length === 1) return lista[0].nome;
+        if (lista.length === 1) return remapAvulso(lista[0].nome);
         if (lista.length > 1) {
           const vig = /vigilante/i.test(r.funcoes?.nome ?? "");
           const escolhida = vig
             ? lista.find((e: any) => isJSP(e.nome))
             : lista.find((e: any) => !isJSP(e.nome));
-          return (escolhida ?? lista[0]).nome;
+          return remapAvulso((escolhida ?? lista[0]).nome);
         }
-        if (r.colaboradores?.empresas?.nome) return r.colaboradores.empresas.nome;
+        if (r.colaboradores?.empresas?.nome) return remapAvulso(r.colaboradores.empresas.nome);
         return "—";
       };
       return (data ?? []).map((r: any): Linha => ({
