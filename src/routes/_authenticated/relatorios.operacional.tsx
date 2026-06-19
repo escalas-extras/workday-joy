@@ -59,6 +59,20 @@ function Page() {
     },
   });
 
+  // Empresa efetiva: extras.empresas (direto) → senão a primeira empresa ativa do cliente.
+  const empresaDe = (r: ExtraRow): { id: string; nome: string } | null => {
+    if (r.empresas) return r.empresas;
+    const ativas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.situacao === "ativo" && ce.empresas);
+    const todas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.empresas);
+    const lista = ativas.length ? ativas : todas;
+    if (lista.length === 1) return lista[0].empresas!;
+    if (lista.length > 1) {
+      const nome = lista.map((ce) => ce.empresas!.nome).join(" / ");
+      return { id: lista.map((ce) => ce.empresas!.id).sort().join("|"), nome };
+    }
+    return null;
+  };
+
   // Opções dinâmicas — somente entidades com extras no período.
   const opts = useMemo(() => {
     const empresas = new Map<string, string>();
@@ -66,7 +80,8 @@ function Page() {
     const colabs = new Map<string, string>();
     const funcoes = new Map<string, string>();
     for (const r of q.data ?? []) {
-      if (r.empresas) empresas.set(r.empresas.id, r.empresas.nome);
+      const emp = empresaDe(r);
+      if (emp) empresas.set(emp.id, emp.nome);
       if (r.clientes) clientes.set(r.cliente_id, r.clientes.nome_fantasia);
       if (r.colaboradores) colabs.set(r.colaborador_id, r.colaboradores.nome);
       if (r.funcoes) funcoes.set(r.funcao_id, r.funcoes.nome);
@@ -78,7 +93,10 @@ function Page() {
 
   const filtrados = useMemo(() => (q.data ?? []).filter((r) => {
     if (cliente && r.cliente_id !== cliente) return false;
-    if (empresa && r.empresa_id !== empresa) return false;
+    if (empresa) {
+      const emp = empresaDe(r);
+      if (!emp || emp.id !== empresa) return false;
+    }
     if (colab && r.colaborador_id !== colab) return false;
     if (funcao && r.funcao_id !== funcao) return false;
     if (situacao) {
@@ -91,7 +109,7 @@ function Page() {
   const rows = useMemo(() => filtrados.map((r) => ({
     data: r.data,
     cliente: r.clientes?.nome_fantasia ?? "",
-    empresa: r.empresas?.nome ?? "—",
+    empresa: empresaDe(r)?.nome ?? "—",
     colaborador: r.colaboradores?.nome ?? "",
     funcao: r.funcoes?.nome ?? "",
     horario: `${r.hora_inicio?.slice(0, 5) ?? ""} - ${r.hora_termino?.slice(0, 5) ?? ""}`,
