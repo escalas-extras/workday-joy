@@ -11,6 +11,7 @@ import { Check } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { ExtrasFilters, applyServerFilters, applyClientFilters, type ExtrasFilterState } from "@/components/extras-filters";
+import { ExtrasExportActions } from "@/components/extras-export";
 
 const searchSchema = z.object({
   empresa_id: fallback(z.string().optional(), undefined),
@@ -45,7 +46,7 @@ function Page() {
     queryFn: async () => {
       let q = supabase
         .from("extras")
-        .select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome_fantasia), funcoes(nome)")
+        .select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome,razao_social), funcoes(nome)")
         .eq("status", "aprovado_operacional")
         .order("data", { ascending: false });
       q = applyServerFilters(q, { ...filters, status: undefined });
@@ -75,6 +76,9 @@ function Page() {
     <div>
       <PageHeader title="Aprovação Financeira" description="Liberar para pagamento" />
       <ExtrasFilters value={filters} onChange={setFilters} showSitFin />
+      <div className="flex justify-end mb-2">
+        <ExtrasExportActions rows={list.data ?? []} titulo="Aprovação Financeira" filename="aprovacao-financeira" variant="financeiro" />
+      </div>
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>

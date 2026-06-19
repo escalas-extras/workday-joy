@@ -80,7 +80,7 @@ export function ExtrasFilters({ value, onChange, showSitFin }: Props) {
 
   const empresas = useQuery({
     queryKey: ["filters", "empresas"],
-    queryFn: async () => (await supabase.from("empresas").select("id,nome_fantasia,razao_social").order("nome_fantasia")).data ?? [],
+    queryFn: async () => (await supabase.from("empresas").select("id,nome,razao_social").order("nome")).data ?? [],
   });
   const clientes = useQuery({
     queryKey: ["filters", "clientes"],
@@ -125,7 +125,7 @@ export function ExtrasFilters({ value, onChange, showSitFin }: Props) {
               allowClear
               value={value.empresa_id ?? ""}
               onChange={(v) => set({ empresa_id: v || undefined })}
-              options={(empresas.data ?? []).map((e: any) => ({ value: e.id, label: e.nome_fantasia ?? e.razao_social, keywords: e.razao_social }))}
+              options={(empresas.data ?? []).map((e: any) => ({ value: e.id, label: e.nome ?? e.razao_social, keywords: e.razao_social }))}
               placeholder="Todas"
             />
           </Field>
