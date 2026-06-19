@@ -38,8 +38,9 @@ function Page() {
   const cancelar = useServerFn(cancelarRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
-  const [semana, setSemana] = useState("");
-  const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10));
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
+  const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
   const [detalheId, setDetalheId] = useState<string | null>(null);
@@ -127,7 +128,7 @@ function Page() {
   });
 
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: dataPag } }),
+    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: hojeISO } }),
     onSuccess: (r: { criados: number; erros?: string[] }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       toast.success(`${r.criados} recibo(s) gerado(s)`);
@@ -135,6 +136,45 @@ function Page() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Opções de mês (12 meses para trás + 1 à frente)
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const mesesOpts = useMemo(() => {
+    const out: { v: string; l: string }[] = [];
+    const now = new Date();
+    for (let i = 1; i >= -12; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({ v, l: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}` });
+    }
+    return out;
+  }, []);
+
+  // Semanas (sextas) cuja quarta de referência (sexta + 5 dias) cai no mês selecionado
+  const semanasOpts = useMemo(() => {
+    if (!mesRef) return [] as { v: string; l: string }[];
+    const [yy, mm] = mesRef.split("-").map(Number);
+    const out: { v: string; l: string }[] = [];
+    // Começa na primeira sexta cuja quarta-ref esteja no mês: varre desde 25 dias antes do mês até o fim
+    const ini = new Date(Date.UTC(yy, mm - 1, 1));
+    ini.setUTCDate(ini.getUTCDate() - 7);
+    const fim = new Date(Date.UTC(yy, mm, 7));
+    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
+    let ordinal = 0;
+    for (let d = new Date(ini); d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
+      if (d.getUTCDay() !== 5) continue; // sexta
+      const wed = new Date(d); wed.setUTCDate(wed.getUTCDate() + 5);
+      if (wed.getUTCFullYear() !== yy || wed.getUTCMonth() !== mm - 1) continue;
+      const sextaISO = d.toISOString().slice(0, 10);
+      out.push({ v: sextaISO, l: `${ORD[ordinal] ?? `${ordinal + 1}ª`} Semana` });
+      ordinal++;
+    }
+    return out;
+  }, [mesRef]);
+
+  // Reset semana ao trocar mês
+  const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
+
 
   const mCancelar = useMutation({
     mutationFn: () => cancelar({ data: { reciboId: cancelarId!, motivo } }),
@@ -174,12 +214,27 @@ function Page() {
 
       {/* Geração */}
       <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
-        <div><Label>Semana Ref</Label><Input type="date" value={semana} onChange={(e) => setSemana(e.target.value)} /></div>
-        <div><Label>Data de Pagamento</Label><Input type="date" value={dataPag} onChange={(e) => setDataPag(e.target.value)} /></div>
-        <Button onClick={() => mGerar.mutate()} disabled={!semana || !dataPag || mGerar.isPending}>
+        <div className="min-w-[180px]">
+          <Label>Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[180px]">
+          <Label>Semana</Label>
+          <Select value={semana} onValueChange={setSemana} disabled={!semanasOpts.length}>
+            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => mGerar.mutate()} disabled={!semana || mGerar.isPending}>
           <FilePlus className="h-4 w-4 mr-1" />Gerar Recibos da Semana
         </Button>
       </div>
+
 
       {/* Filtros */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
