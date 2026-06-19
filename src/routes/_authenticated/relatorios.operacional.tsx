@@ -59,7 +59,7 @@ function Page() {
     },
   });
 
-  // Empresa efetiva: extras.empresas (direto) → senão a primeira empresa ativa do cliente.
+  // Empresa efetiva: extras.empresas → vínculo cliente_empresas → empresa do colaborador.
   const empresaDe = (r: ExtraRow): { id: string; nome: string } | null => {
     if (r.empresas) return r.empresas;
     const ativas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.situacao === "ativo" && ce.empresas);
@@ -70,6 +70,7 @@ function Page() {
       const nome = lista.map((ce) => ce.empresas!.nome).join(" / ");
       return { id: lista.map((ce) => ce.empresas!.id).sort().join("|"), nome };
     }
+    if (r.colaboradores?.empresas) return r.colaboradores.empresas;
     return null;
   };
 
