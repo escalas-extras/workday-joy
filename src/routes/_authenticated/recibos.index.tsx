@@ -175,9 +175,9 @@ function Page() {
   const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
 
 
-  const mCancelar = useMutation({
-    mutationFn: () => cancelar({ data: { reciboId: cancelarId!, motivo } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["recibos"] }); toast.success("Cancelado"); setCancelarId(null); setMotivo(""); },
+  const mExcluir = useMutation({
+    mutationFn: () => excluir({ data: { reciboId: excluirId! } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["recibos"] }); toast.success("Recibo excluído"); setExcluirId(null); },
     onError: (e: Error) => toast.error(e.message),
   });
 
