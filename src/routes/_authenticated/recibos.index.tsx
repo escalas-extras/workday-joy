@@ -35,7 +35,7 @@ function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const gerar = useServerFn(gerarRecibosSemana);
-  const cancelar = useServerFn(cancelarRecibo);
+  const excluir = useServerFn(excluirRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
