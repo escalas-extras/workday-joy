@@ -11,6 +11,7 @@ import { Check, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { ExtrasFilters, applyServerFilters, applyClientFilters, type ExtrasFilterState } from "@/components/extras-filters";
+import { ExtrasExportActions } from "@/components/extras-export";
 
 const searchSchema = z.object({
   empresa_id: fallback(z.string().optional(), undefined),
