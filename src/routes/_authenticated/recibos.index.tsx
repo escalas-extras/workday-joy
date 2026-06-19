@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/app-shell";
-import { gerarRecibosSemana, cancelarRecibo, arquivarRecibos } from "@/lib/recibos.functions";
+import { gerarRecibosSemana, excluirRecibo, arquivarRecibos } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
