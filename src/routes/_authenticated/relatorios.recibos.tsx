@@ -138,8 +138,7 @@ function Page() {
   const filtrados = useMemo(() => (list.data ?? []).filter((r) => {
     if (fColab && r.colaborador_id !== fColab) return false;
     if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
-    if (fStatus === "ativo" && !r.ativo) return false;
-    if (fStatus === "cancelado" && r.ativo) return false;
+    // recibos cancelados são excluídos definitivamente
     if (fCliente) {
       const set = clientesMap.data?.map[r.id];
       if (!set || !set.has(fCliente)) return false;
