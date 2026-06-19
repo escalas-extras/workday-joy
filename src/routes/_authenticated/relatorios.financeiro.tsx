@@ -167,7 +167,7 @@ function Page() {
         <Button size="sm" variant="outline" onClick={() => exportarExcel(`financeiro-${de}-${ate}.xlsx`, "Financeiro", cols, toExport(q.data ?? []))}>
           <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
         </Button>
-        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", cols, toExport(q.data ?? []))}>
+        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", pdfCols, toExport(q.data ?? []))}>
           <FileDown className="h-4 w-4 mr-1" />PDF
         </Button>
       </div>
