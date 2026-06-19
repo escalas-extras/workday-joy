@@ -364,17 +364,16 @@ function Page() {
         </Table>
       </div>
 
-      {/* Cancelar */}
-      <Dialog open={!!cancelarId} onOpenChange={(o) => !o && setCancelarId(null)}>
+      {/* Excluir */}
+      <Dialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar Recibo</DialogTitle>
-            <DialogDescription>Informe o motivo do cancelamento.</DialogDescription>
+            <DialogTitle>Excluir Recibo</DialogTitle>
+            <DialogDescription>Esta ação é definitiva. O recibo e seus itens serão removidos. Apenas administradores podem executar.</DialogDescription>
           </DialogHeader>
-          <Textarea placeholder="Motivo do cancelamento" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelarId(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={() => mCancelar.mutate()} disabled={!motivo}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setExcluirId(null)}>Voltar</Button>
+            <Button variant="destructive" onClick={() => mExcluir.mutate()} disabled={mExcluir.isPending}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
