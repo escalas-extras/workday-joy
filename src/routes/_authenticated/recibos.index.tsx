@@ -101,8 +101,7 @@ function Page() {
       if (fSemana && r.semana_ref !== fSemana) return false;
       if (fColab && r.colaborador_id !== fColab) return false;
       if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
-      if (fStatus === "ativo" && !r.ativo) return false;
-      if (fStatus === "cancelado" && r.ativo) return false;
+      // recibos cancelados são excluídos definitivamente; lista contém apenas ativos
       if (fCliente) {
         const set = recibosClientesMap.data?.[r.id];
         if (!set || !set.has(fCliente)) return false;
