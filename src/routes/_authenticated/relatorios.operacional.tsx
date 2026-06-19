@@ -46,7 +46,7 @@ function Page() {
         .select(
           "id,data,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
           "cliente_id,colaborador_id,funcao_id,empresa_id," +
-          "clientes(nome_fantasia)," +
+          "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
           "colaboradores!colaborador_id(id,nome)," +
           "coberto:colaboradores!colaborador_coberto_id(nome)," +
