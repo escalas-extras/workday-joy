@@ -51,7 +51,7 @@ function Page() {
   const [fColab, setFColab] = useState<string>("");
   const [fCliente, setFCliente] = useState<string>("");
   const [fEmpresa, setFEmpresa] = useState<string>("");
-  const [fStatus, setFStatus] = useState<string>("");
+  const [fStatus] = useState<string>("");
 
   const list = useQuery({
     queryKey: ["recibos"],
