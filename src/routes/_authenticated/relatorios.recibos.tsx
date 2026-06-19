@@ -348,7 +348,77 @@ function Page() {
               <AccordionTrigger className="text-sm font-semibold">
                 Arquivos fechados — já impressos / PDF gerado ({arquivados.length})
               </AccordionTrigger>
-              <AccordionContent>{tabela(arquivados, "Nenhum recibo arquivado")}</AccordionContent>
+              <AccordionContent>
+                {(() => {
+                  if (!arquivados.length) return <div className="text-sm text-muted-foreground py-3">Nenhum recibo arquivado</div>;
+                  // Agrupa por mês (quarta de referência = sexta + 5) e dentro por semana (ordinal no mês)
+                  const MES_NM = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+                  type Bucket = { key: string; label: string; semanas: Map<string, { label: string; rows: Row[] }> };
+                  const meses = new Map<string, Bucket>();
+                  // Para cada mês precisamos saber a ordem das sextas (ordinal) -> mapa por mês
+                  const ordinalCache = new Map<string, Map<string, number>>();
+                  for (const r of arquivados) {
+                    const [y, m, d] = r.semana_ref.split("-").map(Number);
+                    const sexta = new Date(Date.UTC(y, m - 1, d));
+                    const wed = new Date(sexta); wed.setUTCDate(wed.getUTCDate() + 5);
+                    const yy = wed.getUTCFullYear(); const mm = wed.getUTCMonth();
+                    const mesKey = `${yy}-${String(mm + 1).padStart(2, "0")}`;
+                    let bucket = meses.get(mesKey);
+                    if (!bucket) {
+                      bucket = { key: mesKey, label: `${MES_NM[mm]}/${yy}`, semanas: new Map() };
+                      meses.set(mesKey, bucket);
+                    }
+                    // calcular ordinal da sexta no mês
+                    let ordMap = ordinalCache.get(mesKey);
+                    if (!ordMap) {
+                      ordMap = new Map();
+                      const ini = new Date(Date.UTC(yy, mm, 1)); ini.setUTCDate(ini.getUTCDate() - 7);
+                      const fim = new Date(Date.UTC(yy, mm + 1, 7));
+                      let o = 0;
+                      for (let dd = new Date(ini); dd <= fim; dd.setUTCDate(dd.getUTCDate() + 1)) {
+                        if (dd.getUTCDay() !== 5) continue;
+                        const w = new Date(dd); w.setUTCDate(w.getUTCDate() + 5);
+                        if (w.getUTCFullYear() !== yy || w.getUTCMonth() !== mm) continue;
+                        ordMap.set(dd.toISOString().slice(0, 10), o++);
+                      }
+                      ordinalCache.set(mesKey, ordMap);
+                    }
+                    const ord = ordMap.get(r.semana_ref) ?? 0;
+                    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
+                    const semKey = r.semana_ref;
+                    let semBucket = bucket.semanas.get(semKey);
+                    if (!semBucket) {
+                      semBucket = { label: `${ORD[ord] ?? `${ord + 1}ª`} Semana (${r.semana_ref})`, rows: [] };
+                      bucket.semanas.set(semKey, semBucket);
+                    }
+                    semBucket.rows.push(r);
+                  }
+                  const mesesOrd = [...meses.values()].sort((a, b) => b.key.localeCompare(a.key));
+                  return (
+                    <Accordion type="multiple" className="space-y-2">
+                      {mesesOrd.map((mes) => {
+                        const total = [...mes.semanas.values()].reduce((s, w) => s + w.rows.length, 0);
+                        const semOrd = [...mes.semanas.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+                        return (
+                          <AccordionItem key={mes.key} value={mes.key} className="border rounded-md bg-muted/30 px-3">
+                            <AccordionTrigger className="text-sm">{mes.label} ({total})</AccordionTrigger>
+                            <AccordionContent>
+                              <Accordion type="multiple" className="space-y-2">
+                                {semOrd.map(([sk, sb]) => (
+                                  <AccordionItem key={sk} value={sk} className="border rounded-md bg-card px-3">
+                                    <AccordionTrigger className="text-sm">{sb.label} ({sb.rows.length})</AccordionTrigger>
+                                    <AccordionContent>{tabela(sb.rows, "—")}</AccordionContent>
+                                  </AccordionItem>
+                                ))}
+                              </Accordion>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  );
+                })()}
+              </AccordionContent>
             </AccordionItem>
           </Accordion>
         );
