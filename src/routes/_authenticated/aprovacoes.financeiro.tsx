@@ -8,14 +8,51 @@ import { PageHeader } from "@/components/app-shell";
 import { StatusBadge, CLASSIFICACAO_COMERCIAL_OPTS } from "@/components/extras-helpers";
 import { toast } from "sonner";
 import { Check } from "lucide-react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+import { ExtrasFilters, applyServerFilters, applyClientFilters, type ExtrasFilterState } from "@/components/extras-filters";
 
-export const Route = createFileRoute("/_authenticated/aprovacoes/financeiro")({ component: Page });
+const searchSchema = z.object({
+  empresa_id: fallback(z.string().optional(), undefined),
+  cliente_id: fallback(z.string().optional(), undefined),
+  colaborador_id: fallback(z.string().optional(), undefined),
+  matricula: fallback(z.string().optional(), undefined),
+  nome: fallback(z.string().optional(), undefined),
+  funcao_id: fallback(z.string().optional(), undefined),
+  emitente_id: fallback(z.string().optional(), undefined),
+  situacao_servico: fallback(z.string().optional(), undefined),
+  status: fallback(z.string().optional(), undefined),
+  situacao_financeira: fallback(z.string().optional(), undefined),
+  semana_ref: fallback(z.string().optional(), undefined),
+  data_ini: fallback(z.string().optional(), undefined),
+  data_fim: fallback(z.string().optional(), undefined),
+});
+
+export const Route = createFileRoute("/_authenticated/aprovacoes/financeiro")({
+  validateSearch: zodValidator(searchSchema),
+  component: Page,
+});
 
 function Page() {
   const qc = useQueryClient();
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
+  const filters: ExtrasFilterState = search;
+  const setFilters = (next: ExtrasFilterState) => navigate({ search: next as any, replace: true });
+
   const list = useQuery({
-    queryKey: ["extras", "aprovado_operacional"],
-    queryFn: async () => (await supabase.from("extras").select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia)").eq("status", "aprovado_operacional").order("data", { ascending: false })).data ?? [],
+    queryKey: ["extras", "aprovado_operacional", filters],
+    queryFn: async () => {
+      let q = supabase
+        .from("extras")
+        .select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome_fantasia), funcoes(nome)")
+        .eq("status", "aprovado_operacional")
+        .order("data", { ascending: false });
+      q = applyServerFilters(q, { ...filters, status: undefined });
+      const { data, error } = await q;
+      if (error) throw error;
+      return applyClientFilters(data ?? [], filters);
+    },
   });
   const aprovar = useMutation({
     mutationFn: async (id: string) => {
@@ -37,6 +74,7 @@ function Page() {
   return (
     <div>
       <PageHeader title="Aprovação Financeira" description="Liberar para pagamento" />
+      <ExtrasFilters value={filters} onChange={setFilters} showSitFin />
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -44,7 +82,7 @@ function Page() {
             {(list.data ?? []).map((e: any) => (
               <TableRow key={e.id}>
                 <TableCell>{e.data}</TableCell>
-                <TableCell>{e.colaboradores?.nome}</TableCell>
+                <TableCell>{e.colaboradores?.matricula} — {e.colaboradores?.nome}</TableCell>
                 <TableCell>{e.clientes?.nome_fantasia}</TableCell>
                 <TableCell className="whitespace-nowrap">{e.hora_inicio} → {e.hora_termino}</TableCell>
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
@@ -54,7 +92,7 @@ function Page() {
                     <SelectContent>{CLASSIFICACAO_COMERCIAL_OPTS.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell><StatusBadge status={e.status} /></TableCell>
+                <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
                 <TableCell><Button size="sm" onClick={() => aprovar.mutate(e.id)}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
               </TableRow>
             ))}
