@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/app-shell";
-import { gerarRecibosSemana, cancelarRecibo, arquivarRecibos } from "@/lib/recibos.functions";
+import { gerarRecibosSemana, excluirRecibo, arquivarRecibos } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
@@ -35,14 +35,13 @@ function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const gerar = useServerFn(gerarRecibosSemana);
-  const cancelar = useServerFn(cancelarRecibo);
+  const excluir = useServerFn(excluirRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
   const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
   const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
-  const [cancelarId, setCancelarId] = useState<string | null>(null);
-  const [motivo, setMotivo] = useState("");
+  const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -52,7 +51,7 @@ function Page() {
   const [fColab, setFColab] = useState<string>("");
   const [fCliente, setFCliente] = useState<string>("");
   const [fEmpresa, setFEmpresa] = useState<string>("");
-  const [fStatus, setFStatus] = useState<string>("");
+  const [fStatus] = useState<string>("");
 
   const list = useQuery({
     queryKey: ["recibos"],
@@ -102,8 +101,7 @@ function Page() {
       if (fSemana && r.semana_ref !== fSemana) return false;
       if (fColab && r.colaborador_id !== fColab) return false;
       if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
-      if (fStatus === "ativo" && !r.ativo) return false;
-      if (fStatus === "cancelado" && r.ativo) return false;
+      // recibos cancelados são excluídos definitivamente; lista contém apenas ativos
       if (fCliente) {
         const set = recibosClientesMap.data?.[r.id];
         if (!set || !set.has(fCliente)) return false;
@@ -176,9 +174,9 @@ function Page() {
   const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
 
 
-  const mCancelar = useMutation({
-    mutationFn: () => cancelar({ data: { reciboId: cancelarId!, motivo } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["recibos"] }); toast.success("Cancelado"); setCancelarId(null); setMotivo(""); },
+  const mExcluir = useMutation({
+    mutationFn: () => excluir({ data: { reciboId: excluirId! } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["recibos"] }); toast.success("Recibo excluído"); setExcluirId(null); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -266,19 +264,9 @@ function Page() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs">Status</Label>
-          <Select value={fStatus || "_all"} onValueChange={(v) => setFStatus(v === "_all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="hidden" />
         <div className="flex items-end gap-1">
-          <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); setFStatus(""); }}>Limpar</Button>
+          <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); }}>Limpar</Button>
         </div>
       </div>
 
@@ -348,14 +336,14 @@ function Page() {
                 <TableCell>{r.semana_ref}</TableCell>
                 <TableCell>{r.data_pagamento}</TableCell>
                 <TableCell>{formatBRL(r.valor_total)}</TableCell>
-                <TableCell><Badge variant={r.ativo ? "default" : "secondary"}>{r.ativo ? "Ativo" : "Cancelado"}</Badge></TableCell>
+                <TableCell><Badge variant="default">Ativo</Badge></TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => setPreviewIds([r.id])} title="Visualizar"><Eye className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} title="Imprimir"><Printer className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => setDetalheId(r.id)}>Itens</Button>
-                    {r.ativo && <Button size="sm" variant="destructive" onClick={() => setCancelarId(r.id)}><Ban className="h-3 w-3" /></Button>}
+                    <Button size="sm" variant="destructive" onClick={() => setExcluirId(r.id)} title="Excluir (admin)"><Ban className="h-3 w-3" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -365,17 +353,16 @@ function Page() {
         </Table>
       </div>
 
-      {/* Cancelar */}
-      <Dialog open={!!cancelarId} onOpenChange={(o) => !o && setCancelarId(null)}>
+      {/* Excluir */}
+      <Dialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar Recibo</DialogTitle>
-            <DialogDescription>Informe o motivo do cancelamento.</DialogDescription>
+            <DialogTitle>Excluir Recibo</DialogTitle>
+            <DialogDescription>Esta ação é definitiva. O recibo e seus itens serão removidos. Apenas administradores podem executar.</DialogDescription>
           </DialogHeader>
-          <Textarea placeholder="Motivo do cancelamento" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelarId(null)}>Voltar</Button>
-            <Button variant="destructive" onClick={() => mCancelar.mutate()} disabled={!motivo}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setExcluirId(null)}>Voltar</Button>
+            <Button variant="destructive" onClick={() => mExcluir.mutate()} disabled={mExcluir.isPending}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

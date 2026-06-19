@@ -42,7 +42,7 @@ function Page() {
   const [fColab, setFColab] = useState("");
   const [fEmpresa, setFEmpresa] = useState("");
   const [fCliente, setFCliente] = useState("");
-  const [fStatus, setFStatus] = useState("");
+  const [fStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
 
@@ -138,8 +138,7 @@ function Page() {
   const filtrados = useMemo(() => (list.data ?? []).filter((r) => {
     if (fColab && r.colaborador_id !== fColab) return false;
     if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
-    if (fStatus === "ativo" && !r.ativo) return false;
-    if (fStatus === "cancelado" && r.ativo) return false;
+    // recibos cancelados são excluídos definitivamente
     if (fCliente) {
       const set = clientesMap.data?.map[r.id];
       if (!set || !set.has(fCliente)) return false;
@@ -207,7 +206,7 @@ function Page() {
   }));
   const totalValor = filtrados.reduce((s, r) => s + Number(r.valor_total), 0);
 
-  const limpar = () => { setFColab(""); setFEmpresa(""); setFCliente(""); setFStatus(""); };
+  const limpar = () => { setFColab(""); setFEmpresa(""); setFCliente(""); };
 
   return (
     <div>
@@ -256,17 +255,7 @@ function Page() {
             <SelectContent><SelectItem value="_all">Todos ({opts.colabs.length})</SelectItem>{opts.colabs.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs">Status</Label>
-          <Select value={fStatus || "_all"} onValueChange={(v) => setFStatus(v === "_all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="hidden" />
         <div className="flex items-end">
           <Button size="sm" variant="outline" onClick={limpar}>Limpar</Button>
         </div>
