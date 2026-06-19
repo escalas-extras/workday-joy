@@ -130,7 +130,7 @@ function Page() {
     status: STATUS_LABEL[r.status] ?? r.status,
     sit_fin: r.situacao_financeira ? (SIT_FIN_LABEL[r.situacao_financeira] ?? r.situacao_financeira) : "—",
   });
-  const rowsAll = useMemo(() => filtrados.map(toRow), [filtrados]);
+  const rowsAll = useMemo(() => filtrados.map((r) => ({ ...toRow(r), motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "" })), [filtrados]);
   const total = rowsAll.reduce((s, r) => s + r.valor, 0);
 
   const cols: ColunaRelatorio[] = [
