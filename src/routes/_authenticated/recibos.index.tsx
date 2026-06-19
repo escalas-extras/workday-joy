@@ -41,8 +41,7 @@ function Page() {
   const hojeISO = new Date().toISOString().slice(0, 10);
   const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
   const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
-  const [cancelarId, setCancelarId] = useState<string | null>(null);
-  const [motivo, setMotivo] = useState("");
+  const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
