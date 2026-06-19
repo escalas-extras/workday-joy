@@ -102,12 +102,6 @@ function ReciboBloco({ r }: { r: ReciboView }) {
               <span className="font-semibold">Pagamento: </span>
               {fmtDate(r.data_pagamento)}
             </p>
-            {r.lancado_por && (
-              <p className="truncate">
-                <span className="font-semibold">Lançado por: </span>
-                {r.lancado_por}
-              </p>
-            )}
           </div>
         </div>
         <div className="flex justify-between items-end mt-1 text-[8px]">

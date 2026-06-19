@@ -20,7 +20,7 @@ import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { formatBRL } from "@/lib/extenso";
 
-export const Route = createFileRoute("/_authenticated/recibos")({ component: Page });
+export const Route = createFileRoute("/_authenticated/recibos/")({ component: Page });
 
 type ReciboRow = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
