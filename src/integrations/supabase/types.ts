@@ -1761,6 +1761,7 @@ export type Database = {
         }
         Returns: string
       }
+      excluir_recibo: { Args: { p_id: string }; Returns: undefined }
       get_recidivism_counts: {
         Args: { _employee_id: string; _reason_id?: string }
         Returns: Json
