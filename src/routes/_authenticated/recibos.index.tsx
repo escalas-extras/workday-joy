@@ -266,7 +266,7 @@ function Page() {
         </div>
         <div className="hidden" />
         <div className="flex items-end gap-1">
-          <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); setFStatus(""); }}>Limpar</Button>
+          <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); }}>Limpar</Button>
         </div>
       </div>
 
