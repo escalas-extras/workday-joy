@@ -294,43 +294,64 @@ function Page() {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead className="w-8"><Checkbox checked={todosSel} onCheckedChange={(v) => {
-              const next = { ...selected }; filtrados.forEach((r) => { next[r.id] = !!v; }); setSelected(next);
-            }} /></TableHead>
-            <TableHead>Nº</TableHead><TableHead>Colaborador</TableHead><TableHead>Empresa</TableHead>
-            <TableHead>Semana</TableHead><TableHead>Pago em</TableHead><TableHead>Arquivado em</TableHead>
-            <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {filtrados.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell><Checkbox checked={!!selected[r.id]} onCheckedChange={(v) => setSelected((s) => ({ ...s, [r.id]: !!v }))} /></TableCell>
-                <TableCell>{r.numero}</TableCell>
-                <TableCell>{r.colaboradores?.nome}<div className="text-xs text-muted-foreground">{r.colaboradores?.matricula} - {r.colaboradores?.funcoes?.nome}</div></TableCell>
-                <TableCell>{r.colaboradores?.empresas?.nome}</TableCell>
-                <TableCell>{r.semana_ref}</TableCell>
-                <TableCell>{r.data_pagamento}</TableCell>
-                <TableCell className="text-xs">{r.arquivado_em?.slice(0, 16).replace("T", " ")}</TableCell>
-                <TableCell className="text-right">{formatBRL(r.valor_total)}</TableCell>
-                <TableCell><Badge variant={r.ativo ? "default" : "secondary"}>{r.ativo ? "Ativo" : "Cancelado"}</Badge></TableCell>
-                <TableCell>
-                  <div className="flex gap-1 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => navigate({ to: "/recibos/imprimir", search: { ids: r.id, action: "preview" } })} title="Visualizar"><Eye className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} disabled={preparandoPrint} title="Imprimir"><Printer className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="ghost" onClick={() => handleDesarquivar(r.id)} title="Desarquivar"><Undo2 className="h-3 w-3" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {!filtrados.length && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum recibo no período / filtros aplicados</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      </div>
+      {(() => {
+        const renderRow = (r: Row) => (
+          <TableRow key={r.id}>
+            <TableCell><Checkbox checked={!!selected[r.id]} onCheckedChange={(v) => setSelected((s) => ({ ...s, [r.id]: !!v }))} /></TableCell>
+            <TableCell>{r.numero}</TableCell>
+            <TableCell>{r.colaboradores?.nome}<div className="text-xs text-muted-foreground">{r.colaboradores?.matricula} - {r.colaboradores?.funcoes?.nome}</div></TableCell>
+            <TableCell>{r.colaboradores?.empresas?.nome}</TableCell>
+            <TableCell>{r.semana_ref}</TableCell>
+            <TableCell>{r.data_pagamento}</TableCell>
+            <TableCell className="text-xs">{r.arquivado_em?.slice(0, 16).replace("T", " ") ?? "—"}</TableCell>
+            <TableCell className="text-right">{formatBRL(r.valor_total)}</TableCell>
+            <TableCell><Badge variant={r.ativo ? "default" : "secondary"}>{r.ativo ? "Ativo" : "Cancelado"}</Badge></TableCell>
+            <TableCell>
+              <div className="flex gap-1 justify-end">
+                <Button size="sm" variant="outline" onClick={() => navigate({ to: "/recibos/imprimir", search: { ids: r.id, action: "preview" } })} title="Visualizar"><Eye className="h-3 w-3" /></Button>
+                <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} disabled={preparandoPrint} title="Imprimir"><Printer className="h-3 w-3" /></Button>
+                <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
+                {r.arquivado_em && <Button size="sm" variant="ghost" onClick={() => handleDesarquivar(r.id)} title="Desarquivar"><Undo2 className="h-3 w-3" /></Button>}
+              </div>
+            </TableCell>
+          </TableRow>
+        );
+        const tabela = (rows: Row[], emptyMsg: string) => (
+          <div className="rounded-md border bg-card overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead className="w-8"><Checkbox checked={rows.length > 0 && rows.every((r) => selected[r.id])} onCheckedChange={(v) => {
+                  const next = { ...selected }; rows.forEach((r) => { next[r.id] = !!v; }); setSelected(next);
+                }} /></TableHead>
+                <TableHead>Nº</TableHead><TableHead>Colaborador</TableHead><TableHead>Empresa</TableHead>
+                <TableHead>Semana</TableHead><TableHead>Pago em</TableHead><TableHead>Arquivado em</TableHead>
+                <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {rows.map(renderRow)}
+                {!rows.length && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">{emptyMsg}</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        );
+        return (
+          <Accordion type="multiple" defaultValue={["pendentes"]} className="space-y-2">
+            <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Pendentes — não impressos / sem PDF ({pendentes.length})
+              </AccordionTrigger>
+              <AccordionContent>{tabela(pendentes, "Nenhum recibo pendente")}</AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="arquivados" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Arquivos fechados — já impressos / PDF gerado ({arquivados.length})
+              </AccordionTrigger>
+              <AccordionContent>{tabela(arquivados, "Nenhum recibo arquivado")}</AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        );
+      })()}
       <div className="mt-3 text-right text-sm font-semibold">Total: {formatBRL(totalValor)} — {filtrados.length} recibo(s)</div>
       </div>
     </div>
