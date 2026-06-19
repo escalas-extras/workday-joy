@@ -21,7 +21,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { to: "/extras", label: "Extras", icon: ClipboardList },
       { to: "/aprovacoes/operacional", label: "Aprov. Operacional", icon: CheckCircle2, roles: ["admin", "gestor_operacional"] },
       { to: "/aprovacoes/financeiro", label: "Aprov. Financeira", icon: CheckCircle2, roles: ["admin", "gestor_financeiro"] },
-      { to: "/pagamentos", label: "Pagamentos", icon: Wallet, roles: ["admin", "gestor_financeiro"] },
+      
       { to: "/faturamento", label: "Faturamento", icon: Banknote, roles: ["admin", "gestor_financeiro"] },
       { to: "/fechamento", label: "Fechamento", icon: CalendarCheck, roles: ["admin", "gestor_operacional", "gestor_financeiro"] },
       { to: "/recibos", label: "Recibos", icon: Receipt, roles: ["admin", "gestor_financeiro"] },
