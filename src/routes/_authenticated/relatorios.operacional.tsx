@@ -243,7 +243,7 @@ function Page() {
           <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
