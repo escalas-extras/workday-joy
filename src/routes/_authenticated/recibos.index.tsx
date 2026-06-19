@@ -214,12 +214,27 @@ function Page() {
 
       {/* Geração */}
       <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
-        <div><Label>Semana Ref</Label><Input type="date" value={semana} onChange={(e) => setSemana(e.target.value)} /></div>
-        <div><Label>Data de Pagamento</Label><Input type="date" value={dataPag} onChange={(e) => setDataPag(e.target.value)} /></div>
-        <Button onClick={() => mGerar.mutate()} disabled={!semana || !dataPag || mGerar.isPending}>
+        <div className="min-w-[180px]">
+          <Label>Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="min-w-[180px]">
+          <Label>Semana</Label>
+          <Select value={semana} onValueChange={setSemana} disabled={!semanasOpts.length}>
+            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={() => mGerar.mutate()} disabled={!semana || mGerar.isPending}>
           <FilePlus className="h-4 w-4 mr-1" />Gerar Recibos da Semana
         </Button>
       </div>
+
 
       {/* Filtros */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
