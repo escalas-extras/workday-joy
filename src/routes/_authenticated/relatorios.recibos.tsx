@@ -42,7 +42,7 @@ function Page() {
   const [fColab, setFColab] = useState("");
   const [fEmpresa, setFEmpresa] = useState("");
   const [fCliente, setFCliente] = useState("");
-  const [fStatus, setFStatus] = useState("");
+  const [fStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
 
