@@ -76,6 +76,9 @@ function Page() {
     <div>
       <PageHeader title="Aprovação Financeira" description="Liberar para pagamento" />
       <ExtrasFilters value={filters} onChange={setFilters} showSitFin />
+      <div className="flex justify-end mb-2">
+        <ExtrasExportActions rows={list.data ?? []} titulo="Aprovação Financeira" filename="aprovacao-financeira" variant="financeiro" />
+      </div>
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
