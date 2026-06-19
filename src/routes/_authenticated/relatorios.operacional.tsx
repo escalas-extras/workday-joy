@@ -48,7 +48,7 @@ function Page() {
           "cliente_id,colaborador_id,funcao_id,empresa_id," +
           "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
-          "colaboradores!colaborador_id(id,nome)," +
+          "colaboradores!colaborador_id(id,nome,empresas(id,nome))," +
           "coberto:colaboradores!colaborador_coberto_id(nome)," +
           "funcoes(id,nome)"
         )
