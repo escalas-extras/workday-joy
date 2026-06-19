@@ -3,15 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PageHeader } from "@/components/app-shell";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { SITUACAO_SERVICO_LABEL, STATUS_LABEL, SIT_FIN_LABEL } from "@/components/extras-helpers";
 import { formatBRL } from "@/lib/extenso";
 import { FileDown, FileSpreadsheet } from "lucide-react";
+import { buildMesesOpts, buildSemanasOpts, derivePeriodo, agruparMesSemana } from "@/lib/semana-buckets";
 
 export const Route = createFileRoute("/_authenticated/relatorios/operacional")({ component: Page });
 
@@ -28,17 +29,19 @@ type ExtraRow = {
 };
 
 function Page() {
-  const hoje = new Date().toISOString().slice(0, 10);
-  const mesAtras = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const [de, setDe] = useState(mesAtras);
-  const [ate, setAte] = useState(hoje);
+  const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7));
+  const [semana, setSemana] = useState<string>("_all");
   const [cliente, setCliente] = useState("");
   const [empresa, setEmpresa] = useState("");
   const [colab, setColab] = useState("");
   const [funcao, setFuncao] = useState("");
   const [situacao, setSituacao] = useState("");
 
-  // Busca TODAS as extras do período com joins; opções dos filtros são derivadas daqui.
+  const mesesOpts = useMemo(() => buildMesesOpts(), []);
+  const semanasOpts = useMemo(() => buildSemanasOpts(mesRef), [mesRef]);
+  const { de, ate } = useMemo(() => derivePeriodo(mesRef, semana, semanasOpts), [mesRef, semana, semanasOpts]);
+  const onChangeMes = (v: string) => { setMesRef(v); setSemana("_all"); };
+
   const q = useQuery({
     queryKey: ["rel-operacional", de, ate],
     queryFn: async () => {
@@ -59,35 +62,20 @@ function Page() {
     },
   });
 
-  // Empresa efetiva.
-  // Regra: quando o cliente tem múltiplas empresas e a função do colaborador for
-  // VIGILANTE (qualquer variação), prevalece a empresa JSP. Nas demais funções,
-  // prevalece a outra empresa (não-JSP). Fallback final: empresa do colaborador.
   const isVigilante = (r: ExtraRow) => /vigilante/i.test(r.funcoes?.nome ?? "");
   const isJSP = (nome: string) => /\bjsp\b/i.test(nome);
-  // Colaboradores avulsos ficam atrelados à empresa "AVULSO"; no relatório esses casos
-  // devem aparecer como J.A.
   const JA_ID = "067e9a1f-18de-45b3-afa1-d57dc6a12a40";
   const remapAvulso = (e: { id: string; nome: string } | null): { id: string; nome: string } | null =>
     e && /^avulso$/i.test(e.nome) ? { id: JA_ID, nome: "J.A" } : e;
   const empresaDeRaw = (r: ExtraRow): { id: string; nome: string } | null => {
     if (r.empresas) return r.empresas;
-    const todas = (r.clientes?.cliente_empresas ?? [])
-      .filter((ce) => ce.empresas)
-      .map((ce) => ce.empresas!);
-    const ativas = (r.clientes?.cliente_empresas ?? [])
-      .filter((ce) => ce.situacao === "ativo" && ce.empresas)
-      .map((ce) => ce.empresas!);
+    const todas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.empresas).map((ce) => ce.empresas!);
+    const ativas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.situacao === "ativo" && ce.empresas).map((ce) => ce.empresas!);
     const lista = ativas.length ? ativas : todas;
     if (lista.length === 1) return lista[0];
     if (lista.length > 1) {
-      if (isVigilante(r)) {
-        const jsp = lista.find((e) => isJSP(e.nome));
-        if (jsp) return jsp;
-      } else {
-        const naoJsp = lista.find((e) => !isJSP(e.nome));
-        if (naoJsp) return naoJsp;
-      }
+      if (isVigilante(r)) { const jsp = lista.find((e) => isJSP(e.nome)); if (jsp) return jsp; }
+      else { const naoJsp = lista.find((e) => !isJSP(e.nome)); if (naoJsp) return naoJsp; }
       return lista[0];
     }
     if (r.colaboradores?.empresas) return r.colaboradores.empresas;
@@ -95,7 +83,6 @@ function Page() {
   };
   const empresaDe = (r: ExtraRow) => remapAvulso(empresaDeRaw(r));
 
-  // Opções dinâmicas — somente entidades com extras no período.
   const opts = useMemo(() => {
     const empresas = new Map<string, string>();
     const clientes = new Map<string, string>();
@@ -115,20 +102,20 @@ function Page() {
 
   const filtrados = useMemo(() => (q.data ?? []).filter((r) => {
     if (cliente && r.cliente_id !== cliente) return false;
-    if (empresa) {
-      const emp = empresaDe(r);
-      if (!emp || emp.id !== empresa) return false;
-    }
+    if (empresa) { const emp = empresaDe(r); if (!emp || emp.id !== empresa) return false; }
     if (colab && r.colaborador_id !== colab) return false;
     if (funcao && r.funcao_id !== funcao) return false;
-    if (situacao) {
-      // situacao filtra por status OU situacao_financeira
-      if (r.status !== situacao && r.situacao_financeira !== situacao) return false;
-    }
+    if (situacao) { if (r.status !== situacao && r.situacao_financeira !== situacao) return false; }
     return true;
   }), [q.data, cliente, empresa, colab, funcao, situacao]);
 
-  const rows = useMemo(() => filtrados.map((r) => ({
+  // Pendentes vs Fechados (após manipulação): pago / faturado / cancelado
+  const isFechado = (r: ExtraRow) =>
+    r.status === "cancelado" || r.situacao_financeira === "pago" || r.situacao_financeira === "faturado";
+  const pendentes = useMemo(() => filtrados.filter((r) => !isFechado(r)), [filtrados]);
+  const arquivados = useMemo(() => filtrados.filter(isFechado), [filtrados]);
+
+  const toRow = (r: ExtraRow) => ({
     data: r.data,
     cliente: r.clientes?.nome_fantasia ?? "",
     empresa: empresaDe(r)?.nome ?? "—",
@@ -142,9 +129,9 @@ function Page() {
     coberto: r.coberto?.nome ?? "",
     status: STATUS_LABEL[r.status] ?? r.status,
     sit_fin: r.situacao_financeira ? (SIT_FIN_LABEL[r.situacao_financeira] ?? r.situacao_financeira) : "—",
-  })), [filtrados]);
-
-  const total = rows.reduce((s, r) => s + r.valor, 0);
+  });
+  const rowsAll = useMemo(() => filtrados.map(toRow), [filtrados]);
+  const total = rowsAll.reduce((s, r) => s + r.valor, 0);
 
   const cols: ColunaRelatorio[] = [
     { key: "data", label: "Data", width: 22 },
@@ -160,14 +147,55 @@ function Page() {
     { key: "classificacao", label: "Classif.", width: 18 },
   ];
 
+  const tabela = (rs: ExtraRow[], emptyMsg: string) => {
+    const rows = rs.map(toRow);
+    return (
+      <div className="rounded-md border bg-card overflow-x-auto">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
+            <TableHead>Colaborador</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
+            <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead>
+            <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {rows.map((r, i) => (
+              <TableRow key={i}>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
+                <TableCell>{r.colaborador}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
+                <TableCell>{r.situacao_serv}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.sit_fin}</TableCell>
+                <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
+              </TableRow>
+            ))}
+            {!rows.length && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  const buckets = useMemo(() => agruparMesSemana(arquivados, (r) => r.data), [arquivados]);
   const limpar = () => { setCliente(""); setEmpresa(""); setColab(""); setFuncao(""); setSituacao(""); };
 
   return (
     <div>
       <PageHeader title="Relatório Operacional" description="Extras por período. Filtros mostram apenas registros com lançamentos no período selecionado." />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">De</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
-        <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+        <div><Label className="text-xs">Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div><Label className="text-xs">Semana</Label>
+          <Select value={semana} onValueChange={setSemana}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Mês inteiro</SelectItem>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div><Label className="text-xs">Empresa</Label>
           <Select value={empresa || "_all"} onValueChange={(v) => setEmpresa(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
@@ -210,37 +238,56 @@ function Page() {
         </div>
         <div className="flex items-end gap-1">
           <Button size="sm" variant="outline" onClick={limpar}>Limpar</Button>
-          <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rows)} disabled={!rows.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rows, ["", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rows.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
       </div>
 
-      <div className="rounded-md border bg-card overflow-x-auto">
-        <Table>
-          <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
-            <TableHead>Colaborador</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
-            <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead>
-            <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
-          </TableRow></TableHeader>
-          <TableBody>
-            {rows.map((r, i) => (
-              <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
-                <TableCell>{r.colaborador}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
-                <TableCell>{r.situacao_serv}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.sit_fin}</TableCell>
-                <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
-              </TableRow>
-            ))}
-            {!rows.length && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-6">Sem registros</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="mt-3 text-right text-sm font-semibold">Total: {formatBRL(total)} — {rows.length} registro(s)</div>
+      <Accordion type="multiple" defaultValue={["pendentes"]} className="space-y-2">
+        <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
+          <AccordionTrigger className="text-sm font-semibold">
+            Pendentes — aguardando processamento ({pendentes.length})
+          </AccordionTrigger>
+          <AccordionContent>{tabela(pendentes, "Nenhum registro pendente")}</AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="arquivados" className="border rounded-md bg-card px-3">
+          <AccordionTrigger className="text-sm font-semibold">
+            Arquivos fechados — pago / faturado / cancelado ({arquivados.length})
+          </AccordionTrigger>
+          <AccordionContent>
+            {!buckets.length
+              ? <div className="text-sm text-muted-foreground py-3">Nenhum registro fechado</div>
+              : (
+                <Accordion type="multiple" className="space-y-2">
+                  {buckets.map((mes) => {
+                    const tot = mes.semanas.reduce((s, w) => s + w.rows.length, 0);
+                    return (
+                      <AccordionItem key={mes.key} value={mes.key} className="border rounded-md bg-muted/30 px-3">
+                        <AccordionTrigger className="text-sm">{mes.label} ({tot})</AccordionTrigger>
+                        <AccordionContent>
+                          <Accordion type="multiple" className="space-y-2">
+                            {mes.semanas.map((sb) => (
+                              <AccordionItem key={sb.key} value={sb.key} className="border rounded-md bg-card px-3">
+                                <AccordionTrigger className="text-sm">{sb.label} ({sb.rows.length})</AccordionTrigger>
+                                <AccordionContent>{tabela(sb.rows, "—")}</AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
+      <div className="mt-3 text-right text-sm font-semibold">Total: {formatBRL(total)} — {rowsAll.length} registro(s)</div>
     </div>
   );
 }
