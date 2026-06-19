@@ -64,7 +64,7 @@ function Page() {
         patch.forma_pagamento = "dinheiro";
         patch.data_pagamento = new Date().toISOString().slice(0, 10);
       }
-      const { error } = await supabase.from("extras").update(patch).eq("id", row.id);
+      const { error } = await supabase.from("extras").update(patch as any).eq("id", row.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries(); toast.success("Aprovado financeiramente"); },
