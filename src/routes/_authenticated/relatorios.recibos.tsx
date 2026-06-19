@@ -216,8 +216,23 @@ function Page() {
       <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados). Filtros mostram apenas registros com recibos no período." />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">Semana de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
-        <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+        <div>
+          <Label className="text-xs">Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Semana</Label>
+          <Select value={semana} onValueChange={setSemana}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Mês inteiro</SelectItem>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label className="text-xs">Empresa</Label>
           <Select value={fEmpresa || "_all"} onValueChange={(v) => setFEmpresa(v === "_all" ? "" : v)}>
