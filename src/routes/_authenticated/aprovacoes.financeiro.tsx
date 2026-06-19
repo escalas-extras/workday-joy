@@ -104,7 +104,7 @@ function Page() {
                   </Select>
                 </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
-                <TableCell><Button size="sm" onClick={() => aprovar.mutate(e.id)}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
+                <TableCell><Button size="sm" onClick={() => aprovar.mutate({ id: e.id, classificacao_comercial: e.classificacao_comercial })}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
               </TableRow>
             ))}
             {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}
