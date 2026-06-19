@@ -64,6 +64,7 @@ function Page() {
         empresa: empresaNome(r),
         colaborador: r.colaboradores?.nome ?? "",
         coberto: r.coberto?.nome ?? "",
+        motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "",
       }));
     },
   });
