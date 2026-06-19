@@ -138,6 +138,7 @@ function Page() {
     { key: "cliente", label: "Cliente", width: 38 },
     { key: "empresa", label: "Empresa", width: 28 },
     { key: "colaborador", label: "Colaborador", width: 34 },
+    { key: "coberto", label: "Substituído", width: 34 },
     { key: "funcao", label: "Função", width: 22 },
     { key: "horario", label: "Horário", width: 22 },
     { key: "situacao_serv", label: "Tipo Serviço", width: 26 },
@@ -154,7 +155,7 @@ function Page() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
-            <TableHead>Colaborador</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
+            <TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
             <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead>
             <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
           </TableRow></TableHeader>
@@ -162,12 +163,12 @@ function Page() {
             {rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
-                <TableCell>{r.colaborador}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
+                <TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto || "—"}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
                 <TableCell>{r.situacao_serv}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.sit_fin}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -241,7 +242,7 @@ function Page() {
           <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
