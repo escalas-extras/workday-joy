@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, FileDown, ArrowLeft } from "lucide-react";
 import { ReciboA4 } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
-import { loadReciboViews } from "@/routes/_authenticated/recibos";
+import { loadReciboViews } from "@/lib/recibos-views";
 
 type Search = { ids?: string; action?: string };
 

@@ -34,6 +34,7 @@ import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
 import { Route as AuthenticatedAjudaRouteImport } from './routes/_authenticated/ajuda'
 import { Route as AuthenticatedAdvertenciasRouteImport } from './routes/_authenticated/advertencias'
+import { Route as AuthenticatedRecibosIndexRouteImport } from './routes/_authenticated/recibos.index'
 import { Route as AuthenticatedRelatoriosRecibosRouteImport } from './routes/_authenticated/relatorios.recibos'
 import { Route as AuthenticatedRelatoriosOperacionalRouteImport } from './routes/_authenticated/relatorios.operacional'
 import { Route as AuthenticatedRelatoriosFinanceiroRouteImport } from './routes/_authenticated/relatorios.financeiro'
@@ -176,6 +177,12 @@ const AuthenticatedAdvertenciasRoute =
     path: '/advertencias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRecibosIndexRoute =
+  AuthenticatedRecibosIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedRecibosRoute,
+  } as any)
 const AuthenticatedRelatoriosRecibosRoute =
   AuthenticatedRelatoriosRecibosRouteImport.update({
     id: '/relatorios/recibos',
@@ -264,6 +271,7 @@ export interface FileRoutesByFullPath {
   '/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
   '/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/relatorios/recibos': typeof AuthenticatedRelatoriosRecibosRoute
+  '/recibos/': typeof AuthenticatedRecibosIndexRoute
   '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesByTo {
@@ -288,7 +296,6 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/processos': typeof AuthenticatedProcessosRoute
-  '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
   '/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/relatorios/recibos': typeof AuthenticatedRelatoriosRecibosRoute
+  '/recibos': typeof AuthenticatedRecibosIndexRoute
   '/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRoutesById {
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/_authenticated/relatorios/financeiro': typeof AuthenticatedRelatoriosFinanceiroRoute
   '/_authenticated/relatorios/operacional': typeof AuthenticatedRelatoriosOperacionalRoute
   '/_authenticated/relatorios/recibos': typeof AuthenticatedRelatoriosRecibosRoute
+  '/_authenticated/recibos/': typeof AuthenticatedRecibosIndexRoute
   '/_authenticated/clientes/$id/empresas': typeof AuthenticatedClientesIdEmpresasRoute
 }
 export interface FileRouteTypes {
@@ -373,6 +382,7 @@ export interface FileRouteTypes {
     | '/relatorios/financeiro'
     | '/relatorios/operacional'
     | '/relatorios/recibos'
+    | '/recibos/'
     | '/clientes/$id/empresas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -397,7 +407,6 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/pesquisa-disciplinar'
     | '/processos'
-    | '/recibos'
     | '/relatorios-disciplinares'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -408,6 +417,7 @@ export interface FileRouteTypes {
     | '/relatorios/financeiro'
     | '/relatorios/operacional'
     | '/relatorios/recibos'
+    | '/recibos'
     | '/clientes/$id/empresas'
   id:
     | '__root__'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/_authenticated/relatorios/financeiro'
     | '/_authenticated/relatorios/operacional'
     | '/_authenticated/relatorios/recibos'
+    | '/_authenticated/recibos/'
     | '/_authenticated/clientes/$id/empresas'
   fileRoutesById: FileRoutesById
 }
@@ -631,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdvertenciasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/recibos/': {
+      id: '/_authenticated/recibos/'
+      path: '/'
+      fullPath: '/recibos/'
+      preLoaderRoute: typeof AuthenticatedRecibosIndexRouteImport
+      parentRoute: typeof AuthenticatedRecibosRoute
+    }
     '/_authenticated/relatorios/recibos': {
       id: '/_authenticated/relatorios/recibos'
       path: '/relatorios/recibos'
@@ -712,10 +730,12 @@ const AuthenticatedClientesRouteWithChildren =
 
 interface AuthenticatedRecibosRouteChildren {
   AuthenticatedRecibosImprimirRoute: typeof AuthenticatedRecibosImprimirRoute
+  AuthenticatedRecibosIndexRoute: typeof AuthenticatedRecibosIndexRoute
 }
 
 const AuthenticatedRecibosRouteChildren: AuthenticatedRecibosRouteChildren = {
   AuthenticatedRecibosImprimirRoute: AuthenticatedRecibosImprimirRoute,
+  AuthenticatedRecibosIndexRoute: AuthenticatedRecibosIndexRoute,
 }
 
 const AuthenticatedRecibosRouteWithChildren =
