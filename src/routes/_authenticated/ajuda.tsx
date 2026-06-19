@@ -75,22 +75,11 @@ const SECOES: { grupo: string; itens: Sec[] }[] = [
       {
         id: "aprov-fin", titulo: "Aprovação Financeira", rota: "/aprovacoes/financeiro",
         papeis: ["admin", "gestor_financeiro"], icon: CheckCircle2,
-        finalidade: "Liberar lançamentos para pagamento.",
+        finalidade: "Liberar lançamentos e enviá-los direto para Recibos (ou Faturamento, quando À Cobrar).",
         passos: [
           "Acesse Aprovações > Financeira.",
-          "Confira valores e classificação.",
-          "Aprove para liberar para Pagamentos ou rejeite informando motivo.",
-        ],
-      },
-      {
-        id: "pagamentos", titulo: "Pagamentos", rota: "/pagamentos",
-        papeis: ["admin", "gestor_financeiro"], icon: Wallet,
-        finalidade: "Registrar a forma e data de pagamento dos extras aprovados.",
-        passos: [
-          "Acesse Pagamentos.",
-          "Na aba Pendentes, marque os lançamentos a pagar.",
-          "Use Aprovar Selecionados em Dinheiro para lote, ou Marcar Pago individualmente (informando forma e data).",
-          "Os lançamentos pagos passam à seção Pagos recentes.",
+          "Confira valores e classificação comercial.",
+          "Aprove: itens À Cobrar vão para Faturamento; os demais já ficam disponíveis em Recibos para emissão/impressão.",
         ],
       },
       {
