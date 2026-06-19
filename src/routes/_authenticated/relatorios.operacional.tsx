@@ -59,16 +59,32 @@ function Page() {
     },
   });
 
-  // Empresa efetiva: extras.empresas → vínculo cliente_empresas → empresa do colaborador.
+  // Empresa efetiva.
+  // Regra: quando o cliente tem múltiplas empresas e a função do colaborador for
+  // VIGILANTE (qualquer variação), prevalece a empresa JSP. Nas demais funções,
+  // prevalece a outra empresa (não-JSP). Fallback final: empresa do colaborador.
+  const isVigilante = (r: ExtraRow) => /vigilante/i.test(r.funcoes?.nome ?? "");
+  const isJSP = (nome: string) => /\bjsp\b/i.test(nome);
   const empresaDe = (r: ExtraRow): { id: string; nome: string } | null => {
     if (r.empresas) return r.empresas;
-    const ativas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.situacao === "ativo" && ce.empresas);
-    const todas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.empresas);
+    const todas = (r.clientes?.cliente_empresas ?? [])
+      .filter((ce) => ce.empresas)
+      .map((ce) => ce.empresas!);
+    const ativas = (r.clientes?.cliente_empresas ?? [])
+      .filter((ce) => ce.situacao === "ativo" && ce.empresas)
+      .map((ce) => ce.empresas!);
     const lista = ativas.length ? ativas : todas;
-    if (lista.length === 1) return lista[0].empresas!;
+    if (lista.length === 1) return lista[0];
     if (lista.length > 1) {
-      const nome = lista.map((ce) => ce.empresas!.nome).join(" / ");
-      return { id: lista.map((ce) => ce.empresas!.id).sort().join("|"), nome };
+      if (isVigilante(r)) {
+        const jsp = lista.find((e) => isJSP(e.nome));
+        if (jsp) return jsp;
+      } else {
+        const naoJsp = lista.find((e) => !isJSP(e.nome));
+        if (naoJsp) return naoJsp;
+      }
+      // fallback: primeira da lista
+      return lista[0];
     }
     if (r.colaboradores?.empresas) return r.colaboradores.empresas;
     return null;

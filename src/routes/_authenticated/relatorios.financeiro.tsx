@@ -30,15 +30,23 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome))")
+        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome))")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
+      const isJSP = (n: string) => /\bjsp\b/i.test(n);
       const empresaNome = (r: any): string => {
         if (r.empresas?.nome) return r.empresas.nome;
         const ces: any[] = r.clientes?.cliente_empresas ?? [];
-        const ativas = ces.filter((ce) => ce.situacao === "ativo" && ce.empresas);
-        const lista = ativas.length ? ativas : ces.filter((ce) => ce.empresas);
-        if (lista.length) return lista.map((ce) => ce.empresas.nome).join(" / ");
+        const ativas = ces.filter((ce) => ce.situacao === "ativo" && ce.empresas).map((ce) => ce.empresas);
+        const lista = ativas.length ? ativas : ces.filter((ce) => ce.empresas).map((ce) => ce.empresas);
+        if (lista.length === 1) return lista[0].nome;
+        if (lista.length > 1) {
+          const vig = /vigilante/i.test(r.funcoes?.nome ?? "");
+          const escolhida = vig
+            ? lista.find((e: any) => isJSP(e.nome))
+            : lista.find((e: any) => !isJSP(e.nome));
+          return (escolhida ?? lista[0]).nome;
+        }
         if (r.colaboradores?.empresas?.nome) return r.colaboradores.empresas.nome;
         return "—";
       };
