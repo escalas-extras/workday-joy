@@ -240,11 +240,10 @@ const SECOES: { grupo: string; itens: Sec[] }[] = [
 const FLUXO = [
   "1. Lançamento em Extras (operador/supervisor).",
   "2. Aprovação Operacional valida execução.",
-  "3. Aprovação Financeira libera para pagamento.",
-  "4. Pagamentos registra forma e data.",
-  "5. Faturamento marca o que é cobrado do cliente.",
-  "6. Fechamento Semanal encerra o ciclo (quinta 19h → quinta 18h59).",
-  "7. Recibos e Relatórios consolidam o resultado.",
+  "3. Aprovação Financeira: itens À Cobrar seguem para Faturamento; os demais já ficam liberados em Recibos.",
+  "4. Faturamento marca o que é cobrado do cliente.",
+  "5. Fechamento Semanal encerra o ciclo (quinta 19h → quinta 18h59).",
+  "6. Recibos e Relatórios consolidam o resultado.",
 ];
 
 function Page() {
