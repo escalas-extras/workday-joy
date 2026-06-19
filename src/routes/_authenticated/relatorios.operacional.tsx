@@ -148,6 +148,9 @@ function Page() {
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
     { key: "classificacao", label: "Classif.", width: 18 },
   ];
+  // PDF compacto: remove "Tipo Serviço" e "Financeiro" para caber na página
+  const pdfCols: ColunaRelatorio[] = cols.filter((c) => c.key !== "situacao_serv" && c.key !== "sit_fin");
+  const pdfTotais = ["", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""];
 
   const tabela = (rs: ExtraRow[], emptyMsg: string) => {
     const rows = rs.map((r) => ({ ...toRow(r), motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "" }));
@@ -243,7 +246,7 @@ function Page() {
           <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", cols, rowsAll, ["", "", "", "", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""])} disabled={!rowsAll.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", pdfCols, rowsAll, pdfTotais)} disabled={!rowsAll.length}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>

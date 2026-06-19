@@ -111,6 +111,8 @@ function Page() {
     { key: "situacao", label: "Situação Fin.", width: 22 },
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
+  // PDF compacto: remove "Situação Fin." para caber na página
+  const pdfCols: ColunaRelatorio[] = cols.filter((c) => c.key !== "situacao");
 
   const tabela = (rs: Linha[], emptyMsg: string) => {
     const rows = toExport(rs);
@@ -165,7 +167,7 @@ function Page() {
         <Button size="sm" variant="outline" onClick={() => exportarExcel(`financeiro-${de}-${ate}.xlsx`, "Financeiro", cols, toExport(q.data ?? []))}>
           <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
         </Button>
-        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", cols, toExport(q.data ?? []))}>
+        <Button size="sm" variant="outline" onClick={() => exportarPdf(`financeiro-${de}-${ate}.pdf`, "Relatório Financeiro", pdfCols, toExport(q.data ?? []))}>
           <FileDown className="h-4 w-4 mr-1" />PDF
         </Button>
       </div>
