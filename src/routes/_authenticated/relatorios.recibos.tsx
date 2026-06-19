@@ -145,6 +145,8 @@ function Page() {
     }
     return true;
   }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
+  const pendentes = useMemo(() => filtrados.filter((r) => !r.arquivado_em), [filtrados]);
+  const arquivados = useMemo(() => filtrados.filter((r) => !!r.arquivado_em), [filtrados]);
 
   const printQuery = useQuery({
     queryKey: ["recibos-arquivados-print", filtrados.map((r) => r.id).join(",")],
