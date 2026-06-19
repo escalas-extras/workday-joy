@@ -128,7 +128,7 @@ function Page() {
   });
 
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: dataPag } }),
+    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: hojeISO } }),
     onSuccess: (r: { criados: number; erros?: string[] }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       toast.success(`${r.criados} recibo(s) gerado(s)`);
@@ -136,6 +136,45 @@ function Page() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  // Opções de mês (12 meses para trás + 1 à frente)
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const mesesOpts = useMemo(() => {
+    const out: { v: string; l: string }[] = [];
+    const now = new Date();
+    for (let i = 1; i >= -12; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({ v, l: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}` });
+    }
+    return out;
+  }, []);
+
+  // Semanas (sextas) cuja quarta de referência (sexta + 5 dias) cai no mês selecionado
+  const semanasOpts = useMemo(() => {
+    if (!mesRef) return [] as { v: string; l: string }[];
+    const [yy, mm] = mesRef.split("-").map(Number);
+    const out: { v: string; l: string }[] = [];
+    // Começa na primeira sexta cuja quarta-ref esteja no mês: varre desde 25 dias antes do mês até o fim
+    const ini = new Date(Date.UTC(yy, mm - 1, 1));
+    ini.setUTCDate(ini.getUTCDate() - 7);
+    const fim = new Date(Date.UTC(yy, mm, 7));
+    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
+    let ordinal = 0;
+    for (let d = new Date(ini); d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
+      if (d.getUTCDay() !== 5) continue; // sexta
+      const wed = new Date(d); wed.setUTCDate(wed.getUTCDate() + 5);
+      if (wed.getUTCFullYear() !== yy || wed.getUTCMonth() !== mm - 1) continue;
+      const sextaISO = d.toISOString().slice(0, 10);
+      out.push({ v: sextaISO, l: `${ORD[ordinal] ?? `${ordinal + 1}ª`} Semana` });
+      ordinal++;
+    }
+    return out;
+  }, [mesRef]);
+
+  // Reset semana ao trocar mês
+  const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
+
 
   const mCancelar = useMutation({
     mutationFn: () => cancelar({ data: { reciboId: cancelarId!, motivo } }),
