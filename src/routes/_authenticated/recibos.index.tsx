@@ -38,8 +38,9 @@ function Page() {
   const cancelar = useServerFn(cancelarRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
-  const [semana, setSemana] = useState("");
-  const [dataPag, setDataPag] = useState(new Date().toISOString().slice(0, 10));
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
+  const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
   const [cancelarId, setCancelarId] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
   const [detalheId, setDetalheId] = useState<string | null>(null);
