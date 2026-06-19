@@ -93,6 +93,7 @@ function Page() {
   const toExport = (rs: Linha[]) => rs.map((r) => ({
     data: r.data, cliente: r.cliente, empresa: r.empresa, colaborador: r.colaborador,
     coberto: r.coberto || "—",
+    motivo_subst: r.motivo_subst || "—",
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
@@ -104,6 +105,7 @@ function Page() {
     { key: "empresa", label: "Empresa", width: 30 },
     { key: "colaborador", label: "Colaborador", width: 40 },
     { key: "coberto", label: "Substituído", width: 40 },
+    { key: "motivo_subst", label: "Motivo Subst.", width: 28 },
     { key: "classificacao", label: "Classificação", width: 22 },
     { key: "status", label: "Status", width: 26 },
     { key: "situacao", label: "Situação Fin.", width: 22 },
@@ -116,19 +118,19 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead>
             <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell><TableCell>{r.motivo_subst}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
