@@ -88,7 +88,6 @@ function Page() {
       const { data, error } = await supabase
         .from("recibos")
         .select("id,numero,semana_ref,data_pagamento,valor_total,ativo,arquivado_em,colaborador_id,colaboradores(nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
-        .not("arquivado_em", "is", null)
         .gte("semana_ref", de)
         .lte("semana_ref", ate)
         .order("semana_ref", { ascending: false });
