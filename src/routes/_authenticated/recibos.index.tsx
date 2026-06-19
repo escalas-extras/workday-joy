@@ -264,17 +264,7 @@ function Page() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="text-xs">Status</Label>
-          <Select value={fStatus || "_all"} onValueChange={(v) => setFStatus(v === "_all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos</SelectItem>
-              <SelectItem value="ativo">Ativo</SelectItem>
-              <SelectItem value="cancelado">Cancelado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <div className="hidden" />
         <div className="flex items-end gap-1">
           <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); setFStatus(""); }}>Limpar</Button>
         </div>
