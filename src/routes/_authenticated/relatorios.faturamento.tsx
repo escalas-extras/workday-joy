@@ -100,8 +100,8 @@ function Page() {
   }), [rowsAll, empresa, cliente]);
 
   // Pendentes vs Fechados — "fechado" = situacao = faturado
-  const pendentes = useMemo(() => rows.filter((r) => r.situacao !== "faturado"), [rows]);
-  const arquivados = useMemo(() => rows.filter((r) => r.situacao === "faturado"), [rows]);
+  const pendentes = useMemo(() => rows.filter((r) => r.situacao !== "faturado" && r.situacao !== "cancelado"), [rows]);
+  const arquivados = useMemo(() => rows.filter((r) => r.situacao === "faturado" || r.situacao === "cancelado"), [rows]);
 
   const grupos = useMemo(() => {
     const m = new Map<string, { nome: string; rows: Row[]; total: number }>();
