@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PageHeader } from "@/components/app-shell";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
+import { SITUACAO_SERVICO_LABEL } from "@/components/extras-helpers";
 import { formatBRL } from "@/lib/extenso";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 import { buildMesesOpts, buildSemanasOpts, derivePeriodo, agruparMesSemana } from "@/lib/semana-buckets";
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/relatorios/financeiro")({ 
 type Linha = {
   id: string; data: string; valor: number; classificacao: "contrato" | "a_cobrar";
   situacao_financeira: string | null; status: string;
-  cliente: string; empresa: string; colaborador: string; coberto: string;
+  cliente: string; empresa: string; colaborador: string; coberto: string; motivo_subst: string;
 };
 
 function Page() {
@@ -34,7 +35,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_servico,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const isJSP = (n: string) => /\bjsp\b/i.test(n);
@@ -63,6 +64,7 @@ function Page() {
         empresa: empresaNome(r),
         colaborador: r.colaboradores?.nome ?? "",
         coberto: r.coberto?.nome ?? "",
+        motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "",
       }));
     },
   });
@@ -91,6 +93,7 @@ function Page() {
   const toExport = (rs: Linha[]) => rs.map((r) => ({
     data: r.data, cliente: r.cliente, empresa: r.empresa, colaborador: r.colaborador,
     coberto: r.coberto || "—",
+    motivo_subst: r.motivo_subst || "—",
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
@@ -102,6 +105,7 @@ function Page() {
     { key: "empresa", label: "Empresa", width: 30 },
     { key: "colaborador", label: "Colaborador", width: 40 },
     { key: "coberto", label: "Substituído", width: 40 },
+    { key: "motivo_subst", label: "Motivo Subst.", width: 28 },
     { key: "classificacao", label: "Classificação", width: 22 },
     { key: "status", label: "Status", width: 26 },
     { key: "situacao", label: "Situação Fin.", width: 22 },
@@ -114,19 +118,19 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead>
+            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead>
             <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell>
+                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell><TableCell>{r.motivo_subst}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
