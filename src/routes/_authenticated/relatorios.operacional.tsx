@@ -22,7 +22,7 @@ type ExtraRow = {
   cliente_id: string; colaborador_id: string; funcao_id: string; empresa_id: string | null;
   clientes?: { nome_fantasia: string; cliente_empresas?: Array<{ situacao: string; empresas?: { id: string; nome: string } | null }> };
   empresas?: { id: string; nome: string } | null;
-  colaboradores?: { id: string; nome: string };
+  colaboradores?: { id: string; nome: string; empresas?: { id: string; nome: string } | null };
   coberto?: { nome: string };
   funcoes?: { id: string; nome: string };
 };
@@ -48,7 +48,7 @@ function Page() {
           "cliente_id,colaborador_id,funcao_id,empresa_id," +
           "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
-          "colaboradores!colaborador_id(id,nome)," +
+          "colaboradores!colaborador_id(id,nome,empresas(id,nome))," +
           "coberto:colaboradores!colaborador_coberto_id(nome)," +
           "funcoes(id,nome)"
         )
@@ -59,7 +59,7 @@ function Page() {
     },
   });
 
-  // Empresa efetiva: extras.empresas (direto) → senão a primeira empresa ativa do cliente.
+  // Empresa efetiva: extras.empresas → vínculo cliente_empresas → empresa do colaborador.
   const empresaDe = (r: ExtraRow): { id: string; nome: string } | null => {
     if (r.empresas) return r.empresas;
     const ativas = (r.clientes?.cliente_empresas ?? []).filter((ce) => ce.situacao === "ativo" && ce.empresas);
@@ -70,6 +70,7 @@ function Page() {
       const nome = lista.map((ce) => ce.empresas!.nome).join(" / ");
       return { id: lista.map((ce) => ce.empresas!.id).sort().join("|"), nome };
     }
+    if (r.colaboradores?.empresas) return r.colaboradores.empresas;
     return null;
   };
 
