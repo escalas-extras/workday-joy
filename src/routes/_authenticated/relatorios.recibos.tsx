@@ -36,15 +36,50 @@ function Page() {
   const desarquivar = useServerFn(desarquivarRecibo);
 
   const hoje = new Date().toISOString().slice(0, 10);
-  const mesAtras = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
-  const [de, setDe] = useState(mesAtras);
-  const [ate, setAte] = useState(hoje);
+  const [mesRef, setMesRef] = useState(hoje.slice(0, 7)); // YYYY-MM
+  const [semana, setSemana] = useState<string>("_all"); // "_all" = mês todo, ou YYYY-MM-DD da sexta
   const [fColab, setFColab] = useState("");
   const [fEmpresa, setFEmpresa] = useState("");
   const [fCliente, setFCliente] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
+
+  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const mesesOpts = useMemo(() => {
+    const out: { v: string; l: string }[] = [];
+    const now = new Date();
+    for (let i = 1; i >= -12; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      out.push({ v, l: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}` });
+    }
+    return out;
+  }, []);
+  const semanasOpts = useMemo(() => {
+    if (!mesRef) return [] as { v: string; l: string }[];
+    const [yy, mm] = mesRef.split("-").map(Number);
+    const out: { v: string; l: string }[] = [];
+    const ini = new Date(Date.UTC(yy, mm - 1, 1)); ini.setUTCDate(ini.getUTCDate() - 7);
+    const fim = new Date(Date.UTC(yy, mm, 7));
+    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
+    let ord = 0;
+    for (let d = new Date(ini); d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
+      if (d.getUTCDay() !== 5) continue;
+      const wed = new Date(d); wed.setUTCDate(wed.getUTCDate() + 5);
+      if (wed.getUTCFullYear() !== yy || wed.getUTCMonth() !== mm - 1) continue;
+      out.push({ v: d.toISOString().slice(0, 10), l: `${ORD[ord] ?? `${ord + 1}ª`} Semana` });
+      ord++;
+    }
+    return out;
+  }, [mesRef]);
+  // Período efetivo (de/ate) deriva de mês + semana
+  const { de, ate } = useMemo(() => {
+    if (semana && semana !== "_all") return { de: semana, ate: semana };
+    if (semanasOpts.length) return { de: semanasOpts[0].v, ate: semanasOpts[semanasOpts.length - 1].v };
+    return { de: hoje, ate: hoje };
+  }, [semana, semanasOpts, hoje]);
+  const onChangeMes = (v: string) => { setMesRef(v); setSemana("_all"); };
 
   // Recibos no período (por semana_ref). Inclui dados de empresa do colaborador.
   const list = useQuery({
@@ -181,8 +216,23 @@ function Page() {
       <PageHeader title="Relatório de Recibos" description="Recibos já impressos / exportados (arquivados). Filtros mostram apenas registros com recibos no período." />
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">Semana de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
-        <div><Label className="text-xs">Até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+        <div>
+          <Label className="text-xs">Mês</Label>
+          <Select value={mesRef} onValueChange={onChangeMes}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Semana</Label>
+          <Select value={semana} onValueChange={setSemana}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Mês inteiro</SelectItem>
+              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label className="text-xs">Empresa</Label>
           <Select value={fEmpresa || "_all"} onValueChange={(v) => setFEmpresa(v === "_all" ? "" : v)}>
