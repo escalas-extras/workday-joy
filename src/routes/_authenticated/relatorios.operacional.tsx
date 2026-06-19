@@ -111,7 +111,7 @@ function Page() {
 
   // Pendentes vs Fechados (após manipulação): pago / faturado / cancelado
   const isFechado = (r: ExtraRow) =>
-    r.status === "cancelado" || r.situacao_financeira === "pago" || r.situacao_financeira === "faturado";
+    r.status === "cancelado" || r.situacao_financeira === "pago" || r.situacao_financeira === "faturado" || r.situacao_financeira === "cancelado";
   const pendentes = useMemo(() => filtrados.filter((r) => !isFechado(r)), [filtrados]);
   const arquivados = useMemo(() => filtrados.filter(isFechado), [filtrados]);
 
