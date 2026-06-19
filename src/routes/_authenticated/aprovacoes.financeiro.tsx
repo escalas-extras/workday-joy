@@ -46,7 +46,7 @@ function Page() {
     queryFn: async () => {
       let q = supabase
         .from("extras")
-        .select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome_fantasia), funcoes(nome)")
+        .select("*, colaboradores!colaborador_id(nome,matricula), clientes(nome_fantasia), empresas(nome,razao_social), funcoes(nome)")
         .eq("status", "aprovado_operacional")
         .order("data", { ascending: false });
       q = applyServerFilters(q, { ...filters, status: undefined });

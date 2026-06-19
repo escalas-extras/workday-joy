@@ -29,7 +29,7 @@ function mapRow(e: Row) {
     matricula: e.colaboradores?.matricula ?? "",
     colaborador: e.colaboradores?.nome ?? "",
     cliente: e.clientes?.nome_fantasia ?? "",
-    empresa: e.empresas?.nome_fantasia ?? "",
+    empresa: e.empresas?.nome ?? e.empresas?.razao_social ?? "",
     horario: `${e.hora_inicio ?? ""} → ${e.hora_termino ?? ""}`,
     valor: Number(e.valor ?? 0).toFixed(2),
     situacao_servico: SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l ?? e.situacao_servico ?? "",
