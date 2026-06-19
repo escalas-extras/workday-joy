@@ -56,8 +56,15 @@ function Page() {
     },
   });
   const aprovar = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("extras").update({ status: "aprovado_financeiro" }).eq("id", id);
+    mutationFn: async (row: { id: string; classificacao_comercial: string }) => {
+      const patch: Record<string, any> = { status: "aprovado_financeiro" };
+      // À Cobrar segue para Faturamento; os demais já vão direto para Recibos como "pago"
+      if (row.classificacao_comercial !== "a_cobrar") {
+        patch.situacao_financeira = "pago";
+        patch.forma_pagamento = "dinheiro";
+        patch.data_pagamento = new Date().toISOString().slice(0, 10);
+      }
+      const { error } = await supabase.from("extras").update(patch).eq("id", row.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries(); toast.success("Aprovado financeiramente"); },
