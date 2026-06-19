@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
 import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
+import { loadReciboViews } from "@/lib/recibos-views";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { formatBRL } from "@/lib/extenso";
 

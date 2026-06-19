@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedRelatoriosDisciplinaresRouteImport } from './routes/_authenticated/relatorios-disciplinares'
+import { Route as AuthenticatedRecibosRouteImport } from './routes/_authenticated/recibos'
 import { Route as AuthenticatedProcessosRouteImport } from './routes/_authenticated/processos'
 import { Route as AuthenticatedPesquisaDisciplinarRouteImport } from './routes/_authenticated/pesquisa-disciplinar'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -74,6 +75,11 @@ const AuthenticatedRelatoriosDisciplinaresRoute =
     path: '/relatorios-disciplinares',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRecibosRoute = AuthenticatedRecibosRouteImport.update({
+  id: '/recibos',
+  path: '/recibos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProcessosRoute = AuthenticatedProcessosRouteImport.update({
   id: '/processos',
   path: '/processos',
@@ -173,9 +179,9 @@ const AuthenticatedAdvertenciasRoute =
   } as any)
 const AuthenticatedRecibosIndexRoute =
   AuthenticatedRecibosIndexRouteImport.update({
-    id: '/recibos/',
-    path: '/recibos/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedRecibosRoute,
   } as any)
 const AuthenticatedRelatoriosRecibosRoute =
   AuthenticatedRelatoriosRecibosRouteImport.update({
@@ -203,9 +209,9 @@ const AuthenticatedRelatoriosFaturamentoRoute =
   } as any)
 const AuthenticatedRecibosImprimirRoute =
   AuthenticatedRecibosImprimirRouteImport.update({
-    id: '/recibos/imprimir',
-    path: '/recibos/imprimir',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/imprimir',
+    path: '/imprimir',
+    getParentRoute: () => AuthenticatedRecibosRoute,
   } as any)
 const AuthenticatedAprovacoesOperacionalRoute =
   AuthenticatedAprovacoesOperacionalRouteImport.update({
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/processos': typeof AuthenticatedProcessosRoute
+  '/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -326,6 +333,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/pesquisa-disciplinar': typeof AuthenticatedPesquisaDisciplinarRoute
   '/_authenticated/processos': typeof AuthenticatedProcessosRoute
+  '/_authenticated/recibos': typeof AuthenticatedRecibosRouteWithChildren
   '/_authenticated/relatorios-disciplinares': typeof AuthenticatedRelatoriosDisciplinaresRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/admin/importar-lotacao': typeof AuthenticatedAdminImportarLotacaoRoute
@@ -363,6 +371,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/pesquisa-disciplinar'
     | '/processos'
+    | '/recibos'
     | '/relatorios-disciplinares'
     | '/usuarios'
     | '/admin/importar-lotacao'
@@ -434,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/_authenticated/pesquisa-disciplinar'
     | '/_authenticated/processos'
+    | '/_authenticated/recibos'
     | '/_authenticated/relatorios-disciplinares'
     | '/_authenticated/usuarios'
     | '/_authenticated/admin/importar-lotacao'
@@ -497,6 +507,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios-disciplinares'
       fullPath: '/relatorios-disciplinares'
       preLoaderRoute: typeof AuthenticatedRelatoriosDisciplinaresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recibos': {
+      id: '/_authenticated/recibos'
+      path: '/recibos'
+      fullPath: '/recibos'
+      preLoaderRoute: typeof AuthenticatedRecibosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/processos': {
@@ -627,10 +644,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/recibos/': {
       id: '/_authenticated/recibos/'
-      path: '/recibos'
+      path: '/'
       fullPath: '/recibos/'
       preLoaderRoute: typeof AuthenticatedRecibosIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedRecibosRoute
     }
     '/_authenticated/relatorios/recibos': {
       id: '/_authenticated/relatorios/recibos'
@@ -662,10 +679,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/recibos/imprimir': {
       id: '/_authenticated/recibos/imprimir'
-      path: '/recibos/imprimir'
+      path: '/imprimir'
       fullPath: '/recibos/imprimir'
       preLoaderRoute: typeof AuthenticatedRecibosImprimirRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedRecibosRoute
     }
     '/_authenticated/aprovacoes/operacional': {
       id: '/_authenticated/aprovacoes/operacional'
@@ -711,6 +728,19 @@ const AuthenticatedClientesRouteWithChildren =
     AuthenticatedClientesRouteChildren,
   )
 
+interface AuthenticatedRecibosRouteChildren {
+  AuthenticatedRecibosImprimirRoute: typeof AuthenticatedRecibosImprimirRoute
+  AuthenticatedRecibosIndexRoute: typeof AuthenticatedRecibosIndexRoute
+}
+
+const AuthenticatedRecibosRouteChildren: AuthenticatedRecibosRouteChildren = {
+  AuthenticatedRecibosImprimirRoute: AuthenticatedRecibosImprimirRoute,
+  AuthenticatedRecibosIndexRoute: AuthenticatedRecibosIndexRoute,
+}
+
+const AuthenticatedRecibosRouteWithChildren =
+  AuthenticatedRecibosRoute._addFileChildren(AuthenticatedRecibosRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdvertenciasRoute: typeof AuthenticatedAdvertenciasRoute
   AuthenticatedAjudaRoute: typeof AuthenticatedAjudaRoute
@@ -730,17 +760,16 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPesquisaDisciplinarRoute: typeof AuthenticatedPesquisaDisciplinarRoute
   AuthenticatedProcessosRoute: typeof AuthenticatedProcessosRoute
+  AuthenticatedRecibosRoute: typeof AuthenticatedRecibosRouteWithChildren
   AuthenticatedRelatoriosDisciplinaresRoute: typeof AuthenticatedRelatoriosDisciplinaresRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedAdminImportarLotacaoRoute: typeof AuthenticatedAdminImportarLotacaoRoute
   AuthenticatedAprovacoesFinanceiroRoute: typeof AuthenticatedAprovacoesFinanceiroRoute
   AuthenticatedAprovacoesOperacionalRoute: typeof AuthenticatedAprovacoesOperacionalRoute
-  AuthenticatedRecibosImprimirRoute: typeof AuthenticatedRecibosImprimirRoute
   AuthenticatedRelatoriosFaturamentoRoute: typeof AuthenticatedRelatoriosFaturamentoRoute
   AuthenticatedRelatoriosFinanceiroRoute: typeof AuthenticatedRelatoriosFinanceiroRoute
   AuthenticatedRelatoriosOperacionalRoute: typeof AuthenticatedRelatoriosOperacionalRoute
   AuthenticatedRelatoriosRecibosRoute: typeof AuthenticatedRelatoriosRecibosRoute
-  AuthenticatedRecibosIndexRoute: typeof AuthenticatedRecibosIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -763,6 +792,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPesquisaDisciplinarRoute: AuthenticatedPesquisaDisciplinarRoute,
   AuthenticatedProcessosRoute: AuthenticatedProcessosRoute,
+  AuthenticatedRecibosRoute: AuthenticatedRecibosRouteWithChildren,
   AuthenticatedRelatoriosDisciplinaresRoute:
     AuthenticatedRelatoriosDisciplinaresRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
@@ -772,7 +802,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAprovacoesFinanceiroRoute,
   AuthenticatedAprovacoesOperacionalRoute:
     AuthenticatedAprovacoesOperacionalRoute,
-  AuthenticatedRecibosImprimirRoute: AuthenticatedRecibosImprimirRoute,
   AuthenticatedRelatoriosFaturamentoRoute:
     AuthenticatedRelatoriosFaturamentoRoute,
   AuthenticatedRelatoriosFinanceiroRoute:
@@ -780,7 +809,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRelatoriosOperacionalRoute:
     AuthenticatedRelatoriosOperacionalRoute,
   AuthenticatedRelatoriosRecibosRoute: AuthenticatedRelatoriosRecibosRoute,
-  AuthenticatedRecibosIndexRoute: AuthenticatedRecibosIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
