@@ -77,7 +77,7 @@ const ART_482_FULL = [
   ["m", "perda da habilitação ou dos requisitos estabelecidos em lei para o exercício da profissão, em decorrência de conduta dolosa do empregado. (Incluído pela Lei nº 13.467, de 2017)"],
 ] as const;
 
-export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "advertencia.pdf", opts?: { autoPrint?: boolean }) {
+export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "advertencia.pdf", opts?: { autoPrint?: boolean; printFullArt482?: boolean }) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210;
   const margin = 18;
