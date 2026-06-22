@@ -77,7 +77,7 @@ const ART_482_FULL = [
   ["m", "perda da habilitação ou dos requisitos estabelecidos em lei para o exercício da profissão, em decorrência de conduta dolosa do empregado. (Incluído pela Lei nº 13.467, de 2017)"],
 ] as const;
 
-export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "advertencia.pdf", opts?: { autoPrint?: boolean }) {
+export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "advertencia.pdf", opts?: { autoPrint?: boolean; printFullArt482?: boolean }) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210;
   const margin = 18;
@@ -209,31 +209,65 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
     doc.text("Ciente do empregado: ____________________________________", margin, y);
   }
 
-  // Página 2: rodapé com Art. 482 completo
-  // Se não couber, nova página
-  const footerNeeded = 90;
-  if (y + footerNeeded > 287) {
+  // Fundamentação legal: resumo apenas das alíneas vinculadas ao motivo.
+  // Por padrão exibe somente o bloco resumido. O texto integral do Art. 482
+  // só é impresso quando o supervisor solicita expressamente (printFullArt482).
+  const selected = (data.cltSubsections || []).map((s) => s.toLowerCase());
+  const selectedEntries = ART_482_FULL.filter(([letra]) => selected.includes(letra));
+
+  const blocoNeeded = 18 + selectedEntries.length * 8;
+  if (y + blocoNeeded > 287) {
     doc.addPage();
     y = 20;
   } else {
-    y += 14;
+    y += 12;
   }
 
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("Art. 482 - Constituem justa causa para rescisão do contrato de trabalho pelo empregador:", margin, y);
-  y += 4;
+  doc.text("FUNDAMENTAÇÃO LEGAL", margin, y);
+  y += 5;
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  for (const [letra, texto] of ART_482_FULL) {
-    const line = doc.splitTextToSize(`${letra}) ${texto}`, contentW);
-    if (y + line.length * 3.4 > 290) { doc.addPage(); y = 20; }
-    doc.text(line, margin, y);
-    y += line.length * 3.4 + 0.6;
+
+  if (selectedEntries.length === 0) {
+    const txt = "Art. 482 da CLT — alínea não especificada.";
+    doc.text(doc.splitTextToSize(txt, contentW), margin, y);
+    y += 5;
+  } else {
+    for (const [letra, texto] of selectedEntries) {
+      doc.setFont("helvetica", "bold");
+      const head = `Art. 482, alínea "${letra}" da CLT`;
+      doc.text(head, margin, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      const desc = texto.replace(/\s*\(Incluído.*?\)\s*$/i, "").replace(/[;.]\s*$/, "");
+      const lines = doc.splitTextToSize(desc.charAt(0).toUpperCase() + desc.slice(1) + ".", contentW);
+      if (y + lines.length * 4 > 290) { doc.addPage(); y = 20; }
+      doc.text(lines, margin, y);
+      y += lines.length * 4 + 2;
+    }
   }
-  const paragrafo = "Parágrafo único - Constitui igualmente justa causa para dispensa de empregado a prática, devidamente comprovada em inquérito administrativo, de atos atentatórios à segurança nacional. (Incluído pelo Decreto-lei nº 3, de 27.1.1966)";
-  const paragrafoLines = doc.splitTextToSize(paragrafo, contentW);
-  if (y + paragrafoLines.length * 3.4 > 290) { doc.addPage(); y = 20; }
-  doc.text(paragrafoLines, margin, y);
+
+  if (opts?.printFullArt482) {
+    doc.addPage();
+    y = 20;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("Art. 482 - Constituem justa causa para rescisão do contrato de trabalho pelo empregador:", margin, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    for (const [letra, texto] of ART_482_FULL) {
+      const line = doc.splitTextToSize(`${letra}) ${texto}`, contentW);
+      if (y + line.length * 3.4 > 290) { doc.addPage(); y = 20; }
+      doc.text(line, margin, y);
+      y += line.length * 3.4 + 0.6;
+    }
+    const paragrafo = "Parágrafo único - Constitui igualmente justa causa para dispensa de empregado a prática, devidamente comprovada em inquérito administrativo, de atos atentatórios à segurança nacional. (Incluído pelo Decreto-lei nº 3, de 27.1.1966)";
+    const paragrafoLines = doc.splitTextToSize(paragrafo, contentW);
+    if (y + paragrafoLines.length * 3.4 > 290) { doc.addPage(); y = 20; }
+    doc.text(paragrafoLines, margin, y);
+  }
 
   if (opts?.autoPrint) {
     doc.autoPrint();
