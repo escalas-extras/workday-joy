@@ -226,28 +226,39 @@ export async function gerarAdvertenciaPdf(data: AdvertenciaData, filename = "adv
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("FUNDAMENTAÇÃO LEGAL", margin, y);
-  y += 5;
+  y += 6;
   doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  const caputLines = doc.splitTextToSize(
+    "Art. 482 - Constituem justa causa para rescisão do contrato de trabalho pelo empregador:",
+    contentW,
+  );
+  if (y + caputLines.length * 4 > 290) { doc.addPage(); y = 20; }
+  doc.text(caputLines, margin, y);
+  y += caputLines.length * 4 + 2;
   doc.setFont("helvetica", "normal");
 
   if (selectedEntries.length === 0) {
-    const txt = "Art. 482 da CLT — alínea não especificada.";
+    const txt = "Alínea não especificada para esta ocorrência.";
     doc.text(doc.splitTextToSize(txt, contentW), margin, y);
     y += 5;
   } else {
     for (const [letra, texto] of selectedEntries) {
-      doc.setFont("helvetica", "bold");
-      const head = `Art. 482, alínea "${letra}" da CLT`;
-      doc.text(head, margin, y);
-      y += 4;
-      doc.setFont("helvetica", "normal");
       const desc = texto.replace(/\s*\(Incluído.*?\)\s*$/i, "").replace(/[;.]\s*$/, "");
-      const lines = doc.splitTextToSize(desc.charAt(0).toUpperCase() + desc.slice(1) + ".", contentW);
+      const line = `${letra}) ${desc.charAt(0).toLowerCase() + desc.slice(1)}.`;
+      const lines = doc.splitTextToSize(line, contentW);
       if (y + lines.length * 4 > 290) { doc.addPage(); y = 20; }
       doc.text(lines, margin, y);
-      y += lines.length * 4 + 2;
+      y += lines.length * 4 + 1.5;
     }
   }
+
+  y += 2;
+  const paragrafoUnico = "Parágrafo único - Constitui igualmente justa causa para dispensa de empregado a prática, devidamente comprovada em inquérito administrativo, de atos atentatórios à segurança nacional. (Incluído pelo Decreto-lei nº 3, de 27.1.1966)";
+  const puLines = doc.splitTextToSize(paragrafoUnico, contentW);
+  if (y + puLines.length * 4 > 290) { doc.addPage(); y = 20; }
+  doc.text(puLines, margin, y, { align: "justify", maxWidth: contentW });
+  y += puLines.length * 4 + 2;
 
   if (opts?.printFullArt482) {
     doc.addPage();
