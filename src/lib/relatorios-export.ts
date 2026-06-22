@@ -181,11 +181,11 @@ export async function exportarPdf(
   doc.setTextColor(0, 0, 0);
 
   const pageH = doc.internal.pageSize.getHeight();
-  const layout = buildPdfTableLayout(doc, columns);
+  const layout = buildPdfTableLayout(doc, columns, rows.length);
   assertPdfTableFits(layout, doc);
 
   autoTable(doc, {
-    startY: 28,
+    startY: layout.topY,
     margin: { left: layout.marginX, right: layout.marginRight },
     tableWidth: layout.tableWidth,
     head: [columns.map((c) => c.label)],
