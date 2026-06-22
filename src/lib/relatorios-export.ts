@@ -15,22 +15,35 @@ const JULIANI_NAVY: [number, number, number] = [6, 11, 90];
 const JULIANI_RED: [number, number, number] = [214, 30, 30];
 const JULIANI_BG_SOFT: [number, number, number] = [232, 235, 245];
 
+// Limites verticais (mm) — A4 paisagem
+const PDF_TOP_Y = 28;            // início da tabela (abaixo do cabeçalho)
+const PDF_BOTTOM_MARGIN = 8;     // espaço reservado para rodapé
+const PDF_MIN_FONT = 4.8;        // legibilidade mínima
+const PDF_MIN_PADDING = 0.25;
+
 type PdfTableLayout = {
   marginX: number;
   marginRight: number;
   usableW: number;
+  usableH: number;
   tableWidth: number;
   fontSize: number;
   cellPadding: number;
   widths: number[];
+  topY: number;
+  bottomLimit: number;
 };
 
-function buildPdfTableLayout(doc: jsPDF, columns: ColunaRelatorio[]): PdfTableLayout {
+function buildPdfTableLayout(doc: jsPDF, columns: ColunaRelatorio[], rowCount: number): PdfTableLayout {
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
   const marginX = 6;
   const marginRight = 8;
   const safetyGap = 1;
   const usableW = pageW - marginX - marginRight - safetyGap;
+  const bottomLimit = pageH - PDF_BOTTOM_MARGIN;
+  const usableH = bottomLimit - PDF_TOP_Y;
+
   const declared = columns.map((c) => Math.max(c.width ?? 20, 1));
   const declaredTotal = declared.reduce((s, w) => s + w, 0);
   const scale = declaredTotal > usableW ? usableW / declaredTotal : 1;
@@ -49,10 +62,13 @@ function buildPdfTableLayout(doc: jsPDF, columns: ColunaRelatorio[]): PdfTableLa
     marginX,
     marginRight,
     usableW,
+    usableH,
     tableWidth,
-    fontSize: Math.max(4.8, Math.min(7, 7 * density)),
-    cellPadding: Math.max(0.25, Math.min(0.9, 0.9 * density)),
+    fontSize: Math.max(PDF_MIN_FONT, Math.min(7, 7 * density)),
+    cellPadding: Math.max(PDF_MIN_PADDING, Math.min(0.9, 0.9 * density)),
     widths,
+    topY: PDF_TOP_Y,
+    bottomLimit,
   };
 }
 
@@ -63,6 +79,12 @@ function assertPdfTableFits(layout: PdfTableLayout, doc: jsPDF) {
 
   if (layout.tableWidth > layout.usableW + 0.01 || tableRight > rightLimit + 0.01) {
     throw new Error("A tabela do PDF excedeu a largura útil da página e foi bloqueada para evitar corte de informações.");
+  }
+  if (layout.usableH < 20) {
+    throw new Error("Altura útil da página insuficiente para renderizar a tabela com legibilidade.");
+  }
+  if (layout.fontSize < PDF_MIN_FONT - 0.01) {
+    throw new Error("Fonte abaixo do mínimo legível — geração do PDF bloqueada.");
   }
 }
 
@@ -81,10 +103,18 @@ function assertRenderedPdfTableFits(doc: jsPDF, layout: PdfTableLayout) {
 
   const sections = [table?.head, table?.body, table?.foot].flat().filter(Boolean);
   for (const row of sections) {
-    const cells = Object.values(row.cells ?? {}) as Array<{ x?: number; width?: number }>;
+    const cells = Object.values(row.cells ?? {}) as Array<{ x?: number; y?: number; width?: number; height?: number }>;
     for (const cell of cells) {
       if (typeof cell.x === "number" && typeof cell.width === "number" && cell.x + cell.width > rightLimit + 0.5) {
-        throw new Error("Uma célula do PDF ficou fora da área imprimível e a geração foi bloqueada.");
+        throw new Error("Uma célula do PDF ficou fora da área horizontal imprimível e a geração foi bloqueada.");
+      }
+      if (typeof cell.y === "number" && typeof cell.height === "number") {
+        if (cell.y < layout.topY - 0.5) {
+          throw new Error("Uma célula do PDF ficou acima da área imprimível e a geração foi bloqueada.");
+        }
+        if (cell.y + cell.height > layout.bottomLimit + 0.5) {
+          throw new Error("Uma célula do PDF ultrapassou a área vertical imprimível e a geração foi bloqueada.");
+        }
       }
     }
   }
