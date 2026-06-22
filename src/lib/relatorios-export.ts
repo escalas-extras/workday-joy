@@ -186,7 +186,7 @@ export async function exportarPdf(
 
   autoTable(doc, {
     startY: layout.topY,
-    margin: { left: layout.marginX, right: layout.marginRight },
+    margin: { left: layout.marginX, right: layout.marginRight, top: layout.topY, bottom: PDF_BOTTOM_MARGIN },
     tableWidth: layout.tableWidth,
     head: [columns.map((c) => c.label)],
     body: rows.map((r) => columns.map((c) => String(r[c.key] ?? ""))),
