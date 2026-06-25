@@ -211,11 +211,21 @@ function Page() {
 
       <Dialog open={!!reabrir} onOpenChange={(o) => !o && setReabrir(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reabrir semana {reabrir?.semana}</DialogTitle></DialogHeader>
-          <Textarea placeholder="Motivo da reabertura" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <DialogHeader>
+            <DialogTitle>Reabrir semana {reabrir?.semana}</DialogTitle>
+            <DialogDescription>
+              Reabra a semana para lançar extras esquecidos. O motivo é obrigatório e ficará registrado em auditoria.
+              {(list.data ?? []).find((f) => f.id === reabrir?.id)?.encerrado_financeiro && isAdmin && (
+                <span className="block mt-2 text-destructive font-medium">
+                  Atenção: esta semana está encerrada financeiramente. A reabertura (Admin) reverterá o encerramento financeiro para permitir novos lançamentos.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea placeholder="Motivo da reabertura (ex.: lançamento de extras esquecidos)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setReabrir(null)}>Cancelar</Button>
-            <Button onClick={() => reabrirM.mutate()} disabled={!motivo}>Reabrir</Button>
+            <Button onClick={() => reabrirM.mutate()} disabled={!motivo.trim()}>Reabrir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
