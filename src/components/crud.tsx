@@ -80,6 +80,23 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
   const openCreate = () => { setEditing(null); setValues(cfg.defaultValues); setOpen(true); };
   const openEdit = (row: T) => { setEditing(row); setValues(row); setOpen(true); };
 
+  const filtered = useMemo(() => {
+    const rows = data ?? [];
+    const q = normalize(search.trim());
+    if (!q) return rows;
+    return rows.filter((row) =>
+      cfg.columns.some((c) => {
+        if (c.searchValue) return normalize(c.searchValue(row)).includes(q);
+        if (c.render) {
+          const node = c.render(row);
+          if (typeof node === "string" || typeof node === "number") return normalize(String(node)).includes(q);
+        }
+        const raw = (row as any)[c.key as any];
+        return raw != null && normalize(String(raw)).includes(q);
+      })
+    );
+  }, [data, search, cfg.columns]);
+
   return (
     <div>
       <div className="flex justify-between items-start mb-4 gap-2">
