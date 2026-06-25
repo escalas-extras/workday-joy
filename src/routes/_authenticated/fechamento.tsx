@@ -80,9 +80,13 @@ function Page() {
   const reabrirM = useMutation({
     mutationFn: async () => {
       if (!reabrir) return;
+      const target = (list.data ?? []).find((f) => f.id === reabrir.id);
+      const payload: any = { status: "aberta", motivo_reabertura: motivo };
+      // Admin pode reabrir mesmo após encerramento financeiro — reverte a flag para permitir lançamentos esquecidos.
+      if (target?.encerrado_financeiro && isAdmin) payload.encerrado_financeiro = false;
       const { error } = await supabase
         .from("fechamentos_semanais")
-        .update({ status: "aberta", motivo_reabertura: motivo })
+        .update(payload)
         .eq("id", reabrir.id);
       if (error) throw error;
     },
