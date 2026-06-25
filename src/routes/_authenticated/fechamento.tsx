@@ -80,9 +80,13 @@ function Page() {
   const reabrirM = useMutation({
     mutationFn: async () => {
       if (!reabrir) return;
+      const target = (list.data ?? []).find((f) => f.id === reabrir.id);
+      const payload: any = { status: "aberta", motivo_reabertura: motivo };
+      // Admin pode reabrir mesmo após encerramento financeiro — reverte a flag para permitir lançamentos esquecidos.
+      if (target?.encerrado_financeiro && isAdmin) payload.encerrado_financeiro = false;
       const { error } = await supabase
         .from("fechamentos_semanais")
-        .update({ status: "aberta", motivo_reabertura: motivo })
+        .update(payload)
         .eq("id", reabrir.id);
       if (error) throw error;
     },
@@ -111,7 +115,7 @@ function Page() {
           <Eye className="h-3 w-3 mr-1" />Ver detalhes
         </Button>
       )}
-      {f.status === "fechada" && (isAdmin || isAdminOrGestor) && !f.encerrado_financeiro && (
+      {f.status === "fechada" && (isAdmin || (isAdminOrGestor && !f.encerrado_financeiro)) && (
         <Button size="sm" variant="outline" onClick={() => setReabrir({ id: f.id, semana: f.semana_ref })}>
           <Unlock className="h-3 w-3 mr-1" />Reabrir
         </Button>
@@ -207,11 +211,21 @@ function Page() {
 
       <Dialog open={!!reabrir} onOpenChange={(o) => !o && setReabrir(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reabrir semana {reabrir?.semana}</DialogTitle></DialogHeader>
-          <Textarea placeholder="Motivo da reabertura" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+          <DialogHeader>
+            <DialogTitle>Reabrir semana {reabrir?.semana}</DialogTitle>
+            <DialogDescription>
+              Reabra a semana para lançar extras esquecidos. O motivo é obrigatório e ficará registrado em auditoria.
+              {(list.data ?? []).find((f) => f.id === reabrir?.id)?.encerrado_financeiro && isAdmin && (
+                <span className="block mt-2 text-destructive font-medium">
+                  Atenção: esta semana está encerrada financeiramente. A reabertura (Admin) reverterá o encerramento financeiro para permitir novos lançamentos.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea placeholder="Motivo da reabertura (ex.: lançamento de extras esquecidos)" value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setReabrir(null)}>Cancelar</Button>
-            <Button onClick={() => reabrirM.mutate()} disabled={!motivo}>Reabrir</Button>
+            <Button onClick={() => reabrirM.mutate()} disabled={!motivo.trim()}>Reabrir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

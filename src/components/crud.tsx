@@ -1,14 +1,17 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
-export interface CrudColumn<T> { key: keyof T | string; label: string; render?: (row: T) => ReactNode }
+const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+export interface CrudColumn<T> { key: keyof T | string; label: string; render?: (row: T) => ReactNode; searchValue?: (row: T) => string }
 
 export interface CrudConfig<T extends { id: string }> {
   table: string;
@@ -28,6 +31,7 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [values, setValues] = useState<any>(cfg.defaultValues);
+  const [search, setSearch] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: [cfg.table],
@@ -76,6 +80,23 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
   const openCreate = () => { setEditing(null); setValues(cfg.defaultValues); setOpen(true); };
   const openEdit = (row: T) => { setEditing(row); setValues(row); setOpen(true); };
 
+  const filtered = useMemo(() => {
+    const rows = data ?? [];
+    const q = normalize(search.trim());
+    if (!q) return rows;
+    return rows.filter((row) =>
+      cfg.columns.some((c) => {
+        if (c.searchValue) return normalize(c.searchValue(row)).includes(q);
+        if (c.render) {
+          const node = c.render(row);
+          if (typeof node === "string" || typeof node === "number") return normalize(String(node)).includes(q);
+        }
+        const raw = (row as any)[c.key as any];
+        return raw != null && normalize(String(raw)).includes(q);
+      })
+    );
+  }, [data, search, cfg.columns]);
+
   return (
     <div>
       <div className="flex justify-between items-start mb-4 gap-2">
@@ -102,6 +123,16 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
         )}
       </div>
 
+      <div className="relative mb-3 max-w-sm">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Pesquisar..."
+          className="pl-8"
+        />
+      </div>
+
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
@@ -112,8 +143,8 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
           </TableHeader>
           <TableBody>
             {isLoading && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>}
-            {!isLoading && (data ?? []).length === 0 && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">Nenhum registro</TableCell></TableRow>}
-            {(data ?? []).map((row) => (
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">{search ? "Nenhum resultado" : "Nenhum registro"}</TableCell></TableRow>}
+            {filtered.map((row) => (
               <TableRow key={row.id}>
                 {cfg.columns.map((c) => (
                   <TableCell key={String(c.key)}>{c.render ? c.render(row) : String((row as any)[c.key] ?? "")}</TableCell>
