@@ -115,7 +115,7 @@ function Page() {
           <Eye className="h-3 w-3 mr-1" />Ver detalhes
         </Button>
       )}
-      {f.status === "fechada" && (isAdmin || isAdminOrGestor) && !f.encerrado_financeiro && (
+      {f.status === "fechada" && (isAdmin || (isAdminOrGestor && !f.encerrado_financeiro)) && (
         <Button size="sm" variant="outline" onClick={() => setReabrir({ id: f.id, semana: f.semana_ref })}>
           <Unlock className="h-3 w-3 mr-1" />Reabrir
         </Button>
