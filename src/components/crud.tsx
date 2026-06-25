@@ -106,6 +106,16 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
         )}
       </div>
 
+      <div className="relative mb-3 max-w-sm">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Pesquisar..."
+          className="pl-8"
+        />
+      </div>
+
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
@@ -116,8 +126,8 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
           </TableHeader>
           <TableBody>
             {isLoading && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>}
-            {!isLoading && (data ?? []).length === 0 && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">Nenhum registro</TableCell></TableRow>}
-            {(data ?? []).map((row) => (
+            {!isLoading && filtered.length === 0 && <TableRow><TableCell colSpan={cfg.columns.length + 1} className="text-center py-6 text-muted-foreground">{search ? "Nenhum resultado" : "Nenhum registro"}</TableCell></TableRow>}
+            {filtered.map((row) => (
               <TableRow key={row.id}>
                 {cfg.columns.map((c) => (
                   <TableCell key={String(c.key)}>{c.render ? c.render(row) : String((row as any)[c.key] ?? "")}</TableCell>
