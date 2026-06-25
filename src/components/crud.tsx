@@ -1,14 +1,17 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
-export interface CrudColumn<T> { key: keyof T | string; label: string; render?: (row: T) => ReactNode }
+const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+export interface CrudColumn<T> { key: keyof T | string; label: string; render?: (row: T) => ReactNode; searchValue?: (row: T) => string }
 
 export interface CrudConfig<T extends { id: string }> {
   table: string;
