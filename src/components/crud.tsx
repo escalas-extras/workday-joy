@@ -31,6 +31,7 @@ export function Crud<T extends { id: string }>(cfg: CrudConfig<T>) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<T | null>(null);
   const [values, setValues] = useState<any>(cfg.defaultValues);
+  const [search, setSearch] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: [cfg.table],
