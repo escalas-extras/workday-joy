@@ -211,16 +211,13 @@ function Page() {
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosVisiveisSelecionados = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
 
+  // Impressão: NÃO arquiva automaticamente. O recibo só sai da tela quando
+  // o usuário confirmar via "Arquivar selecionados" (após a impressão real).
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
-    arquivar({ data: { ids } })
-      .then((r) => {
-        if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
-        qc.invalidateQueries({ queryKey: ["recibos"] });
-      })
-      .catch((e: Error) => toast.error(e.message));
   };
+  // PDF: o download confirma a geração — arquiva apenas após gerarPdfRecibos resolver.
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
@@ -232,6 +229,16 @@ function Page() {
     } catch (e) {
       toast.error((e as Error).message);
     }
+  };
+  const handleArquivar = async (ids: string[]) => {
+    if (!ids.length) return toast.error("Selecione ao menos um recibo");
+    try {
+      const r = await arquivar({ data: { ids } });
+      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s)`);
+      else toast.info("Nenhum recibo foi arquivado");
+      qc.invalidateQueries({ queryKey: ["recibos"] });
+      setSelected({});
+    } catch (e) { toast.error((e as Error).message); }
   };
 
   return (
