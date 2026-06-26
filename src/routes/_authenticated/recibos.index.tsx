@@ -66,9 +66,15 @@ function Page() {
       const { data } = await supabase
         .from("recibos")
         .select("*, colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
-        .is("arquivado_em", null)
-        .order("gerado_em", { ascending: false });
-      return (data ?? []) as ReciboRow[];
+        .is("arquivado_em", null);
+      // Ordenação alfabética por nome do colaborador (pt-BR, ignora caixa/acentos)
+      return ((data ?? []) as ReciboRow[]).sort((a, b) =>
+        (a.colaboradores?.nome ?? "").localeCompare(
+          b.colaboradores?.nome ?? "",
+          "pt-BR",
+          { sensitivity: "base" },
+        ),
+      );
     },
   });
 
