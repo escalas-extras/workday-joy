@@ -147,13 +147,13 @@ function Page() {
     queryFn: async () => {
       const { data: extras, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, colaborador_id, colaboradores(nome)")
+        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
         .gte("data", de).lte("data", ate)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
         .order("data");
       if (error) throw error;
-      const rows = (extras ?? []) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
+      const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
       if (!rows.length) return [];
       const { data: ja } = await supabase
         .from("recibos_itens")
