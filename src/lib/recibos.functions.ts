@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+// Lock em memória do worker para evitar geração paralela do mesmo (colab|semana)
+const gerandoEmAndamento = new Set<string>();
+
 // Normaliza qualquer data para a sexta-feira de referência da semana (igual ao backend semana_ref_de)
 function normalizaSemanaRef(input: string): string {
   const [y, m, d] = input.split("-").map(Number);
