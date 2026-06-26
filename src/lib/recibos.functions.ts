@@ -46,7 +46,7 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
       .eq("status", "aprovado_financeiro")
       .eq("situacao_financeira", "pago");
     if (error) throw error;
-    if (!extras?.length) return { criados: 0, mensagem: `Nenhum extra elegível em ${de} a ${ate}` };
+    if (!extras?.length) return { criados: 0, mensagem: `Nenhum extra lançado entre ${de} e ${ate}` };
 
     // Anti-join: extras já vinculadas a algum recibo ATIVO ficam de fora
     const extraIds = extras.map((e) => e.id);
