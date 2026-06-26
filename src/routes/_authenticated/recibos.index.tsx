@@ -130,9 +130,10 @@ function Page() {
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
-    onSuccess: (r: { criados: number; duplicadosExcluidos?: number; erros?: string[]; mensagem?: string }) => {
+    onSuccess: (r: { criados: number; duplicadosExcluidos?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
+      if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
       if (r.duplicadosExcluidos) toast.info(`${r.duplicadosExcluidos} recibo(s) duplicado(s) excluído(s)`);
       if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
       else if (r.mensagem) toast.info(r.mensagem);
