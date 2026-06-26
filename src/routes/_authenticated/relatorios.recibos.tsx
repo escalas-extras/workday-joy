@@ -157,6 +157,36 @@ function Page() {
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
 
+  // Extras no período (por data da extra) + flag "recibada"
+  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
+  const extrasNoPeriodo = useQuery({
+    queryKey: ["relatorio-extras-recibos", de, ate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("extras")
+        .select("id, data, semana_ref, valor, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("data", de).lte("data", ate)
+        .eq("status", "aprovado_financeiro")
+        .eq("situacao_financeira", "pago")
+        .order("data");
+      if (error) throw error;
+      const rows = ((data ?? []) as unknown) as ExtraRow[];
+      if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
+      const { data: ja } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", rows.map((r) => r.id))
+        .eq("recibos.ativo", true);
+      const recibadas = new Set((ja ?? []).map((r) => r.extra_id));
+      return { rows, recibadas };
+    },
+  });
+  const extrasFiltradas = useMemo(() => {
+    const { rows = [], recibadas = new Set<string>() } = extrasNoPeriodo.data ?? {};
+    return rows.filter((r) => (apenasNaoRecibadas ? !recibadas.has(r.id) : true)).map((r) => ({ ...r, _recibada: recibadas.has(r.id) }));
+  }, [extrasNoPeriodo.data, apenasNaoRecibadas]);
+
+
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
   const preparandoPrint = printQuery.isLoading || printQuery.isFetching;
