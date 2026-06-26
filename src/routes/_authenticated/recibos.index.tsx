@@ -129,52 +129,57 @@ function Page() {
   });
 
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: hojeISO } }),
-    onSuccess: (r: { criados: number; erros?: string[] }) => {
+    mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
+    onSuccess: (r: { criados: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
-      toast.success(`${r.criados} recibo(s) gerado(s)`);
+      qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
+      if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
+      else if (r.mensagem) toast.info(r.mensagem);
       if (r.erros?.length) toast.error(r.erros.join("; "));
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Opções de mês (12 meses para trás + 1 à frente)
-  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const mesesOpts = useMemo(() => {
-    const out: { v: string; l: string }[] = [];
-    const now = new Date();
-    for (let i = 1; i >= -12; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      out.push({ v, l: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}` });
-    }
-    return out;
-  }, []);
+  // Prévia: extras elegíveis no período que AINDA NÃO foram recibadas (anti-join via recibos_itens ativos)
+  const pendentesExtras = useQuery({
+    queryKey: ["extras-pendentes-recibo", de, ate],
+    enabled: !!de && !!ate,
+    queryFn: async () => {
+      const { data: extras, error } = await supabase
+        .from("extras")
+        .select("id, data, semana_ref, valor, colaborador_id, colaboradores(nome)")
+        .gte("data", de).lte("data", ate)
+        .eq("status", "aprovado_financeiro")
+        .eq("situacao_financeira", "pago")
+        .order("data");
+      if (error) throw error;
+      const rows = (extras ?? []) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
+      if (!rows.length) return [];
+      const { data: ja } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", rows.map((r) => r.id))
+        .eq("recibos.ativo", true);
+      const set = new Set((ja ?? []).map((r) => r.extra_id));
+      return rows.filter((r) => !set.has(r.id));
+    },
+  });
 
-  // Semanas (sextas) cuja quarta de referência (sexta + 5 dias) cai no mês selecionado
-  const semanasOpts = useMemo(() => {
-    if (!mesRef) return [] as { v: string; l: string }[];
-    const [yy, mm] = mesRef.split("-").map(Number);
-    const out: { v: string; l: string }[] = [];
-    // Começa na primeira sexta cuja quarta-ref esteja no mês: varre desde 25 dias antes do mês até o fim
-    const ini = new Date(Date.UTC(yy, mm - 1, 1));
-    ini.setUTCDate(ini.getUTCDate() - 7);
-    const fim = new Date(Date.UTC(yy, mm, 7));
-    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
-    let ordinal = 0;
-    for (let d = new Date(ini); d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
-      if (d.getUTCDay() !== 5) continue; // sexta
-      const wed = new Date(d); wed.setUTCDate(wed.getUTCDate() + 5);
-      if (wed.getUTCFullYear() !== yy || wed.getUTCMonth() !== mm - 1) continue;
-      const sextaISO = d.toISOString().slice(0, 10);
-      out.push({ v: sextaISO, l: `${ORD[ordinal] ?? `${ordinal + 1}ª`} Semana` });
-      ordinal++;
+  // Agrupa prévia por colaborador → semana_ref
+  const pendentesGrupos = useMemo(() => {
+    const out = new Map<string, { colab: string; semanas: Map<string, { qtd: number; total: number }> }>();
+    for (const e of pendentesExtras.data ?? []) {
+      const nome = e.colaboradores?.nome ?? "—";
+      const g = out.get(nome) ?? { colab: nome, semanas: new Map() };
+      const s = g.semanas.get(e.semana_ref) ?? { qtd: 0, total: 0 };
+      s.qtd++; s.total += Number(e.valor);
+      g.semanas.set(e.semana_ref, s);
+      out.set(nome, g);
     }
-    return out;
-  }, [mesRef]);
+    return [...out.values()].sort((a, b) => a.colab.localeCompare(b.colab));
+  }, [pendentesExtras.data]);
 
-  // Reset semana ao trocar mês
-  const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
+
 
 
   const mExcluir = useMutation({
