@@ -235,9 +235,9 @@ function Page() {
         <div className="flex gap-2 items-end flex-wrap">
           <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
           <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
-          <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesExtras.data?.length}>
+          <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesGrupos.length}>
             <FilePlus className="h-4 w-4 mr-1" />
-            Gerar {pendentesExtras.data?.length ? `(${pendentesExtras.data.length} extra(s) em ${pendentesGrupos.length} grupo(s))` : ""}
+            Gerar {pendentesGrupos.length ? `(${pendentesGrupos.reduce((acc, g) => acc + [...g.semanas.values()].reduce((a, s) => a + s.qtd, 0), 0)} extra(s) em ${pendentesGrupos.length} grupo(s))` : ""}
           </Button>
         </div>
         {!!pendentesGrupos.length && (
