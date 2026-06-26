@@ -393,6 +393,15 @@ function Page() {
                     <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
                     <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
                   </div>
+                  <div className="ml-auto flex items-end gap-2">
+                    <div>
+                      <Label className="text-xs">Data de pagamento</Label>
+                      <Input type="date" value={dataPagPend} onChange={(e) => setDataPagPend(e.target.value)} />
+                    </div>
+                    <Button size="sm" onClick={handleGerarPendentes} disabled={gerando}>
+                      {gerando ? "Gerando..." : "Gerar recibos pendentes"}
+                    </Button>
+                  </div>
                 </div>
                 <div className="rounded-md border bg-card overflow-x-auto">
                   <Table>
