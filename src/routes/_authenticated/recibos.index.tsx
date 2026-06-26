@@ -39,12 +39,15 @@ function Page() {
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
-  const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
-  const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
+  // Período padrão: 1º do mês até hoje
+  const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
+  const [de, setDe] = useState(primeiroDoMes);
+  const [ate, setAte] = useState(hojeISO);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+
 
   // Filtros
   const [fSemana, setFSemana] = useState("");
