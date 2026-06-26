@@ -19,7 +19,7 @@ import { formatBRL } from "@/lib/extenso";
 import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/lib/recibos-views";
-import { desarquivarRecibo } from "@/lib/recibos.functions";
+import { desarquivarRecibo, gerarRecibosPendentes } from "@/lib/recibos.functions";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { extrairRecibadasSet, filtrarNaoRecibadas, type ReciboItemRow } from "@/lib/recibos-filter";
 
