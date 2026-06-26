@@ -45,6 +45,8 @@ function Page() {
   const [fStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
+  const [apenasNaoRecibadas, setApenasNaoRecibadas] = useState(true);
+
 
   const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const mesesOpts = useMemo(() => {
