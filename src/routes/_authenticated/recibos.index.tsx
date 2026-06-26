@@ -48,6 +48,10 @@ function Page() {
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
+  // Reimpressão por período de geração (inclui arquivados)
+  const [reDe, setReDe] = useState(primeiroDoMes);
+  const [reAte, setReAte] = useState(hojeISO);
+
 
   // Filtros
   const [fSemana, setFSemana] = useState("");
