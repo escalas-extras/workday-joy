@@ -245,16 +245,17 @@ function Page() {
     <div>
       <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
-      {/* Geração — por período de LANÇAMENTO das extras */}
+      {/* Geração — por DATA DO SERVIÇO das extras (extras.data) */}
       <div className="rounded-md border p-3 bg-card mb-4">
         <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
         <div className="text-xs text-muted-foreground mb-3">
-          Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
-          A <strong>data original</strong> do serviço e a <strong>semana_ref</strong> da extra são preservadas no recibo.
+          Filtro pela <strong>data do serviço</strong> (extras.data). Extras retroativas continuam elegíveis
+          mesmo se lançadas depois. A <strong>semana_ref</strong> (sex→qui da data trabalhada) é preservada.
+          Se já existir recibo ativo para o colaborador+semana, novas extras são <strong>anexadas</strong> ao recibo existente.
           <strong> Emitido em: hoje ({hojeISO})</strong>.
         </div>
         <div className="flex gap-2 items-end flex-wrap">
-          <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">Data do serviço — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
           <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
           <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesGrupos.length}>
             <FilePlus className="h-4 w-4 mr-1" />
