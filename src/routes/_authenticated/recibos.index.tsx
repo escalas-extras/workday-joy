@@ -264,7 +264,7 @@ function Page() {
         </div>
         {!!pendentesGrupos.length && (
           <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras lançadas no período e ainda não recibadas</div>
+            <div className="font-semibold mb-1">Prévia — extras com data do serviço no período e ainda não recibadas</div>
             {pendentesGrupos.map((g) => (
               <div key={g.colab} className="mb-1">
                 <div className="font-medium">{g.colab}</div>
