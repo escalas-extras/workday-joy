@@ -176,19 +176,19 @@ function Page() {
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
 
-  // Extras por período de LANÇAMENTO (created_at) + flag "recibada"
+  // Extras por DATA DO SERVIÇO (extras.data) + flag "recibada"
   type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; created_at: string; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
   const extrasNoPeriodo = useQuery({
-    queryKey: ["relatorio-extras-recibos-lanc", lancDe, lancAte],
+    queryKey: ["relatorio-extras-recibos-data", lancDe, lancAte],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("extras")
         .select("id, data, semana_ref, valor, created_at, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("created_at", `${lancDe}T00:00:00`).lte("created_at", `${lancAte}T23:59:59.999`)
+        .gte("data", lancDe).lte("data", lancAte)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("created_at");
-      if (error) throw error;
+        .order("data");
+      if (error) throw new Error(`Falha ao carregar extras: ${error.message}`);
       const rows = ((data ?? []) as unknown) as ExtraRow[];
       if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
       const { data: ja } = await supabase
