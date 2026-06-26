@@ -71,13 +71,19 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     }
 
     let criados = 0;
+    let duplicadosExcluidos = 0;
     const erros: string[] = [];
     for (const grupo of grupos.values()) {
-      // Recibo ativo já existente para (colab, semana) — pula (mesma constraint do banco)
+      // Se já existe recibo ATIVO para (colab, semana), exclui o duplicado antes
+      // de gerar o novo (o novo passa a refletir as extras atualmente pendentes).
       const { data: existente } = await supabase
         .from("recibos").select("id")
         .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
-      if (existente) { erros.push(`Recibo ativo já existe para colaborador na semana ${grupo.semana}`); continue; }
+      if (existente) {
+        const { error: eDel } = await supabase.rpc("excluir_recibo", { p_id: existente.id });
+        if (eDel) { erros.push(`Falha ao excluir recibo duplicado (${grupo.semana}): ${eDel.message}`); continue; }
+        duplicadosExcluidos++;
+      }
 
       const { data: rec, error: e1 } = await supabase.from("recibos").insert({
         colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
@@ -88,7 +94,7 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
       if (e2) { erros.push(e2.message); continue; }
       criados++;
     }
-    return { criados, erros };
+    return { criados, duplicadosExcluidos, erros };
   });
 
 
