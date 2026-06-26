@@ -387,7 +387,7 @@ function Page() {
                   Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
                 </div>
                 <div className="flex flex-wrap items-end gap-2 mb-2">
-                  <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
+                  <div><Label className="text-xs">Data do serviço — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
                   <div><Label className="text-xs">até</Label><Input type="date" value={lancAte} onChange={(e) => setLancAte(e.target.value)} /></div>
                   <div className="flex items-center gap-2 ml-2">
                     <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
