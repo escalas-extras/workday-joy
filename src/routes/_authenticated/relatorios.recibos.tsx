@@ -19,7 +19,7 @@ import { formatBRL } from "@/lib/extenso";
 import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/lib/recibos-views";
-import { desarquivarRecibo, gerarRecibosPendentes } from "@/lib/recibos.functions";
+import { desarquivarRecibo, gerarRecibosPendentes, auditarInconsistencias } from "@/lib/recibos.functions";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { extrairRecibadasSet, filtrarNaoRecibadas, type ReciboItemRow } from "@/lib/recibos-filter";
 
@@ -37,8 +37,16 @@ function Page() {
   const navigate = useNavigate();
   const desarquivar = useServerFn(desarquivarRecibo);
   const gerarPendentes = useServerFn(gerarRecibosPendentes);
+  const auditar = useServerFn(auditarInconsistencias);
   const [gerando, setGerando] = useState(false);
   const [dataPagPend, setDataPagPend] = useState(new Date().toISOString().slice(0, 10));
+
+  // Auditoria read-only (não modifica nada)
+  const auditoria = useQuery({
+    queryKey: ["auditoria-inconsistencias"],
+    queryFn: () => auditar(),
+    staleTime: 60000,
+  });
 
   const handleGerarPendentes = async () => {
     if (!confirm("Gerar recibos para TODAS as extras aprovadas/pagas ainda sem recibo? Para semanas com recibo ativo, os itens faltantes serão anexados.")) return;
@@ -61,7 +69,7 @@ function Page() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
   const [apenasNaoRecibadas, setApenasNaoRecibadas] = useState(true);
-  // Período de LANÇAMENTO (created_at das extras) — independente do mês/semana dos recibos
+  // Período de DATA DO SERVIÇO (extras.data) — independente do mês/semana dos recibos
   const primeiroDoMes = `${hoje.slice(0, 7)}-01`;
   const [lancDe, setLancDe] = useState(primeiroDoMes);
   const [lancAte, setLancAte] = useState(hoje);
@@ -165,7 +173,13 @@ function Page() {
       if (!set || !set.has(fCliente)) return false;
     }
     return true;
-  }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
+  }).sort((a, b) =>
+    (a.colaboradores?.nome ?? "").localeCompare(
+      b.colaboradores?.nome ?? "",
+      "pt-BR",
+      { sensitivity: "base" },
+    ),
+  ), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
   const pendentes = useMemo(() => filtrados.filter((r) => !r.arquivado_em), [filtrados]);
   const arquivados = useMemo(() => filtrados.filter((r) => !!r.arquivado_em), [filtrados]);
 
@@ -176,19 +190,19 @@ function Page() {
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
 
-  // Extras por período de LANÇAMENTO (created_at) + flag "recibada"
+  // Extras por DATA DO SERVIÇO (extras.data) + flag "recibada"
   type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; created_at: string; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
   const extrasNoPeriodo = useQuery({
-    queryKey: ["relatorio-extras-recibos-lanc", lancDe, lancAte],
+    queryKey: ["relatorio-extras-recibos-data", lancDe, lancAte],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("extras")
         .select("id, data, semana_ref, valor, created_at, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("created_at", `${lancDe}T00:00:00`).lte("created_at", `${lancAte}T23:59:59.999`)
+        .gte("data", lancDe).lte("data", lancAte)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("created_at");
-      if (error) throw error;
+        .order("data");
+      if (error) throw new Error(`Falha ao carregar extras: ${error.message}`);
       const rows = ((data ?? []) as unknown) as ExtraRow[];
       if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
       const { data: ja } = await supabase
@@ -387,7 +401,7 @@ function Page() {
                   Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
                 </div>
                 <div className="flex flex-wrap items-end gap-2 mb-2">
-                  <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
+                  <div><Label className="text-xs">Data do serviço — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
                   <div><Label className="text-xs">até</Label><Input type="date" value={lancAte} onChange={(e) => setLancAte(e.target.value)} /></div>
                   <div className="flex items-center gap-2 ml-2">
                     <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
@@ -424,6 +438,47 @@ function Page() {
                     </TableBody>
                   </Table>
                 </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="auditoria" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Auditoria — inconsistências de status ({auditoria.data?.total ?? 0})
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Extras vinculadas a recibos <strong>ativos</strong> cujo status/situação financeira deixou de
+                  ser "aprovado_financeiro/pago". <strong>Relatório read-only</strong> — nenhum dado é alterado.
+                </div>
+                {auditoria.isLoading && <div className="text-xs text-muted-foreground">Carregando…</div>}
+                {auditoria.error && <div className="text-xs text-destructive">Erro: {(auditoria.error as Error).message}</div>}
+                {!!auditoria.data?.inconsistencias?.length && (
+                  <div className="rounded-md border bg-card overflow-x-auto">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Recibo nº</TableHead><TableHead>Colaborador</TableHead>
+                        <TableHead>Semana</TableHead><TableHead>Extra (data)</TableHead>
+                        <TableHead>Status</TableHead><TableHead>Situação</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {auditoria.data.inconsistencias.map((r) => (
+                          <TableRow key={r.extra_id}>
+                            <TableCell>{r.recibo_numero}</TableCell>
+                            <TableCell>{r.colaborador}</TableCell>
+                            <TableCell>{r.semana_ref}</TableCell>
+                            <TableCell>{r.extra_data}</TableCell>
+                            <TableCell><Badge variant="secondary">{r.extra_status}</Badge></TableCell>
+                            <TableCell><Badge variant="secondary">{r.extra_situacao}</Badge></TableCell>
+                            <TableCell className="text-right">{formatBRL(r.valor)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {auditoria.data && !auditoria.data.inconsistencias.length && (
+                  <div className="text-xs text-muted-foreground py-2">Nenhuma inconsistência encontrada.</div>
+                )}
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">

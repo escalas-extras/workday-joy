@@ -66,9 +66,15 @@ function Page() {
       const { data } = await supabase
         .from("recibos")
         .select("*, colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
-        .is("arquivado_em", null)
-        .order("gerado_em", { ascending: false });
-      return (data ?? []) as ReciboRow[];
+        .is("arquivado_em", null);
+      // Ordenação alfabética por nome do colaborador (pt-BR, ignora caixa/acentos)
+      return ((data ?? []) as ReciboRow[]).sort((a, b) =>
+        (a.colaboradores?.nome ?? "").localeCompare(
+          b.colaboradores?.nome ?? "",
+          "pt-BR",
+          { sensitivity: "base" },
+        ),
+      );
     },
   });
 
@@ -134,11 +140,11 @@ function Page() {
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
-    onSuccess: (r: { criados: number; duplicadosExcluidos?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
+    onSuccess: (r: { criados: number; anexados?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
-      if (r.duplicadosExcluidos) toast.info(`${r.duplicadosExcluidos} recibo(s) duplicado(s) excluído(s)`);
+      if (r.anexados) toast.info(`${r.anexados} extra(s) anexada(s) a recibo(s) já existente(s)`);
       if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
       else if (r.mensagem) toast.info(r.mensagem);
       if (r.erros?.length) toast.error(r.erros.join("; "));
@@ -146,19 +152,21 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Prévia: extras elegíveis no período que AINDA NÃO foram recibadas (anti-join via recibos_itens ativos)
+  // Prévia: extras elegíveis pela DATA DO SERVIÇO no período (extras.data) e
+  // que ainda não foram recibadas (anti-join via recibos_itens ativos).
+  // Não usa created_at — extras retroativas devem aparecer.
   const pendentesExtras = useQuery({
     queryKey: ["extras-pendentes-recibo", de, ate],
     enabled: !!de && !!ate,
     queryFn: async () => {
       const { data: extras, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, colaborador_id, created_at, colaboradores!colaborador_id(nome)")
-        .gte("created_at", `${de}T00:00:00`).lte("created_at", `${ate}T23:59:59.999`)
+        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("data", de).lte("data", ate)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("created_at");
-      if (error) throw error;
+        .order("data");
+      if (error) throw new Error(`Falha ao carregar prévia: ${error.message}`);
       const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
       if (!rows.length) return [];
       const { data: ja } = await supabase
@@ -203,16 +211,13 @@ function Page() {
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosVisiveisSelecionados = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
 
+  // Impressão: NÃO arquiva automaticamente. O recibo só sai da tela quando
+  // o usuário confirmar via "Arquivar selecionados" (após a impressão real).
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
-    arquivar({ data: { ids } })
-      .then((r) => {
-        if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
-        qc.invalidateQueries({ queryKey: ["recibos"] });
-      })
-      .catch((e: Error) => toast.error(e.message));
   };
+  // PDF: o download confirma a geração — arquiva apenas após gerarPdfRecibos resolver.
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
@@ -225,21 +230,32 @@ function Page() {
       toast.error((e as Error).message);
     }
   };
+  const handleArquivar = async (ids: string[]) => {
+    if (!ids.length) return toast.error("Selecione ao menos um recibo");
+    try {
+      const r = await arquivar({ data: { ids } });
+      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s)`);
+      else toast.info("Nenhum recibo foi arquivado");
+      qc.invalidateQueries({ queryKey: ["recibos"] });
+      setSelected({});
+    } catch (e) { toast.error((e as Error).message); }
+  };
 
   return (
     <div>
-      <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
+      <PageHeader title="Recibos" description="Recibos pendentes. Imprima e depois clique em 'Arquivar Selecionados' para arquivar. Geração de PDF arquiva automaticamente após o download." />
 
-      {/* Geração — por período de LANÇAMENTO das extras */}
+      {/* Geração — por DATA DO SERVIÇO das extras (extras.data) */}
       <div className="rounded-md border p-3 bg-card mb-4">
         <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
         <div className="text-xs text-muted-foreground mb-3">
-          Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
-          A <strong>data original</strong> do serviço e a <strong>semana_ref</strong> da extra são preservadas no recibo.
+          Filtro pela <strong>data do serviço</strong> (extras.data). Extras retroativas continuam elegíveis
+          mesmo se lançadas depois. A <strong>semana_ref</strong> (sex→qui da data trabalhada) é preservada.
+          Se já existir recibo ativo para o colaborador+semana, novas extras são <strong>anexadas</strong> ao recibo existente.
           <strong> Emitido em: hoje ({hojeISO})</strong>.
         </div>
         <div className="flex gap-2 items-end flex-wrap">
-          <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">Data do serviço — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
           <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
           <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesGrupos.length}>
             <FilePlus className="h-4 w-4 mr-1" />
@@ -248,7 +264,7 @@ function Page() {
         </div>
         {!!pendentesGrupos.length && (
           <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras lançadas no período e ainda não recibadas</div>
+            <div className="font-semibold mb-1">Prévia — extras com data do serviço no período e ainda não recibadas</div>
             {pendentesGrupos.map((g) => (
               <div key={g.colab} className="mb-1">
                 <div className="font-medium">{g.colab}</div>
@@ -269,7 +285,7 @@ function Page() {
           </div>
         )}
         {!pendentesExtras.isLoading && !pendentesGrupos.length && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra lançada (não recibada) neste período.</div>
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra com data do serviço no período (não recibada).</div>
         )}
       </div>
 
@@ -332,6 +348,9 @@ function Page() {
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setPreviewIds(selectedIds)} disabled={!selectedIds.length}>
           <Eye className="h-4 w-4 mr-1" />Visualizar Selecionados
+        </Button>
+        <Button size="sm" variant="default" onClick={() => handleArquivar(selectedIds)} disabled={!selectedIds.length} title="Marcar como arquivados (após impressão confirmada)">
+          Arquivar Selecionados ({selectedIds.length})
         </Button>
         <div className="w-px bg-border mx-1" />
         <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
