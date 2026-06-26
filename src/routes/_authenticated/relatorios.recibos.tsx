@@ -161,18 +161,18 @@ function Page() {
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
 
-  // Extras no período (por data da extra) + flag "recibada"
-  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
+  // Extras por período de LANÇAMENTO (created_at) + flag "recibada"
+  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; created_at: string; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
   const extrasNoPeriodo = useQuery({
-    queryKey: ["relatorio-extras-recibos", de, ate],
+    queryKey: ["relatorio-extras-recibos-lanc", lancDe, lancAte],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("data", de).lte("data", ate)
+        .select("id, data, semana_ref, valor, created_at, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("created_at", `${lancDe}T00:00:00`).lte("created_at", `${lancAte}T23:59:59.999`)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("data");
+        .order("created_at");
       if (error) throw error;
       const rows = ((data ?? []) as unknown) as ExtraRow[];
       if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
