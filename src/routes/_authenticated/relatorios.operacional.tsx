@@ -3,10 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/app-shell";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { SITUACAO_SERVICO_LABEL, STATUS_LABEL, SIT_FIN_LABEL } from "@/components/extras-helpers";
@@ -17,7 +20,8 @@ import { buildMesesOpts, buildSemanasOpts, derivePeriodo, agruparMesSemana } fro
 export const Route = createFileRoute("/_authenticated/relatorios/operacional")({ component: Page });
 
 type ExtraRow = {
-  id: string; data: string; hora_inicio: string; hora_termino: string;
+  id: string; data: string; semana_ref: string; created_at: string;
+  hora_inicio: string; hora_termino: string;
   valor: number; classificacao_comercial: string; situacao_servico: string;
   status: string; situacao_financeira: string | null;
   cliente_id: string; colaborador_id: string; funcao_id: string; empresa_id: string | null;
@@ -28,9 +32,19 @@ type ExtraRow = {
   funcoes?: { id: string; nome: string };
 };
 
+type TipoPeriodo = "data" | "lancamento";
+
 function Page() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const primeiroDoMes = `${hoje.slice(0, 7)}-01`;
+
+  const [tipoPeriodo, setTipoPeriodo] = useState<TipoPeriodo>("data");
   const [mesRef, setMesRef] = useState(() => new Date().toISOString().slice(0, 7));
   const [semana, setSemana] = useState<string>("_all");
+  const [lancDe, setLancDe] = useState(primeiroDoMes);
+  const [lancAte, setLancAte] = useState(hoje);
+  const [somenteNaoRecibadas, setSomenteNaoRecibadas] = useState(false);
+
   const [cliente, setCliente] = useState("");
   const [empresa, setEmpresa] = useState("");
   const [colab, setColab] = useState("");
@@ -43,24 +57,44 @@ function Page() {
   const onChangeMes = (v: string) => { setMesRef(v); setSemana("_all"); };
 
   const q = useQuery({
-    queryKey: ["rel-operacional", de, ate],
+    queryKey: ["rel-operacional", tipoPeriodo, tipoPeriodo === "data" ? de : lancDe, tipoPeriodo === "data" ? ate : lancAte],
     queryFn: async () => {
-      const { data, error } = await supabase.from("extras")
+      let qb = supabase.from("extras")
         .select(
-          "id,data,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
+          "id,data,semana_ref,created_at,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
           "cliente_id,colaborador_id,funcao_id,empresa_id," +
           "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
           "colaboradores!colaborador_id(id,nome,empresas(id,nome))," +
           "coberto:colaboradores!colaborador_coberto_id(nome)," +
           "funcoes(id,nome)"
-        )
-        .gte("data", de).lte("data", ate)
-        .order("data");
+        );
+      if (tipoPeriodo === "lancamento") {
+        qb = qb.gte("created_at", `${lancDe}T00:00:00`).lte("created_at", `${lancAte}T23:59:59.999`).order("created_at");
+      } else {
+        qb = qb.gte("data", de).lte("data", ate).order("data");
+      }
+      const { data, error } = await qb;
       if (error) throw error;
       return (data ?? []) as unknown as ExtraRow[];
     },
   });
+
+  // Mapa extra_id -> já recibada (em recibo ativo)
+  const recibadasQ = useQuery({
+    queryKey: ["rel-operacional-recibadas", (q.data ?? []).map((r) => r.id).join(",")],
+    enabled: !!q.data?.length,
+    queryFn: async () => {
+      const ids = (q.data ?? []).map((r) => r.id);
+      const { data } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", ids)
+        .eq("recibos.ativo", true);
+      return new Set((data ?? []).map((r) => r.extra_id));
+    },
+  });
+  const recibadasSet = recibadasQ.data ?? new Set<string>();
 
   const isVigilante = (r: ExtraRow) => /vigilante/i.test(r.funcoes?.nome ?? "");
   const isJSP = (nome: string) => /\bjsp\b/i.test(nome);
@@ -106,8 +140,9 @@ function Page() {
     if (colab && r.colaborador_id !== colab) return false;
     if (funcao && r.funcao_id !== funcao) return false;
     if (situacao) { if (r.status !== situacao && r.situacao_financeira !== situacao) return false; }
+    if (somenteNaoRecibadas && recibadasSet.has(r.id)) return false;
     return true;
-  }), [q.data, cliente, empresa, colab, funcao, situacao]);
+  }), [q.data, cliente, empresa, colab, funcao, situacao, somenteNaoRecibadas, recibadasSet]);
 
   // Pendentes vs Fechados (após manipulação): pago / faturado / cancelado
   const isFechado = (r: ExtraRow) =>
@@ -116,7 +151,9 @@ function Page() {
   const arquivados = useMemo(() => filtrados.filter(isFechado), [filtrados]);
 
   const toRow = (r: ExtraRow) => ({
+    lancado_em: r.created_at?.slice(0, 16).replace("T", " ") ?? "",
     data: r.data,
+    semana_ref: r.semana_ref,
     cliente: r.clientes?.nome_fantasia ?? "",
     empresa: empresaDe(r)?.nome ?? "—",
     colaborador: r.colaboradores?.nome ?? "",
@@ -129,30 +166,33 @@ function Page() {
     coberto: r.coberto?.nome ?? "",
     status: STATUS_LABEL[r.status] ?? r.status,
     sit_fin: r.situacao_financeira ? (SIT_FIN_LABEL[r.situacao_financeira] ?? r.situacao_financeira) : "—",
+    status_recibo: recibadasSet.has(r.id) ? "Já recibado" : "Pendente de recibo",
   });
-  const rowsAll = useMemo(() => filtrados.map((r) => ({ ...toRow(r), motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "" })), [filtrados]);
+  const rowsAll = useMemo(() => filtrados.map((r) => ({ ...toRow(r), motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "" })), [filtrados, recibadasSet]);
   const total = rowsAll.reduce((s, r) => s + r.valor, 0);
 
   const cols: ColunaRelatorio[] = [
-    { key: "data", label: "Data", width: 22 },
+    { key: "lancado_em", label: "Lançado em", width: 26 },
+    { key: "data", label: "Data Serviço", width: 22 },
+    { key: "semana_ref", label: "Semana", width: 22 },
     { key: "cliente", label: "Cliente", width: 38 },
     { key: "empresa", label: "Empresa", width: 28 },
     { key: "colaborador", label: "Colaborador", width: 34 },
     { key: "coberto", label: "Substituído", width: 34 },
     { key: "motivo_subst", label: "Motivo Subst.", width: 28 },
-    { key: "funcao", label: "Função", width: 22 },
+    { key: "funcao", label: "Cargo", width: 22 },
     { key: "horario", label: "Horário", width: 22 },
     { key: "situacao_serv", label: "Tipo Serviço", width: 26 },
     { key: "status", label: "Status", width: 22 },
     { key: "sit_fin", label: "Financeiro", width: 22 },
+    { key: "status_recibo", label: "Recibo", width: 24 },
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
     { key: "classificacao", label: "Classif.", width: 18 },
   ];
-  // PDF compacto: remove "Tipo Serviço", "Financeiro" e "Status" para caber na página
   const pdfCols: ColunaRelatorio[] = cols.filter(
-    (c) => c.key !== "situacao_serv" && c.key !== "sit_fin" && c.key !== "status",
+    (c) => c.key !== "situacao_serv" && c.key !== "sit_fin" && c.key !== "status" && c.key !== "semana_ref",
   );
-  const pdfTotais = ["", "", "", "", "", "", "", "TOTAL", formatBRL(total), ""];
+  const pdfTotais = pdfCols.map((c, i) => i === pdfCols.length - 2 ? "TOTAL" : i === pdfCols.length - 1 ? formatBRL(total) : "");
 
   const tabela = (rs: ExtraRow[], emptyMsg: string) => {
     const rows = rs.map((r) => ({ ...toRow(r), motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "" }));
@@ -160,21 +200,25 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
-            <TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead><TableHead>Função</TableHead><TableHead>Horário</TableHead>
-            <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead>
+            <TableHead>Lançado em</TableHead><TableHead>Data Serviço</TableHead><TableHead>Semana</TableHead>
+            <TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
+            <TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead><TableHead>Cargo</TableHead><TableHead>Horário</TableHead>
+            <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead><TableHead>Recibo</TableHead>
             <TableHead className="text-right">Valor</TableHead><TableHead>Classif.</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r, i) => (
               <TableRow key={i}>
-                <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
+                <TableCell className="text-xs">{r.lancado_em}</TableCell>
+                <TableCell>{r.data}</TableCell><TableCell>{r.semana_ref}</TableCell>
+                <TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
                 <TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto || "—"}</TableCell><TableCell>{r.motivo_subst || "—"}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
                 <TableCell>{r.situacao_serv}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.sit_fin}</TableCell>
+                <TableCell><Badge variant={r.status_recibo === "Já recibado" ? "secondary" : "default"}>{r.status_recibo}</Badge></TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={16} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -184,25 +228,64 @@ function Page() {
   const buckets = useMemo(() => agruparMesSemana(arquivados, (r) => r.data), [arquivados]);
   const limpar = () => { setCliente(""); setEmpresa(""); setColab(""); setFuncao(""); setSituacao(""); };
 
+  const periodoLabel = tipoPeriodo === "lancamento" ? `lanc-${lancDe}_${lancAte}` : `${de}_${ate}`;
+
   return (
     <div>
-      <PageHeader title="Relatório Operacional" description="Extras por período. Filtros mostram apenas registros com lançamentos no período selecionado." />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">Mês</Label>
-          <Select value={mesRef} onValueChange={onChangeMes}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
-          </Select>
+      <PageHeader title="Relatório Operacional" description="Extras por período. Escolha entre filtrar por data do serviço ou data de lançamento no sistema." />
+
+      <div className="rounded-md border p-3 bg-card mb-3 space-y-3">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <Label className="text-xs">Tipo de período</Label>
+            <Select value={tipoPeriodo} onValueChange={(v) => setTipoPeriodo(v as TipoPeriodo)}>
+              <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="data">Por data da extra (serviço)</SelectItem>
+                <SelectItem value="lancamento">Por data de lançamento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {tipoPeriodo === "data" ? (
+            <>
+              <div><Label className="text-xs">Mês</Label>
+                <Select value={mesRef} onValueChange={onChangeMes}>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label className="text-xs">Semana</Label>
+                <Select value={semana} onValueChange={setSemana}>
+                  <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_all">Mês inteiro</SelectItem>
+                    {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div><Label className="text-xs">Lançado de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
+              <div><Label className="text-xs">Lançado até</Label><Input type="date" value={lancAte} onChange={(e) => setLancAte(e.target.value)} /></div>
+            </>
+          )}
+
+          <div className="flex items-center gap-2 ml-2">
+            <Checkbox id="naorec" checked={somenteNaoRecibadas} onCheckedChange={(v) => setSomenteNaoRecibadas(!!v)} />
+            <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+          </div>
         </div>
-        <div><Label className="text-xs">Semana</Label>
-          <Select value={semana} onValueChange={setSemana}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Mês inteiro</SelectItem>
-              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+
+        {tipoPeriodo === "lancamento" && (
+          <div className="text-xs text-muted-foreground">
+            Serão considerados apenas <strong>lançamentos cadastrados neste período</strong>. A data original do serviço e a semana_ref originais são preservadas.
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
         <div><Label className="text-xs">Empresa</Label>
           <Select value={empresa || "_all"} onValueChange={(v) => setEmpresa(v === "_all" ? "" : v)}>
             <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
@@ -245,10 +328,10 @@ function Page() {
         </div>
         <div className="flex items-end gap-1">
           <Button size="sm" variant="outline" onClick={limpar}>Limpar</Button>
-          <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${de}-${ate}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarExcel(`operacional-${periodoLabel}.xlsx`, "Operacional", cols, rowsAll)} disabled={!rowsAll.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
           </Button>
-          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${de}-${ate}.pdf`, "Relatório Operacional", pdfCols, rowsAll, pdfTotais)} disabled={!rowsAll.length}>
+          <Button size="sm" variant="outline" onClick={() => exportarPdf(`operacional-${periodoLabel}.pdf`, "Relatório Operacional", pdfCols, rowsAll, pdfTotais)} disabled={!rowsAll.length}>
             <FileDown className="h-4 w-4 mr-1" />PDF
           </Button>
         </div>
