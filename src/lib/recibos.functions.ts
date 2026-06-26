@@ -37,12 +37,12 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     }
     if (!de || !ate) throw new Error("Informe o período (de/ate)");
 
-    // Busca extras elegíveis no período (por data da extra)
+    // Busca extras elegíveis no período de LANÇAMENTO no sistema (created_at)
     const { data: extras, error } = await supabase
       .from("extras")
       .select("id, colaborador_id, semana_ref, valor")
-      .gte("data", de)
-      .lte("data", ate)
+      .gte("created_at", `${de}T00:00:00`)
+      .lte("created_at", `${ate}T23:59:59.999`)
       .eq("status", "aprovado_financeiro")
       .eq("situacao_financeira", "pago");
     if (error) throw error;
