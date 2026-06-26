@@ -111,6 +111,92 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     return { criados, duplicadosExcluidos, emAndamento, erros };
   });
 
+// Gera recibos para TODAS as extras elegíveis (aprovado_financeiro + pago) que
+// ainda não estejam vinculadas a um recibo ATIVO, independentemente da data
+// de lançamento. Agrupa por (colaborador_id, semana_ref).
+export const gerarRecibosPendentes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { data_pagamento: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
+    if (!isAdm && !isFin) throw new Error("Sem permissão");
+
+    const { data: extras, error } = await supabase
+      .from("extras")
+      .select("id, colaborador_id, semana_ref, valor")
+      .eq("status", "aprovado_financeiro")
+      .eq("situacao_financeira", "pago");
+    if (error) throw error;
+    if (!extras?.length) return { criados: 0, mensagem: "Nenhuma extra elegível" };
+
+    const extraIds = extras.map((e) => e.id);
+    // Pode haver muitas — fatia em lotes pra .in()
+    const recibadasSet = new Set<string>();
+    const lote = 500;
+    for (let i = 0; i < extraIds.length; i += lote) {
+      const slice = extraIds.slice(i, i + lote);
+      const { data: ja, error: e0 } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", slice)
+        .eq("recibos.ativo", true);
+      if (e0) throw e0;
+      for (const r of ja ?? []) recibadasSet.add(r.extra_id);
+    }
+    const elegiveis = extras.filter((e) => !recibadasSet.has(e.id));
+    if (!elegiveis.length) return { criados: 0, mensagem: "Nenhuma extra pendente de recibo" };
+
+    const grupos = new Map<string, { colab: string; semana: string; ids: string[]; total: number }>();
+    for (const e of elegiveis) {
+      const key = `${e.colaborador_id}|${e.semana_ref}`;
+      const g = grupos.get(key) ?? { colab: e.colaborador_id, semana: e.semana_ref, ids: [], total: 0 };
+      g.ids.push(e.id);
+      g.total += Number(e.valor);
+      grupos.set(key, g);
+    }
+
+    let criados = 0;
+    let duplicadosExcluidos = 0;
+    let emAndamento = 0;
+    const erros: string[] = [];
+    for (const grupo of grupos.values()) {
+      const lockKey = `${grupo.colab}|${grupo.semana}`;
+      if (gerandoEmAndamento.has(lockKey)) { emAndamento++; continue; }
+      gerandoEmAndamento.add(lockKey);
+      try {
+        const { data: existente } = await supabase
+          .from("recibos").select("id, valor_total")
+          .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
+        if (existente) {
+          // Já existe recibo ativo — apenas adiciona os itens faltantes (não exclui)
+          const { error: e2 } = await supabase.from("recibos_itens").insert(
+            grupo.ids.map((extra_id) => ({ recibo_id: existente.id, extra_id, valor_snapshot: null as any }))
+          );
+          if (e2) { erros.push(e2.message); continue; }
+          const novoTotal = Number(existente.valor_total) + grupo.total;
+          await supabase.from("recibos").update({ valor_total: novoTotal }).eq("id", existente.id);
+          duplicadosExcluidos++;
+          continue;
+        }
+        const { data: rec, error: e1 } = await supabase.from("recibos").insert({
+          colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
+          data_pagamento: data.data_pagamento, valor_total: grupo.total,
+        }).select("id").single();
+        if (e1) { erros.push(e1.message); continue; }
+        const { error: e2 } = await supabase.from("recibos_itens").insert(
+          grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any }))
+        );
+        if (e2) { erros.push(e2.message); continue; }
+        criados++;
+      } finally {
+        gerandoEmAndamento.delete(lockKey);
+      }
+    }
+    return { criados, anexados: duplicadosExcluidos, emAndamento, erros };
+  });
+
 
 export const excluirRecibo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
