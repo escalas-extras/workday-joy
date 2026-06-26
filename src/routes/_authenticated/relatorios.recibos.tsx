@@ -37,8 +37,16 @@ function Page() {
   const navigate = useNavigate();
   const desarquivar = useServerFn(desarquivarRecibo);
   const gerarPendentes = useServerFn(gerarRecibosPendentes);
+  const auditar = useServerFn(auditarInconsistencias);
   const [gerando, setGerando] = useState(false);
   const [dataPagPend, setDataPagPend] = useState(new Date().toISOString().slice(0, 10));
+
+  // Auditoria read-only (não modifica nada)
+  const auditoria = useQuery({
+    queryKey: ["auditoria-inconsistencias"],
+    queryFn: () => auditar({ data: undefined as never }),
+    staleTime: 60000,
+  });
 
   const handleGerarPendentes = async () => {
     if (!confirm("Gerar recibos para TODAS as extras aprovadas/pagas ainda sem recibo? Para semanas com recibo ativo, os itens faltantes serão anexados.")) return;
