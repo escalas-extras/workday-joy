@@ -61,7 +61,7 @@ function Page() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
   const [apenasNaoRecibadas, setApenasNaoRecibadas] = useState(true);
-  // Período de LANÇAMENTO (created_at das extras) — independente do mês/semana dos recibos
+  // Período de DATA DO SERVIÇO (extras.data) — independente do mês/semana dos recibos
   const primeiroDoMes = `${hoje.slice(0, 7)}-01`;
   const [lancDe, setLancDe] = useState(primeiroDoMes);
   const [lancAte, setLancAte] = useState(hoje);
