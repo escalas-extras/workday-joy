@@ -243,7 +243,7 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
+      <PageHeader title="Recibos" description="Recibos pendentes. Imprima e depois clique em 'Arquivar Selecionados' para arquivar. Geração de PDF arquiva automaticamente após o download." />
 
       {/* Geração — por DATA DO SERVIÇO das extras (extras.data) */}
       <div className="rounded-md border p-3 bg-card mb-4">
