@@ -273,6 +273,17 @@ function Page() {
         )}
       </div>
 
+      {/* Reimprimir por período de geração (inclui arquivados) */}
+      <ReimpressaoPorGeracao
+        reDe={reDe} reAte={reAte} setReDe={setReDe} setReAte={setReAte}
+        onImprimir={(ids) => navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } })}
+        onPdf={async (ids) => {
+          const views = await loadReciboViews(ids);
+          await gerarPdfRecibos(views, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
+        }}
+      />
+
+
 
 
       {/* Filtros */}
