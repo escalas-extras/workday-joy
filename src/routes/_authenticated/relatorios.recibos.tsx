@@ -36,6 +36,20 @@ function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const desarquivar = useServerFn(desarquivarRecibo);
+  const gerarPendentes = useServerFn(gerarRecibosPendentes);
+  const [gerando, setGerando] = useState(false);
+  const [dataPagPend, setDataPagPend] = useState(new Date().toISOString().slice(0, 10));
+
+  const handleGerarPendentes = async () => {
+    if (!confirm("Gerar recibos para TODAS as extras aprovadas/pagas ainda sem recibo? Para semanas com recibo ativo, os itens faltantes serão anexados.")) return;
+    setGerando(true);
+    try {
+      const res = await gerarPendentes({ data: { data_pagamento: dataPagPend } });
+      toast.success(`${res.criados} recibo(s) criado(s), ${res.anexados ?? 0} anexado(s). ${res.erros?.length ? "Erros: " + res.erros.length : ""}`);
+      qc.invalidateQueries();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setGerando(false); }
+  };
 
   const hoje = new Date().toISOString().slice(0, 10);
   const [mesRef, setMesRef] = useState(hoje.slice(0, 7)); // YYYY-MM
