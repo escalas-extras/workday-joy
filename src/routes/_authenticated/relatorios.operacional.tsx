@@ -92,7 +92,7 @@ function Page() {
         .select("extra_id, recibos!inner(ativo)")
         .in("extra_id", ids)
         .eq("recibos.ativo", true);
-      return new Set((data ?? []).map((r) => r.extra_id));
+      return extrairRecibadasSet((data ?? []) as ReciboItemRow[]);
     },
   });
   const recibadasSet = recibadasQ.data ?? new Set<string>();
