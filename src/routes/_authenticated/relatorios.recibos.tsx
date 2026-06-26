@@ -21,6 +21,7 @@ import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/lib/recibos-views";
 import { desarquivarRecibo } from "@/lib/recibos.functions";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
+import { extrairRecibadasSet, filtrarNaoRecibadas, type ReciboItemRow } from "@/lib/recibos-filter";
 
 export const Route = createFileRoute("/_authenticated/relatorios/recibos")({ component: Page });
 
@@ -181,13 +182,13 @@ function Page() {
         .select("extra_id, recibos!inner(ativo)")
         .in("extra_id", rows.map((r) => r.id))
         .eq("recibos.ativo", true);
-      const recibadas = new Set((ja ?? []).map((r) => r.extra_id));
+      const recibadas = extrairRecibadasSet((ja ?? []) as ReciboItemRow[]);
       return { rows, recibadas };
     },
   });
   const extrasFiltradas = useMemo(() => {
     const { rows = [], recibadas = new Set<string>() } = extrasNoPeriodo.data ?? {};
-    return rows.filter((r) => (apenasNaoRecibadas ? !recibadas.has(r.id) : true)).map((r) => ({ ...r, _recibada: recibadas.has(r.id) }));
+    return filtrarNaoRecibadas(rows, recibadas, apenasNaoRecibadas).map((r) => ({ ...r, _recibada: recibadas.has(r.id) }));
   }, [extrasNoPeriodo.data, apenasNaoRecibadas]);
 
 

@@ -16,6 +16,7 @@ import { SITUACAO_SERVICO_LABEL, STATUS_LABEL, SIT_FIN_LABEL } from "@/component
 import { formatBRL } from "@/lib/extenso";
 import { FileDown, FileSpreadsheet } from "lucide-react";
 import { buildMesesOpts, buildSemanasOpts, derivePeriodo, agruparMesSemana } from "@/lib/semana-buckets";
+import { extrairRecibadasSet, type ReciboItemRow } from "@/lib/recibos-filter";
 
 export const Route = createFileRoute("/_authenticated/relatorios/operacional")({ component: Page });
 
@@ -91,7 +92,7 @@ function Page() {
         .select("extra_id, recibos!inner(ativo)")
         .in("extra_id", ids)
         .eq("recibos.ativo", true);
-      return new Set((data ?? []).map((r) => r.extra_id));
+      return extrairRecibadasSet((data ?? []) as ReciboItemRow[]);
     },
   });
   const recibadasSet = recibadasQ.data ?? new Set<string>();
