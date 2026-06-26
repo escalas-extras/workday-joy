@@ -165,14 +165,20 @@ function Page() {
     },
   });
 
-  // Agrupa prévia por colaborador → semana_ref
+  // Agrupa prévia por colaborador → semana_ref.
+  // Deduplica por (colaborador, data) — extras duplicadas no mesmo dia são ignoradas
+  // (não relacionadas) tanto na contagem quanto no total.
   const pendentesGrupos = useMemo(() => {
-    const out = new Map<string, { colab: string; semanas: Map<string, { qtd: number; total: number }> }>();
+    const out = new Map<string, { colab: string; semanas: Map<string, { qtd: number; total: number; datas: string[] }> }>();
+    const vistos = new Set<string>(); // chave: colaborador_id|data
     for (const e of pendentesExtras.data ?? []) {
+      const chave = `${e.colaborador_id}|${e.data}`;
+      if (vistos.has(chave)) continue; // duplicado: não relacionar
+      vistos.add(chave);
       const nome = e.colaboradores?.nome ?? "—";
       const g = out.get(nome) ?? { colab: nome, semanas: new Map() };
-      const s = g.semanas.get(e.semana_ref) ?? { qtd: 0, total: 0 };
-      s.qtd++; s.total += Number(e.valor);
+      const s = g.semanas.get(e.semana_ref) ?? { qtd: 0, total: 0, datas: [] };
+      s.qtd++; s.total += Number(e.valor); s.datas.push(e.data);
       g.semanas.set(e.semana_ref, s);
       out.set(nome, g);
     }
