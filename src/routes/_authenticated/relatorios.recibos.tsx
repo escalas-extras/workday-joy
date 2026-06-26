@@ -46,6 +46,10 @@ function Page() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
   const [apenasNaoRecibadas, setApenasNaoRecibadas] = useState(true);
+  // Período de LANÇAMENTO (created_at das extras) — independente do mês/semana dos recibos
+  const primeiroDoMes = `${hoje.slice(0, 7)}-01`;
+  const [lancDe, setLancDe] = useState(primeiroDoMes);
+  const [lancAte, setLancAte] = useState(hoje);
 
 
   const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -157,18 +161,18 @@ function Page() {
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
 
-  // Extras no período (por data da extra) + flag "recibada"
-  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
+  // Extras por período de LANÇAMENTO (created_at) + flag "recibada"
+  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; created_at: string; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
   const extrasNoPeriodo = useQuery({
-    queryKey: ["relatorio-extras-recibos", de, ate],
+    queryKey: ["relatorio-extras-recibos-lanc", lancDe, lancAte],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("data", de).lte("data", ate)
+        .select("id, data, semana_ref, valor, created_at, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("created_at", `${lancDe}T00:00:00`).lte("created_at", `${lancAte}T23:59:59.999`)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("data");
+        .order("created_at");
       if (error) throw error;
       const rows = ((data ?? []) as unknown) as ExtraRow[];
       if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
@@ -364,19 +368,27 @@ function Page() {
                 Extras pendentes de recibo no período ({extrasFiltradas.filter((r) => !r._recibada).length})
               </AccordionTrigger>
               <AccordionContent>
-                <div className="flex items-center gap-2 mb-2">
-                  <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
-                  <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
+                </div>
+                <div className="flex flex-wrap items-end gap-2 mb-2">
+                  <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
+                  <div><Label className="text-xs">até</Label><Input type="date" value={lancAte} onChange={(e) => setLancAte(e.target.value)} /></div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
+                    <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                  </div>
                 </div>
                 <div className="rounded-md border bg-card overflow-x-auto">
                   <Table>
                     <TableHeader><TableRow>
-                      <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana</TableHead>
+                      <TableHead>Lançado em</TableHead><TableHead>Data do serviço</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana original</TableHead>
                       <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {extrasFiltradas.map((r) => (
                         <TableRow key={r.id}>
+                          <TableCell className="text-xs">{r.created_at?.slice(0, 16).replace("T", " ")}</TableCell>
                           <TableCell>{r.data}</TableCell>
                           <TableCell>{r.colaboradores?.nome ?? "—"}</TableCell>
                           <TableCell>{r.semana_ref}</TableCell>
@@ -384,7 +396,7 @@ function Page() {
                           <TableCell><Badge variant={r._recibada ? "secondary" : "default"}>{r._recibada ? "Já recibada" : "Pendente de recibo"}</Badge></TableCell>
                         </TableRow>
                       ))}
-                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma extra elegível neste período</TableCell></TableRow>}
+                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhuma extra lançada neste período</TableCell></TableRow>}
                     </TableBody>
                   </Table>
                 </div>

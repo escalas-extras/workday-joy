@@ -147,11 +147,11 @@ function Page() {
     queryFn: async () => {
       const { data: extras, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("data", de).lte("data", ate)
+        .select("id, data, semana_ref, valor, colaborador_id, created_at, colaboradores!colaborador_id(nome)")
+        .gte("created_at", `${de}T00:00:00`).lte("created_at", `${ate}T23:59:59.999`)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("data");
+        .order("created_at");
       if (error) throw error;
       const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
       if (!rows.length) return [];
@@ -218,15 +218,16 @@ function Page() {
     <div>
       <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
-      {/* Geração — por período das extras */}
+      {/* Geração — por período de LANÇAMENTO das extras */}
       <div className="rounded-md border p-3 bg-card mb-4">
         <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
         <div className="text-xs text-muted-foreground mb-3">
-          Período das extras: lista apenas extras <strong>aprovadas no financeiro, pagas e ainda não recibadas</strong>.
-          Cada recibo mantém a <strong>semana original</strong> da extra. <strong>Emitido em: hoje ({hojeISO})</strong>.
+          Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
+          A <strong>data original</strong> do serviço e a <strong>semana_ref</strong> da extra são preservadas no recibo.
+          <strong> Emitido em: hoje ({hojeISO})</strong>.
         </div>
         <div className="flex gap-2 items-end flex-wrap">
-          <div><Label className="text-xs">Período das extras — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
           <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
           <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesExtras.data?.length}>
             <FilePlus className="h-4 w-4 mr-1" />
@@ -235,13 +236,13 @@ function Page() {
         </div>
         {!!pendentesGrupos.length && (
           <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras não recibadas no período</div>
+            <div className="font-semibold mb-1">Prévia — extras lançadas no período e ainda não recibadas</div>
             {pendentesGrupos.map((g) => (
               <div key={g.colab} className="mb-1">
                 <div className="font-medium">{g.colab}</div>
                 <ul className="ml-4">
                   {[...g.semanas.entries()].sort().map(([sem, s]) => (
-                    <li key={sem}>semana {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
+                    <li key={sem}>semana original {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
                   ))}
                 </ul>
               </div>
@@ -249,7 +250,7 @@ function Page() {
           </div>
         )}
         {!pendentesExtras.isLoading && !pendentesGrupos.length && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível (não recibada) neste período.</div>
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra lançada (não recibada) neste período.</div>
         )}
       </div>
 
