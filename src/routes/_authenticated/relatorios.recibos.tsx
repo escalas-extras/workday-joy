@@ -368,19 +368,27 @@ function Page() {
                 Extras pendentes de recibo no período ({extrasFiltradas.filter((r) => !r._recibada).length})
               </AccordionTrigger>
               <AccordionContent>
-                <div className="flex items-center gap-2 mb-2">
-                  <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
-                  <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Serão considerados apenas lançamentos cadastrados neste período e ainda não recibados.
+                </div>
+                <div className="flex flex-wrap items-end gap-2 mb-2">
+                  <div><Label className="text-xs">Período de lançamento — de</Label><Input type="date" value={lancDe} onChange={(e) => setLancDe(e.target.value)} /></div>
+                  <div><Label className="text-xs">até</Label><Input type="date" value={lancAte} onChange={(e) => setLancAte(e.target.value)} /></div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
+                    <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                  </div>
                 </div>
                 <div className="rounded-md border bg-card overflow-x-auto">
                   <Table>
                     <TableHeader><TableRow>
-                      <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana</TableHead>
+                      <TableHead>Lançado em</TableHead><TableHead>Data do serviço</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana original</TableHead>
                       <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {extrasFiltradas.map((r) => (
                         <TableRow key={r.id}>
+                          <TableCell className="text-xs">{r.created_at?.slice(0, 16).replace("T", " ")}</TableCell>
                           <TableCell>{r.data}</TableCell>
                           <TableCell>{r.colaboradores?.nome ?? "—"}</TableCell>
                           <TableCell>{r.semana_ref}</TableCell>
@@ -388,7 +396,7 @@ function Page() {
                           <TableCell><Badge variant={r._recibada ? "secondary" : "default"}>{r._recibada ? "Já recibada" : "Pendente de recibo"}</Badge></TableCell>
                         </TableRow>
                       ))}
-                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma extra elegível neste período</TableCell></TableRow>}
+                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground">Nenhuma extra lançada neste período</TableCell></TableRow>}
                     </TableBody>
                   </Table>
                 </div>
