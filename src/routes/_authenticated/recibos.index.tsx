@@ -236,13 +236,13 @@ function Page() {
         </div>
         {!!pendentesGrupos.length && (
           <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras não recibadas no período</div>
+            <div className="font-semibold mb-1">Prévia — extras lançadas no período e ainda não recibadas</div>
             {pendentesGrupos.map((g) => (
               <div key={g.colab} className="mb-1">
                 <div className="font-medium">{g.colab}</div>
                 <ul className="ml-4">
                   {[...g.semanas.entries()].sort().map(([sem, s]) => (
-                    <li key={sem}>semana {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
+                    <li key={sem}>semana original {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
                   ))}
                 </ul>
               </div>
@@ -250,7 +250,7 @@ function Page() {
           </div>
         )}
         {!pendentesExtras.isLoading && !pendentesGrupos.length && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível (não recibada) neste período.</div>
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra lançada (não recibada) neste período.</div>
         )}
       </div>
 
