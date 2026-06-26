@@ -44,7 +44,7 @@ function Page() {
   // Auditoria read-only (não modifica nada)
   const auditoria = useQuery({
     queryKey: ["auditoria-inconsistencias"],
-    queryFn: () => auditar({ data: undefined as never }),
+    queryFn: () => auditar(),
     staleTime: 60000,
   });
 
