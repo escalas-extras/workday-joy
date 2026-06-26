@@ -248,7 +248,14 @@ function Page() {
                 <div className="font-medium">{g.colab}</div>
                 <ul className="ml-4">
                   {[...g.semanas.entries()].sort().map(([sem, s]) => (
-                    <li key={sem}>semana original {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
+                    <li key={sem}>
+                      semana original {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}
+                      {s.datas.length > 1 && (
+                        <div className="ml-2 text-muted-foreground">
+                          dias: {[...s.datas].sort().join(", ")}
+                        </div>
+                      )}
+                    </li>
                   ))}
                 </ul>
               </div>
