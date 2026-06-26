@@ -285,7 +285,7 @@ function Page() {
           </div>
         )}
         {!pendentesExtras.isLoading && !pendentesGrupos.length && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra lançada (não recibada) neste período.</div>
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra com data do serviço no período (não recibada).</div>
         )}
       </div>
 
