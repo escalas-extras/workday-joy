@@ -39,12 +39,15 @@ function Page() {
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
-  const [mesRef, setMesRef] = useState(hojeISO.slice(0, 7)); // YYYY-MM
-  const [semana, setSemana] = useState(""); // sexta-feira de referência (YYYY-MM-DD)
+  // Período padrão: 1º do mês até hoje
+  const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
+  const [de, setDe] = useState(primeiroDoMes);
+  const [ate, setAte] = useState(hojeISO);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+
 
   // Filtros
   const [fSemana, setFSemana] = useState("");
@@ -126,52 +129,57 @@ function Page() {
   });
 
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { semana_ref: semana, data_pagamento: hojeISO } }),
-    onSuccess: (r: { criados: number; erros?: string[] }) => {
+    mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
+    onSuccess: (r: { criados: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
-      toast.success(`${r.criados} recibo(s) gerado(s)`);
+      qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
+      if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
+      else if (r.mensagem) toast.info(r.mensagem);
       if (r.erros?.length) toast.error(r.erros.join("; "));
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Opções de mês (12 meses para trás + 1 à frente)
-  const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const mesesOpts = useMemo(() => {
-    const out: { v: string; l: string }[] = [];
-    const now = new Date();
-    for (let i = 1; i >= -12; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      out.push({ v, l: `${MESES_NOMES[d.getMonth()]}/${d.getFullYear()}` });
-    }
-    return out;
-  }, []);
+  // Prévia: extras elegíveis no período que AINDA NÃO foram recibadas (anti-join via recibos_itens ativos)
+  const pendentesExtras = useQuery({
+    queryKey: ["extras-pendentes-recibo", de, ate],
+    enabled: !!de && !!ate,
+    queryFn: async () => {
+      const { data: extras, error } = await supabase
+        .from("extras")
+        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("data", de).lte("data", ate)
+        .eq("status", "aprovado_financeiro")
+        .eq("situacao_financeira", "pago")
+        .order("data");
+      if (error) throw error;
+      const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
+      if (!rows.length) return [];
+      const { data: ja } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", rows.map((r) => r.id))
+        .eq("recibos.ativo", true);
+      const set = new Set((ja ?? []).map((r) => r.extra_id));
+      return rows.filter((r) => !set.has(r.id));
+    },
+  });
 
-  // Semanas (sextas) cuja quarta de referência (sexta + 5 dias) cai no mês selecionado
-  const semanasOpts = useMemo(() => {
-    if (!mesRef) return [] as { v: string; l: string }[];
-    const [yy, mm] = mesRef.split("-").map(Number);
-    const out: { v: string; l: string }[] = [];
-    // Começa na primeira sexta cuja quarta-ref esteja no mês: varre desde 25 dias antes do mês até o fim
-    const ini = new Date(Date.UTC(yy, mm - 1, 1));
-    ini.setUTCDate(ini.getUTCDate() - 7);
-    const fim = new Date(Date.UTC(yy, mm, 7));
-    const ORD = ["1ª","2ª","3ª","4ª","5ª","6ª"];
-    let ordinal = 0;
-    for (let d = new Date(ini); d <= fim; d.setUTCDate(d.getUTCDate() + 1)) {
-      if (d.getUTCDay() !== 5) continue; // sexta
-      const wed = new Date(d); wed.setUTCDate(wed.getUTCDate() + 5);
-      if (wed.getUTCFullYear() !== yy || wed.getUTCMonth() !== mm - 1) continue;
-      const sextaISO = d.toISOString().slice(0, 10);
-      out.push({ v: sextaISO, l: `${ORD[ordinal] ?? `${ordinal + 1}ª`} Semana` });
-      ordinal++;
+  // Agrupa prévia por colaborador → semana_ref
+  const pendentesGrupos = useMemo(() => {
+    const out = new Map<string, { colab: string; semanas: Map<string, { qtd: number; total: number }> }>();
+    for (const e of pendentesExtras.data ?? []) {
+      const nome = e.colaboradores?.nome ?? "—";
+      const g = out.get(nome) ?? { colab: nome, semanas: new Map() };
+      const s = g.semanas.get(e.semana_ref) ?? { qtd: 0, total: 0 };
+      s.qtd++; s.total += Number(e.valor);
+      g.semanas.set(e.semana_ref, s);
+      out.set(nome, g);
     }
-    return out;
-  }, [mesRef]);
+    return [...out.values()].sort((a, b) => a.colab.localeCompare(b.colab));
+  }, [pendentesExtras.data]);
 
-  // Reset semana ao trocar mês
-  const onChangeMes = (v: string) => { setMesRef(v); setSemana(""); };
+
 
 
   const mExcluir = useMutation({
@@ -210,28 +218,41 @@ function Page() {
     <div>
       <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
-      {/* Geração */}
-      <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
-        <div className="min-w-[180px]">
-          <Label>Mês</Label>
-          <Select value={mesRef} onValueChange={onChangeMes}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
-          </Select>
+      {/* Geração — por período das extras */}
+      <div className="rounded-md border p-3 bg-card mb-4">
+        <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
+        <div className="text-xs text-muted-foreground mb-3">
+          Período das extras: lista apenas extras <strong>aprovadas no financeiro, pagas e ainda não recibadas</strong>.
+          Cada recibo mantém a <strong>semana original</strong> da extra. <strong>Emitido em: hoje ({hojeISO})</strong>.
         </div>
-        <div className="min-w-[180px]">
-          <Label>Semana</Label>
-          <Select value={semana} onValueChange={setSemana} disabled={!semanasOpts.length}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 items-end flex-wrap">
+          <div><Label className="text-xs">Período das extras — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+          <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesExtras.data?.length}>
+            <FilePlus className="h-4 w-4 mr-1" />
+            Gerar {pendentesExtras.data?.length ? `(${pendentesExtras.data.length} extra(s) em ${pendentesGrupos.length} grupo(s))` : ""}
+          </Button>
         </div>
-        <Button onClick={() => mGerar.mutate()} disabled={!semana || mGerar.isPending}>
-          <FilePlus className="h-4 w-4 mr-1" />Gerar Recibos da Semana
-        </Button>
+        {!!pendentesGrupos.length && (
+          <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
+            <div className="font-semibold mb-1">Prévia — extras não recibadas no período</div>
+            {pendentesGrupos.map((g) => (
+              <div key={g.colab} className="mb-1">
+                <div className="font-medium">{g.colab}</div>
+                <ul className="ml-4">
+                  {[...g.semanas.entries()].sort().map(([sem, s]) => (
+                    <li key={sem}>semana {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+        {!pendentesExtras.isLoading && !pendentesGrupos.length && (
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível (não recibada) neste período.</div>
+        )}
       </div>
+
 
 
       {/* Filtros */}

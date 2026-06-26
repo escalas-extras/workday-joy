@@ -11,9 +11,12 @@ function normalizaSemanaRef(input: string): string {
   return dt.toISOString().slice(0, 10);
 }
 
+// Gera recibos de extras elegíveis dentro de um período (data da extra).
+// Agrupa por (colaborador_id, semana_ref) mantendo a semana original de cada extra.
+// Aceita { de, ate } (novo) ou { semana_ref } (retrocompat — equivale a de=ate=semana).
 export const gerarRecibosSemana = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { semana_ref: string; data_pagamento: string }) => d)
+  .inputValidator((d: { de?: string; ate?: string; semana_ref?: string; data_pagamento: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
@@ -22,44 +25,72 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
     const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
     if (!isAdm && !isFin) throw new Error("Sem permissão");
 
-    const semanaRef = normalizaSemanaRef(data.semana_ref);
+    // Resolve período. Se vier semana_ref (retrocompat), trata como semana inteira (sex→qui).
+    let de = data.de ?? "";
+    let ate = data.ate ?? "";
+    if (!de && !ate && data.semana_ref) {
+      const sem = normalizaSemanaRef(data.semana_ref);
+      de = sem;
+      const [yy, mm, dd] = sem.split("-").map(Number);
+      const fim = new Date(Date.UTC(yy, mm - 1, dd + 6));
+      ate = fim.toISOString().slice(0, 10);
+    }
+    if (!de || !ate) throw new Error("Informe o período (de/ate)");
 
-    // Busca extras elegíveis: aprovado_financeiro + pago, sem recibo ativo
+    // Busca extras elegíveis no período (por data da extra)
     const { data: extras, error } = await supabase
       .from("extras")
-      .select("id, colaborador_id, valor")
-      .eq("semana_ref", semanaRef)
+      .select("id, colaborador_id, semana_ref, valor")
+      .gte("data", de)
+      .lte("data", ate)
       .eq("status", "aprovado_financeiro")
       .eq("situacao_financeira", "pago");
     if (error) throw error;
-    if (!extras?.length) return { criados: 0, mensagem: `Nenhum extra elegível para semana ${semanaRef}` };
+    if (!extras?.length) return { criados: 0, mensagem: `Nenhum extra elegível em ${de} a ${ate}` };
 
-    // Agrupa por colaborador
-    const grupos = new Map<string, { ids: string[]; total: number }>();
-    for (const e of extras) {
-      const g = grupos.get(e.colaborador_id) ?? { ids: [], total: 0 };
+    // Anti-join: extras já vinculadas a algum recibo ATIVO ficam de fora
+    const extraIds = extras.map((e) => e.id);
+    const { data: jaRecibadas, error: e0 } = await supabase
+      .from("recibos_itens")
+      .select("extra_id, recibos!inner(ativo)")
+      .in("extra_id", extraIds)
+      .eq("recibos.ativo", true);
+    if (e0) throw e0;
+    const recibadasSet = new Set((jaRecibadas ?? []).map((r) => r.extra_id));
+    const elegiveis = extras.filter((e) => !recibadasSet.has(e.id));
+    if (!elegiveis.length) return { criados: 0, mensagem: "Todas as extras do período já foram recibadas" };
+
+    // Agrupa por (colaborador_id, semana_ref) — preserva semana original
+    const grupos = new Map<string, { colab: string; semana: string; ids: string[]; total: number }>();
+    for (const e of elegiveis) {
+      const key = `${e.colaborador_id}|${e.semana_ref}`;
+      const g = grupos.get(key) ?? { colab: e.colaborador_id, semana: e.semana_ref, ids: [], total: 0 };
       g.ids.push(e.id);
       g.total += Number(e.valor);
-      grupos.set(e.colaborador_id, g);
+      grupos.set(key, g);
     }
 
     let criados = 0;
     const erros: string[] = [];
-    for (const [colab, grupo] of grupos) {
-      // Verifica se já tem recibo ativo
-      const { data: existente } = await supabase.from("recibos").select("id").eq("colaborador_id", colab).eq("semana_ref", semanaRef).eq("ativo", true).maybeSingle();
-      if (existente) continue;
+    for (const grupo of grupos.values()) {
+      // Recibo ativo já existente para (colab, semana) — pula (mesma constraint do banco)
+      const { data: existente } = await supabase
+        .from("recibos").select("id")
+        .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
+      if (existente) { erros.push(`Recibo ativo já existe para colaborador na semana ${grupo.semana}`); continue; }
+
       const { data: rec, error: e1 } = await supabase.from("recibos").insert({
-        colaborador_id: colab, semana_ref: semanaRef, gerado_por: userId, data_pagamento: data.data_pagamento, valor_total: grupo.total,
+        colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
+        data_pagamento: data.data_pagamento, valor_total: grupo.total,
       }).select("id").single();
       if (e1) { erros.push(e1.message); continue; }
-      // valor_snapshot will be filled by trigger if 0/null? trigger sets to e.valor when null; we pass 0 but trigger checks `is null`. Use null:
       const { error: e2 } = await supabase.from("recibos_itens").insert(grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any })));
       if (e2) { erros.push(e2.message); continue; }
       criados++;
     }
     return { criados, erros };
   });
+
 
 export const excluirRecibo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -45,6 +45,8 @@ function Page() {
   const [fStatus] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [printViews, setPrintViews] = useState<ReciboView[]>([]);
+  const [apenasNaoRecibadas, setApenasNaoRecibadas] = useState(true);
+
 
   const MESES_NOMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const mesesOpts = useMemo(() => {
@@ -154,6 +156,36 @@ function Page() {
     staleTime: 30000,
     queryFn: () => loadReciboViews(filtrados.map((r) => r.id)),
   });
+
+  // Extras no período (por data da extra) + flag "recibada"
+  type ExtraRow = { id: string; data: string; semana_ref: string; valor: number; status: string; situacao_financeira: string | null; colaborador_id: string; colaboradores: { nome: string } | null };
+  const extrasNoPeriodo = useQuery({
+    queryKey: ["relatorio-extras-recibos", de, ate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("extras")
+        .select("id, data, semana_ref, valor, status, situacao_financeira, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("data", de).lte("data", ate)
+        .eq("status", "aprovado_financeiro")
+        .eq("situacao_financeira", "pago")
+        .order("data");
+      if (error) throw error;
+      const rows = ((data ?? []) as unknown) as ExtraRow[];
+      if (!rows.length) return { rows: [] as ExtraRow[], recibadas: new Set<string>() };
+      const { data: ja } = await supabase
+        .from("recibos_itens")
+        .select("extra_id, recibos!inner(ativo)")
+        .in("extra_id", rows.map((r) => r.id))
+        .eq("recibos.ativo", true);
+      const recibadas = new Set((ja ?? []).map((r) => r.extra_id));
+      return { rows, recibadas };
+    },
+  });
+  const extrasFiltradas = useMemo(() => {
+    const { rows = [], recibadas = new Set<string>() } = extrasNoPeriodo.data ?? {};
+    return rows.filter((r) => (apenasNaoRecibadas ? !recibadas.has(r.id) : true)).map((r) => ({ ...r, _recibada: recibadas.has(r.id) }));
+  }, [extrasNoPeriodo.data, apenasNaoRecibadas]);
+
 
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosSel = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
@@ -326,8 +358,40 @@ function Page() {
           </div>
         );
         return (
-          <Accordion type="multiple" defaultValue={["pendentes"]} className="space-y-2">
+          <Accordion type="multiple" defaultValue={["extras-pendentes", "pendentes"]} className="space-y-2">
+            <AccordionItem value="extras-pendentes" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Extras pendentes de recibo no período ({extrasFiltradas.filter((r) => !r._recibada).length})
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
+                  <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                </div>
+                <div className="rounded-md border bg-card overflow-x-auto">
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana</TableHead>
+                      <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {extrasFiltradas.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{r.data}</TableCell>
+                          <TableCell>{r.colaboradores?.nome ?? "—"}</TableCell>
+                          <TableCell>{r.semana_ref}</TableCell>
+                          <TableCell className="text-right">{formatBRL(r.valor)}</TableCell>
+                          <TableCell><Badge variant={r._recibada ? "secondary" : "default"}>{r._recibada ? "Já recibada" : "Pendente de recibo"}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma extra elegível neste período</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
+
               <AccordionTrigger className="text-sm font-semibold">
                 Pendentes — não impressos / sem PDF ({pendentes.length})
               </AccordionTrigger>
