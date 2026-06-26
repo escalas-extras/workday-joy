@@ -140,11 +140,11 @@ function Page() {
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
-    onSuccess: (r: { criados: number; duplicadosExcluidos?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
+    onSuccess: (r: { criados: number; anexados?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
-      if (r.duplicadosExcluidos) toast.info(`${r.duplicadosExcluidos} recibo(s) duplicado(s) excluído(s)`);
+      if (r.anexados) toast.info(`${r.anexados} extra(s) anexada(s) a recibo(s) já existente(s)`);
       if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
       else if (r.mensagem) toast.info(r.mensagem);
       if (r.erros?.length) toast.error(r.erros.join("; "));
@@ -152,19 +152,21 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Prévia: extras elegíveis no período que AINDA NÃO foram recibadas (anti-join via recibos_itens ativos)
+  // Prévia: extras elegíveis pela DATA DO SERVIÇO no período (extras.data) e
+  // que ainda não foram recibadas (anti-join via recibos_itens ativos).
+  // Não usa created_at — extras retroativas devem aparecer.
   const pendentesExtras = useQuery({
     queryKey: ["extras-pendentes-recibo", de, ate],
     enabled: !!de && !!ate,
     queryFn: async () => {
       const { data: extras, error } = await supabase
         .from("extras")
-        .select("id, data, semana_ref, valor, colaborador_id, created_at, colaboradores!colaborador_id(nome)")
-        .gte("created_at", `${de}T00:00:00`).lte("created_at", `${ate}T23:59:59.999`)
+        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
+        .gte("data", de).lte("data", ate)
         .eq("status", "aprovado_financeiro")
         .eq("situacao_financeira", "pago")
-        .order("created_at");
-      if (error) throw error;
+        .order("data");
+      if (error) throw new Error(`Falha ao carregar prévia: ${error.message}`);
       const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
       if (!rows.length) return [];
       const { data: ja } = await supabase
