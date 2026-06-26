@@ -72,29 +72,40 @@ export const gerarRecibosSemana = createServerFn({ method: "POST" })
 
     let criados = 0;
     let duplicadosExcluidos = 0;
+    let emAndamento = 0;
     const erros: string[] = [];
     for (const grupo of grupos.values()) {
-      // Se já existe recibo ATIVO para (colab, semana), exclui o duplicado antes
-      // de gerar o novo (o novo passa a refletir as extras atualmente pendentes).
-      const { data: existente } = await supabase
-        .from("recibos").select("id")
-        .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
-      if (existente) {
-        const { error: eDel } = await supabase.rpc("excluir_recibo", { p_id: existente.id });
-        if (eDel) { erros.push(`Falha ao excluir recibo duplicado (${grupo.semana}): ${eDel.message}`); continue; }
-        duplicadosExcluidos++;
+      const lockKey = `${grupo.colab}|${grupo.semana}`;
+      if (gerandoEmAndamento.has(lockKey)) {
+        emAndamento++;
+        continue;
       }
+      gerandoEmAndamento.add(lockKey);
+      try {
+        // Se já existe recibo ATIVO para (colab, semana), exclui o duplicado antes
+        // de gerar o novo (o novo passa a refletir as extras atualmente pendentes).
+        const { data: existente } = await supabase
+          .from("recibos").select("id")
+          .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
+        if (existente) {
+          const { error: eDel } = await supabase.rpc("excluir_recibo", { p_id: existente.id });
+          if (eDel) { erros.push(`Falha ao excluir recibo duplicado (${grupo.semana}): ${eDel.message}`); continue; }
+          duplicadosExcluidos++;
+        }
 
-      const { data: rec, error: e1 } = await supabase.from("recibos").insert({
-        colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
-        data_pagamento: data.data_pagamento, valor_total: grupo.total,
-      }).select("id").single();
-      if (e1) { erros.push(e1.message); continue; }
-      const { error: e2 } = await supabase.from("recibos_itens").insert(grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any })));
-      if (e2) { erros.push(e2.message); continue; }
-      criados++;
+        const { data: rec, error: e1 } = await supabase.from("recibos").insert({
+          colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
+          data_pagamento: data.data_pagamento, valor_total: grupo.total,
+        }).select("id").single();
+        if (e1) { erros.push(e1.message); continue; }
+        const { error: e2 } = await supabase.from("recibos_itens").insert(grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as any })));
+        if (e2) { erros.push(e2.message); continue; }
+        criados++;
+      } finally {
+        gerandoEmAndamento.delete(lockKey);
+      }
     }
-    return { criados, duplicadosExcluidos, erros };
+    return { criados, duplicadosExcluidos, emAndamento, erros };
   });
 
 
