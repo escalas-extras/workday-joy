@@ -218,28 +218,41 @@ function Page() {
     <div>
       <PageHeader title="Recibos" description="Recibos pendentes. Após imprimir ou gerar PDF, ficam arquivados em Relatórios › Recibos." />
 
-      {/* Geração */}
-      <div className="flex gap-2 mb-4 items-end flex-wrap rounded-md border p-3 bg-card">
-        <div className="min-w-[180px]">
-          <Label>Mês</Label>
-          <Select value={mesRef} onValueChange={onChangeMes}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{mesesOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}</SelectContent>
-          </Select>
+      {/* Geração — por período das extras */}
+      <div className="rounded-md border p-3 bg-card mb-4">
+        <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
+        <div className="text-xs text-muted-foreground mb-3">
+          Período das extras: lista apenas extras <strong>aprovadas no financeiro, pagas e ainda não recibadas</strong>.
+          Cada recibo mantém a <strong>semana original</strong> da extra. <strong>Emitido em: hoje ({hojeISO})</strong>.
         </div>
-        <div className="min-w-[180px]">
-          <Label>Semana</Label>
-          <Select value={semana} onValueChange={setSemana} disabled={!semanasOpts.length}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {semanasOpts.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 items-end flex-wrap">
+          <div><Label className="text-xs">Período das extras — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
+          <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+          <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesExtras.data?.length}>
+            <FilePlus className="h-4 w-4 mr-1" />
+            Gerar {pendentesExtras.data?.length ? `(${pendentesExtras.data.length} extra(s) em ${pendentesGrupos.length} grupo(s))` : ""}
+          </Button>
         </div>
-        <Button onClick={() => mGerar.mutate()} disabled={!semana || mGerar.isPending}>
-          <FilePlus className="h-4 w-4 mr-1" />Gerar Recibos da Semana
-        </Button>
+        {!!pendentesGrupos.length && (
+          <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
+            <div className="font-semibold mb-1">Prévia — extras não recibadas no período</div>
+            {pendentesGrupos.map((g) => (
+              <div key={g.colab} className="mb-1">
+                <div className="font-medium">{g.colab}</div>
+                <ul className="ml-4">
+                  {[...g.semanas.entries()].sort().map(([sem, s]) => (
+                    <li key={sem}>semana {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+        {!pendentesExtras.isLoading && !pendentesGrupos.length && (
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível (não recibada) neste período.</div>
+        )}
       </div>
+
 
 
       {/* Filtros */}
