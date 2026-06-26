@@ -48,6 +48,10 @@ function Page() {
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
+  // Reimpressão por período de geração (inclui arquivados)
+  const [reDe, setReDe] = useState(primeiroDoMes);
+  const [reAte, setReAte] = useState(hojeISO);
+
 
   // Filtros
   const [fSemana, setFSemana] = useState("");
@@ -269,6 +273,17 @@ function Page() {
         )}
       </div>
 
+      {/* Reimprimir por período de geração (inclui arquivados) */}
+      <ReimpressaoPorGeracao
+        reDe={reDe} reAte={reAte} setReDe={setReDe} setReAte={setReAte}
+        onImprimir={(ids) => navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } })}
+        onPdf={async (ids) => {
+          const views = await loadReciboViews(ids);
+          await gerarPdfRecibos(views, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
+        }}
+      />
+
+
 
 
       {/* Filtros */}
@@ -451,4 +466,53 @@ function Page() {
     </div>
   );
 }
+
+function ReimpressaoPorGeracao({
+  reDe, reAte, setReDe, setReAte, onImprimir, onPdf,
+}: {
+  reDe: string; reAte: string;
+  setReDe: (v: string) => void; setReAte: (v: string) => void;
+  onImprimir: (ids: string[]) => void;
+  onPdf: (ids: string[]) => Promise<void>;
+}) {
+  const q = useQuery({
+    queryKey: ["recibos-gerados", reDe, reAte],
+    enabled: !!reDe && !!reAte,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recibos")
+        .select("id, numero, gerado_em, arquivado_em, valor_total, colaboradores(nome)")
+        .gte("gerado_em", `${reDe}T00:00:00`)
+        .lte("gerado_em", `${reAte}T23:59:59.999`)
+        .eq("ativo", true)
+        .order("gerado_em", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as { id: string; numero: number; gerado_em: string; arquivado_em: string | null; valor_total: number }[];
+    },
+  });
+  const ids = (q.data ?? []).map((r) => r.id);
+  const totalValor = (q.data ?? []).reduce((s, r) => s + Number(r.valor_total), 0);
+  return (
+    <div className="rounded-md border p-3 bg-card mb-4">
+      <div className="text-sm font-semibold mb-2">Reimprimir por período de geração</div>
+      <div className="text-xs text-muted-foreground mb-3">
+        Inclui recibos já arquivados. Útil para reimprimir tudo o que foi gerado num intervalo.
+      </div>
+      <div className="flex gap-2 items-end flex-wrap">
+        <div><Label className="text-xs">Gerado de</Label><Input type="date" value={reDe} onChange={(e) => setReDe(e.target.value)} /></div>
+        <div><Label className="text-xs">até</Label><Input type="date" value={reAte} onChange={(e) => setReAte(e.target.value)} /></div>
+        <Button size="sm" onClick={() => onImprimir(ids)} disabled={!ids.length}>
+          <Printer className="h-4 w-4 mr-1" />Imprimir ({ids.length})
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => onPdf(ids)} disabled={!ids.length}>
+          <FileDown className="h-4 w-4 mr-1" />PDF
+        </Button>
+        {!!ids.length && (
+          <span className="text-xs text-muted-foreground">Total: {formatBRL(totalValor)}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
