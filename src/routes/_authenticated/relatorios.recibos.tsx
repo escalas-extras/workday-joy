@@ -358,8 +358,40 @@ function Page() {
           </div>
         );
         return (
-          <Accordion type="multiple" defaultValue={["pendentes"]} className="space-y-2">
+          <Accordion type="multiple" defaultValue={["extras-pendentes", "pendentes"]} className="space-y-2">
+            <AccordionItem value="extras-pendentes" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Extras pendentes de recibo no período ({extrasFiltradas.filter((r) => !r._recibada).length})
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex items-center gap-2 mb-2">
+                  <Checkbox id="naorec" checked={apenasNaoRecibadas} onCheckedChange={(v) => setApenasNaoRecibadas(!!v)} />
+                  <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
+                </div>
+                <div className="rounded-md border bg-card overflow-x-auto">
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Semana</TableHead>
+                      <TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {extrasFiltradas.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{r.data}</TableCell>
+                          <TableCell>{r.colaboradores?.nome ?? "—"}</TableCell>
+                          <TableCell>{r.semana_ref}</TableCell>
+                          <TableCell className="text-right">{formatBRL(r.valor)}</TableCell>
+                          <TableCell><Badge variant={r._recibada ? "secondary" : "default"}>{r._recibada ? "Já recibada" : "Pendente de recibo"}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                      {!extrasFiltradas.length && <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Nenhuma extra elegível neste período</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
+
               <AccordionTrigger className="text-sm font-semibold">
                 Pendentes — não impressos / sem PDF ({pendentes.length})
               </AccordionTrigger>
