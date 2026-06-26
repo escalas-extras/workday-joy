@@ -349,6 +349,9 @@ function Page() {
         <Button size="sm" variant="ghost" onClick={() => setPreviewIds(selectedIds)} disabled={!selectedIds.length}>
           <Eye className="h-4 w-4 mr-1" />Visualizar Selecionados
         </Button>
+        <Button size="sm" variant="default" onClick={() => handleArquivar(selectedIds)} disabled={!selectedIds.length} title="Marcar como arquivados (após impressão confirmada)">
+          Arquivar Selecionados ({selectedIds.length})
+        </Button>
         <div className="w-px bg-border mx-1" />
         <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Filtrados ({filtrados.length})
