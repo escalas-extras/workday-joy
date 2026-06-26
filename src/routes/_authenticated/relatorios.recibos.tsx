@@ -173,7 +173,13 @@ function Page() {
       if (!set || !set.has(fCliente)) return false;
     }
     return true;
-  }), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
+  }).sort((a, b) =>
+    (a.colaboradores?.nome ?? "").localeCompare(
+      b.colaboradores?.nome ?? "",
+      "pt-BR",
+      { sensitivity: "base" },
+    ),
+  ), [list.data, fColab, fEmpresa, fStatus, fCliente, clientesMap.data]);
   const pendentes = useMemo(() => filtrados.filter((r) => !r.arquivado_em), [filtrados]);
   const arquivados = useMemo(() => filtrados.filter((r) => !!r.arquivado_em), [filtrados]);
 
