@@ -434,6 +434,47 @@ function Page() {
                 </div>
               </AccordionContent>
             </AccordionItem>
+            <AccordionItem value="auditoria" className="border rounded-md bg-card px-3">
+              <AccordionTrigger className="text-sm font-semibold">
+                Auditoria — inconsistências de status ({auditoria.data?.total ?? 0})
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Extras vinculadas a recibos <strong>ativos</strong> cujo status/situação financeira deixou de
+                  ser "aprovado_financeiro/pago". <strong>Relatório read-only</strong> — nenhum dado é alterado.
+                </div>
+                {auditoria.isLoading && <div className="text-xs text-muted-foreground">Carregando…</div>}
+                {auditoria.error && <div className="text-xs text-destructive">Erro: {(auditoria.error as Error).message}</div>}
+                {!!auditoria.data?.inconsistencias?.length && (
+                  <div className="rounded-md border bg-card overflow-x-auto">
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead>Recibo nº</TableHead><TableHead>Colaborador</TableHead>
+                        <TableHead>Semana</TableHead><TableHead>Extra (data)</TableHead>
+                        <TableHead>Status</TableHead><TableHead>Situação</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {auditoria.data.inconsistencias.map((r) => (
+                          <TableRow key={r.extra_id}>
+                            <TableCell>{r.recibo_numero}</TableCell>
+                            <TableCell>{r.colaborador}</TableCell>
+                            <TableCell>{r.semana_ref}</TableCell>
+                            <TableCell>{r.extra_data}</TableCell>
+                            <TableCell><Badge variant="secondary">{r.extra_status}</Badge></TableCell>
+                            <TableCell><Badge variant="secondary">{r.extra_situacao}</Badge></TableCell>
+                            <TableCell className="text-right">{formatBRL(r.valor)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                {auditoria.data && !auditoria.data.inconsistencias.length && (
+                  <div className="text-xs text-muted-foreground py-2">Nenhuma inconsistência encontrada.</div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
             <AccordionItem value="pendentes" className="border rounded-md bg-card px-3">
 
               <AccordionTrigger className="text-sm font-semibold">
