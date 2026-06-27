@@ -16,6 +16,7 @@ import {
   criarPagamento, gerarRecibosPagamento, fecharPagamento, reabrirPagamento,
   excluirRecibo, arquivarRecibos, previewExtrasPagamento,
   type PreviewPagamentoGrupo,
+  type GeracaoRecibosResult,
 } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -72,6 +73,12 @@ function Page() {
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [ultimaGeracao, setUltimaGeracao] = useState<{
+    pagamentoId: string;
+    reciboIds: string[];
+    reciboIdsCriados: string[];
+    reciboIdsComplementados: string[];
+  }>({ pagamentoId: "", reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
 
   // Reimpressão por período de geração (inclui arquivados)
   const [reDe, setReDe] = useState(primeiroDoMes);
@@ -190,11 +197,22 @@ function Page() {
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: { pagamento_id: pagamentoId } }),
-    onSuccess: (r: { criados: number; anexados?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
+    onSuccess: (r: GeracaoRecibosResult) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["pagamentos"] });
       qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
+      if (r.reciboIds.length) {
+        setUltimaGeracao({
+          pagamentoId,
+          reciboIds: r.reciboIds,
+          reciboIdsCriados: r.reciboIdsCriados,
+          reciboIdsComplementados: r.reciboIdsComplementados,
+        });
+        const sel: Record<string, boolean> = {};
+        for (const id of r.reciboIds) sel[id] = true;
+        setSelected(sel);
+      }
       if (r.anexados) toast.info(`${r.anexados} recibo(s) complementado(s) com novas extras`);
       if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
       else if (r.mensagem) toast.info(r.mensagem);
@@ -231,6 +249,13 @@ function Page() {
 
   const pendentesGrupos = (previewPagamentoQuery.data?.grupos ?? []) as PreviewPagamentoGrupo[];
   const podeGerar = pagamentoAtual && (pagamentoAtual.status === "EM_PREPARACAO" || pagamentoAtual.status === "GERADO");
+
+  const recibosRecemGerados =
+    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIds : [];
+  const qtdCriadosUltima =
+    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIdsCriados.length : 0;
+  const qtdComplementadosUltima =
+    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIdsComplementados.length : 0;
 
 
 
@@ -290,7 +315,12 @@ function Page() {
         <div className="flex gap-2 items-end flex-wrap mb-3">
           <div>
             <Label className="text-xs">Pagamento</Label>
-            <Select value={pagamentoId || "_none"} onValueChange={(v) => setPagamentoId(v === "_none" ? "" : v)}>
+            <Select value={pagamentoId || "_none"} onValueChange={(v) => {
+              const next = v === "_none" ? "" : v;
+              setPagamentoId(next);
+              setUltimaGeracao({ pagamentoId: "", reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
+              setSelected({});
+            }}>
               <SelectTrigger className="w-[280px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="_none">— Selecione —</SelectItem>
@@ -424,7 +454,26 @@ function Page() {
       </div>
 
       {/* Ações em lote */}
+      {!!recibosRecemGerados.length && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-3 mb-3 text-xs">
+          <div className="font-semibold mb-1">Última geração neste pagamento</div>
+          <p className="text-muted-foreground">
+            {qtdCriadosUltima} recibo(s) criado(s), {qtdComplementadosUltima} complementado(s).
+            {qtdComplementadosUltima > 0 && (
+              <> Recibos complementados serão impressos/baixados <strong>completos</strong>, incluindo itens anteriores.</>
+            )}
+          </p>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-3 flex-wrap">
+        <Button size="sm" variant="outline" onClick={() => handleImprimir(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
+          <Printer className="h-4 w-4 mr-1" />Imprimir recém-gerados ({recibosRecemGerados.length})
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => handlePdf(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
+          <FileDown className="h-4 w-4 mr-1" />Baixar PDF recém-gerados ({recibosRecemGerados.length})
+        </Button>
+        <div className="w-px bg-border mx-1" />
         <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length}>
           <Printer className="h-4 w-4 mr-1" />Imprimir Selecionados ({selectedIds.length})
         </Button>

@@ -62,6 +62,30 @@ function minSemanaRef(extras: ExtraElegivel[]): string {
   return extras.reduce((min, e) => (e.semana_ref < min ? e.semana_ref : min), extras[0].semana_ref);
 }
 
+export type GeracaoRecibosResult = {
+  criados: number;
+  anexados: number;
+  emAndamento: number;
+  erros: string[];
+  reciboIds: string[];
+  reciboIdsCriados: string[];
+  reciboIdsComplementados: string[];
+  mensagem?: string;
+};
+
+function resultadoGeracaoVazio(mensagem?: string): GeracaoRecibosResult {
+  return {
+    criados: 0,
+    anexados: 0,
+    emAndamento: 0,
+    erros: [],
+    reciboIds: [],
+    reciboIdsCriados: [],
+    reciboIdsComplementados: [],
+    ...(mensagem ? { mensagem } : {}),
+  };
+}
+
 /** Cria pagamento manualmente (EM_PREPARACAO). Não gera recibos. */
 export const criarPagamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -130,13 +154,7 @@ async function executarGeracaoRecibos(
 
     const elegiveis = await buscarExtrasElegiveis(supabase, pagamentoId);
     if (!elegiveis.length) {
-      return {
-        criados: 0,
-        anexados: 0,
-        emAndamento: 0,
-        erros: [] as string[],
-        mensagem: "Nenhuma extra elegível pendente de recibo neste pagamento",
-      };
+      return resultadoGeracaoVazio("Nenhuma extra elegível pendente de recibo neste pagamento");
     }
 
     const grupos = new Map<string, ExtraElegivel[]>();
@@ -150,6 +168,9 @@ async function executarGeracaoRecibos(
     let anexados = 0;
     let emAndamento = 0;
     const erros: string[] = [];
+    const reciboIds: string[] = [];
+    const reciboIdsCriados: string[] = [];
+    const reciboIdsComplementados: string[] = [];
 
     for (const [colabId, extrasColab] of grupos) {
       const lockKey = `${pagamentoId}|${colabId}`;
@@ -182,6 +203,8 @@ async function executarGeracaoRecibos(
           if (eUp) { erros.push(`Falha ao anexar itens (${colabId}): ${eUp.message}`); continue; }
           reciboId = existente.id;
           anexados++;
+          reciboIdsComplementados.push(reciboId);
+          reciboIds.push(reciboId);
         } else {
           const semanaRef = minSemanaRef(extrasColab);
           const { data: rec, error: e1 } = await supabase.from("recibos").insert({
@@ -207,6 +230,8 @@ async function executarGeracaoRecibos(
           if (e2) { erros.push(`Falha ao inserir itens (${colabId}): ${e2.message}`); continue; }
           reciboId = rec!.id;
           criados++;
+          reciboIdsCriados.push(reciboId);
+          reciboIds.push(reciboId);
         }
 
         const { error: eExtra } = await supabase
@@ -230,7 +255,7 @@ async function executarGeracaoRecibos(
         .in("status", ["EM_PREPARACAO", "GERADO"]);
     }
 
-    return { criados, anexados, emAndamento, erros };
+    return { criados, anexados, emAndamento, erros, reciboIds, reciboIdsCriados, reciboIdsComplementados };
 }
 
 /** Gera ou complementa recibos de um pagamento existente (1 recibo/colaborador). */
