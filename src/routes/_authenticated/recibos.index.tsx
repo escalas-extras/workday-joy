@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/app-shell";
 import {
   gerarRecibosPendentes, excluirRecibo, arquivarRecibos, previewExtrasPendentes,
   type PreviewPagamentoGrupo,
+  type PreviewResumoEmissao,
   type GeracaoRecibosResult,
 } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
@@ -61,6 +62,7 @@ function Page() {
   const hojeISO = new Date().toISOString().slice(0, 10);
   const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
   const [excluirId, setExcluirId] = useState<string | null>(null);
+  const [confirmGerarOpen, setConfirmGerarOpen] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -207,15 +209,18 @@ function Page() {
   });
 
   const pendentesGrupos = (previewPendentesQuery.data?.grupos ?? []) as PreviewPagamentoGrupo[];
+  const resumoEmissao = previewPendentesQuery.data?.resumo as PreviewResumoEmissao | null | undefined;
   const qtdExtrasPendentes = pendentesGrupos.reduce((a, g) => a + g.qtd, 0);
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: {} }),
     onSuccess: async (r: GeracaoRecibosResult) => {
+      setConfirmGerarOpen(false);
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["preview-extras-pendentes"] });
       qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
+      let valorTotalToast: number | null = null;
       if (r.reciboIds.length) {
         let valorTotal: number | null = null;
         const { data: totais, error: eTotais } = await supabase
@@ -224,6 +229,7 @@ function Page() {
           .in("id", r.reciboIds);
         if (!eTotais && totais?.length) {
           valorTotal = totais.reduce((acc, row) => acc + Number(row.valor_total), 0);
+          valorTotalToast = valorTotal;
         }
         setUltimaGeracao({
           reciboIds: r.reciboIds,
@@ -235,12 +241,31 @@ function Page() {
         for (const id of r.reciboIds) sel[id] = true;
         setSelected(sel);
       }
-      if (r.anexados) toast.info(`${r.anexados} recibo(s) complementado(s) com novas extras`);
-      if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
-      else if (r.mensagem) toast.info(r.mensagem);
+      if (r.criados > 0 || r.anexados > 0) {
+        const idsGerados = [...r.reciboIds];
+        toast.success("Recibos gerados", {
+          description: (
+            <span className="whitespace-pre-line">
+              {`${r.criados} criados\n${r.anexados} complementados\n${formatBRL(valorTotalToast ?? 0)}`}
+            </span>
+          ),
+          duration: 12_000,
+          action: idsGerados.length
+            ? {
+                label: "Visualizar última geração",
+                onClick: () => setPreviewIds(idsGerados),
+              }
+            : undefined,
+        });
+      } else if (r.mensagem) {
+        toast.info(r.mensagem);
+      }
       if (r.erros?.length) toast.error(r.erros.join("; "));
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setConfirmGerarOpen(false);
+      toast.error(e.message);
+    },
   });
 
   const recibosRecemGerados = ultimaGeracao.reciboIds;
@@ -307,7 +332,7 @@ function Page() {
         </div>
 
         <Button
-          onClick={() => mGerar.mutate()}
+          onClick={() => setConfirmGerarOpen(true)}
           disabled={mGerar.isPending || !qtdExtrasPendentes}
         >
           <FilePlus className="h-4 w-4 mr-1" />
@@ -340,6 +365,53 @@ function Page() {
           <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível pendente de recibo.</div>
         )}
       </div>
+
+      <Dialog open={confirmGerarOpen} onOpenChange={setConfirmGerarOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar emissão de recibos</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground pt-1">
+                <p>
+                  Confirme a emissão dos recibos deste pagamento.
+                  Esta operação poderá criar novos recibos ou complementar recibos existentes.
+                </p>
+                {resumoEmissao && (
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-foreground text-xs rounded-md border bg-muted/30 p-3">
+                    <dt>Extras</dt>
+                    <dd className="font-medium text-right">{resumoEmissao.qtdExtras}</dd>
+                    <dt>Colaboradores</dt>
+                    <dd className="font-medium text-right">{resumoEmissao.qtdColaboradores}</dd>
+                    <dt>Recibos novos</dt>
+                    <dd className="font-medium text-right">{resumoEmissao.qtdRecibosNovos}</dd>
+                    <dt>Recibos complementados</dt>
+                    <dd className="font-medium text-right">{resumoEmissao.qtdRecibosComplementados}</dd>
+                    <dt className="col-span-2 pt-1 border-t mt-1">Valor total</dt>
+                    <dd className="col-span-2 font-semibold text-right text-sm">{formatBRL(resumoEmissao.valorTotal)}</dd>
+                  </dl>
+                )}
+                {!!resumoEmissao?.qtdExtrasRetroativas && (
+                  <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-amber-900 dark:text-amber-200 text-xs">
+                    <strong>Atenção:</strong> {resumoEmissao.qtdExtrasRetroativas} extra(s) de semana(s) operacional(is) anterior(es) entrarão neste pagamento.
+                  </p>
+                )}
+                <p className="text-xs">
+                  A semana operacional (sexta a quinta) é apenas referência da execução da extra.
+                  {" "}O pagamento atual pode conter extras de semanas anteriores ainda não pagas.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmGerarOpen(false)} disabled={mGerar.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={() => mGerar.mutate()} disabled={mGerar.isPending || !resumoEmissao}>
+              {mGerar.isPending ? "Gerando..." : "Gerar recibos"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ReimpressaoPorGeracao
         reDe={reDe} reAte={reAte} setReDe={setReDe} setReAte={setReAte}

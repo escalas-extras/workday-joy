@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { normalizarValorMonetario } from "@/lib/valor-monetario";
+import { sextaDaSemana } from "@/lib/semana-buckets";
 
 type PagamentoStatus = "EM_PREPARACAO" | "GERADO" | "FECHADO" | "CANCELADO";
 
@@ -181,6 +182,58 @@ export type PreviewPagamentoGrupo = {
   total: number;
   extras: ExtraElegivel[];
 };
+
+export type PreviewResumoEmissao = {
+  qtdExtras: number;
+  qtdColaboradores: number;
+  qtdRecibosNovos: number;
+  qtdRecibosComplementados: number;
+  valorTotal: number;
+  qtdExtrasRetroativas: number;
+};
+
+/** Resumo read-only para confirmação antes da emissão (não altera dados). */
+async function calcularResumoEmissaoPreview(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  elegiveis: ExtraElegivel[],
+  pagamentoAbertoId: string | null,
+): Promise<PreviewResumoEmissao> {
+  const porColaborador = new Map<string, ExtraElegivel[]>();
+  for (const e of elegiveis) {
+    const g = porColaborador.get(e.colaborador_id) ?? [];
+    g.push(e);
+    porColaborador.set(e.colaborador_id, g);
+  }
+
+  const semanaAtual = sextaDaSemana(new Date().toISOString().slice(0, 10));
+  const qtdExtrasRetroativas = elegiveis.filter((e) => e.semana_ref < semanaAtual).length;
+
+  let qtdRecibosComplementados = 0;
+  if (pagamentoAbertoId) {
+    const colabIds = [...porColaborador.keys()];
+    const { data: existentes, error } = await supabase
+      .from("recibos")
+      .select("colaborador_id")
+      .eq("pagamento_id", pagamentoAbertoId)
+      .eq("ativo", true)
+      .in("colaborador_id", colabIds);
+    if (error) throw new Error(`Falha ao verificar recibos existentes: ${error.message}`);
+    const comRecibo = new Set(
+      (existentes ?? []).map((r: { colaborador_id: string }) => r.colaborador_id),
+    );
+    qtdRecibosComplementados = colabIds.filter((id) => comRecibo.has(id)).length;
+  }
+
+  return {
+    qtdExtras: elegiveis.length,
+    qtdColaboradores: porColaborador.size,
+    qtdRecibosNovos: porColaborador.size - qtdRecibosComplementados,
+    qtdRecibosComplementados,
+    valorTotal: elegiveis.reduce((s, e) => s + e.valor, 0),
+    qtdExtrasRetroativas,
+  };
+}
 
 async function buscarExtrasElegiveis(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -565,7 +618,11 @@ export const previewExtrasPendentes = createServerFn({ method: "POST" })
     const pagamentoAberto = await obterPagamentoAbertoReutilizavel(db);
     const pagamentoId = pagamentoAberto ?? crypto.randomUUID();
     const elegiveis = await buscarExtrasElegiveis(supabase, pagamentoId);
-    if (!elegiveis.length) return { grupos: [] as PreviewPagamentoGrupo[] };
+    if (!elegiveis.length) {
+      return { grupos: [] as PreviewPagamentoGrupo[], resumo: null as PreviewResumoEmissao | null };
+    }
+
+    const resumo = await calcularResumoEmissaoPreview(supabase, elegiveis, pagamentoAberto);
 
     const { data: nomes } = await supabase
       .from("colaboradores")
@@ -590,6 +647,7 @@ export const previewExtrasPendentes = createServerFn({ method: "POST" })
     }
 
     return {
+      resumo,
       grupos: [...grupos.values()]
         .map((g) => ({
           ...g,
