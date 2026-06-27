@@ -1,4 +1,5 @@
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
+import { coalesceValorMonetario } from "@/lib/valor-monetario";
 
 export interface ReciboItemView {
   data: string; // YYYY-MM-DD
@@ -29,6 +30,11 @@ function fmtDate(d: string): string {
 }
 
 function ReciboBloco({ r }: { r: ReciboView }) {
+  const valorTotal = coalesceValorMonetario(r.valor_total);
+  const itens = r.itens.length
+    ? r.itens
+    : [{ data: "", semana_ref: "", cliente: "—", valor: 0, lancado_por: "" }];
+
   return (
     <div
       className="relative grid grid-cols-2 gap-0 border-2 border-[#060B5A] rounded-lg overflow-hidden bg-white text-black"
@@ -50,10 +56,10 @@ function ReciboBloco({ r }: { r: ReciboView }) {
           </div>
           <div className="mt-1 flex items-center gap-2 border border-[#060B5A]/40 bg-[#E8EBF5] rounded p-1">
             <div className="text-[8px] uppercase text-[#060B5A] font-bold">Valor</div>
-            <div className="text-xs font-bold">{formatBRL(r.valor_total)}</div>
+            <div className="text-xs font-bold">{formatBRL(valorTotal)}</div>
           </div>
           <p className="mt-1 italic text-[9px] leading-none text-gray-700">
-            ({valorPorExtenso(r.valor_total)})
+            ({valorPorExtenso(valorTotal)})
           </p>
           <div className="mt-1 space-y-0.5 text-[9px]">
             <p className="truncate">
@@ -86,7 +92,7 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             </tr>
           </thead>
           <tbody>
-            {r.itens.map((it, i) => (
+            {itens.map((it, i) => (
               <tr key={i} className="border-b border-[#060B5A]/15">
                 <td className="py-0.5 align-top">{fmtDate(it.data)}</td>
                 <td className="py-0.5 align-top">{fmtDate(it.semana_ref ?? "")}</td>
@@ -97,14 +103,14 @@ function ReciboBloco({ r }: { r: ReciboView }) {
                 <td className="py-0.5 align-top max-w-[70px]">
                   <div className="truncate text-[8px]">{it.lancado_por ?? ""}</div>
                 </td>
-                <td className="py-0.5 text-right align-top">{formatBRL(it.valor)}</td>
+                <td className="py-0.5 text-right align-top">{formatBRL(coalesceValorMonetario(it.valor))}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="border-t border-[#060B5A] font-bold">
               <td colSpan={4} className="py-0.5 text-right">TOTAL</td>
-              <td className="py-0.5 text-right">{formatBRL(r.valor_total)}</td>
+              <td className="py-0.5 text-right">{formatBRL(valorTotal)}</td>
             </tr>
           </tfoot>
         </table>

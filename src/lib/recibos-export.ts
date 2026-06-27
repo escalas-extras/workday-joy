@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { ReciboView } from "@/components/recibos/ReciboA4";
 import { valorPorExtenso, formatBRL } from "@/lib/extenso";
+import { coalesceValorMonetario } from "@/lib/valor-monetario";
 
 const NAVY: [number, number, number] = [6, 11, 90];
 const RED: [number, number, number] = [214, 30, 30];
@@ -38,6 +39,17 @@ export async function gerarPdfRecibos(recibos: ReciboView[], filename = "recibos
 }
 
 function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, h: number) {
+  const valorTotal = coalesceValorMonetario(r.valor_total);
+  const linhasItens = r.itens.length
+    ? r.itens.map((it) => [
+        fmtDate(it.data),
+        fmtDate(it.semana_ref ?? ""),
+        it.cliente,
+        it.lancado_por ?? "",
+        formatBRL(coalesceValorMonetario(it.valor)),
+      ])
+    : [["—", "—", "—", "—", formatBRL(0)]];
+
   doc.setDrawColor(...NAVY);
   doc.setLineWidth(0.5);
   doc.roundedRect(x, y, w, h, 2, 2);
@@ -65,12 +77,12 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
   doc.text("VALOR:", x + 4.5, cy + 4.2);
   doc.setFontSize(8.5);
   doc.setTextColor(0, 0, 0);
-  doc.text(formatBRL(r.valor_total), x + 16, cy + 4.5);
+  doc.text(formatBRL(valorTotal), x + 16, cy + 4.5);
 
   cy += 9;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(6);
-  const extenso = `(${valorPorExtenso(r.valor_total)})`;
+  const extenso = `(${valorPorExtenso(valorTotal)})`;
   const lines = doc.splitTextToSize(extenso, colW - 6);
   doc.text(lines, x + 3, cy);
   cy += lines.length * 2.2 + 1;
@@ -95,14 +107,8 @@ function drawRecibo(doc: jsPDF, r: ReciboView, x: number, y: number, w: number, 
     margin: { left: tx, right: x + w - tx - tw + (210 - (x + w)) },
     tableWidth: tw,
     head: [["DATA", "SEM.", "CLIENTE", "LANÇADO POR", "VALOR"]],
-    body: r.itens.map((it) => [
-      fmtDate(it.data),
-      fmtDate(it.semana_ref ?? ""),
-      it.cliente,
-      it.lancado_por ?? "",
-      formatBRL(it.valor),
-    ]),
-    foot: [["", "", "", "TOTAL", formatBRL(r.valor_total)]],
+    body: linhasItens,
+    foot: [["", "", "", "TOTAL", formatBRL(valorTotal)]],
     styles: { fontSize: 5.5, cellPadding: 0.5, textColor: 0, overflow: "linebreak" },
     headStyles: { fillColor: NAVY, textColor: 255, fontStyle: "bold" },
     footStyles: { fillColor: NAVY_SOFT, textColor: NAVY, fontStyle: "bold" },

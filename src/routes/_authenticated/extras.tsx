@@ -14,6 +14,7 @@ import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_R
 import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { validarValorExtraInput } from "@/lib/valor-monetario";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Pencil, Ban } from "lucide-react";
 
@@ -113,11 +114,13 @@ function Page() {
 
       if (!colaboradorId) throw new Error("Selecione um colaborador");
 
+      const valor = validarValorExtraInput(vals.valor);
+
       const { avulso, avulso_nome, avulso_cpf, ...rest } = vals;
       const payload: any = {
         ...rest,
         colaborador_id: colaboradorId,
-        valor: parseFloat(vals.valor),
+        valor,
         semana_ref: vals.data, // será sobrescrito pelo trigger
         emitente_id: user!.id,
         colaborador_coberto_id: requerCoberto ? vals.colaborador_coberto_id : null,
@@ -326,7 +329,7 @@ function Page() {
             </div>
             <div><Label>Hora Início</Label><Input type="time" value={vals.hora_inicio} onChange={(e) => setVals({ ...vals, hora_inicio: e.target.value })} required /></div>
             <div><Label>Hora Término</Label><Input type="time" value={vals.hora_termino} onChange={(e) => setVals({ ...vals, hora_termino: e.target.value })} required /></div>
-            <div><Label>Valor (R$)</Label><Input type="number" step="0.01" min="0" value={vals.valor} onChange={(e) => setVals({ ...vals, valor: e.target.value })} required /></div>
+            <div><Label>Valor (R$)</Label><Input type="number" step="0.01" min="0" value={vals.valor} onChange={(e) => setVals({ ...vals, valor: e.target.value })} required placeholder="0,00" /></div>
             <div className="md:col-span-2"><Label>Motivo</Label><Input value={vals.motivo ?? ""} onChange={(e) => setVals({ ...vals, motivo: e.target.value })} /></div>
             <div className="md:col-span-2"><Label>Observações</Label><Textarea value={vals.observacoes ?? ""} onChange={(e) => setVals({ ...vals, observacoes: e.target.value })} /></div>
             <DialogFooter className="md:col-span-2">
