@@ -46,9 +46,7 @@ async function criarPagamentoAutomatico(
     .single();
   if (error) throw new Error(`Falha ao criar pagamento interno: ${error.message}`);
   if (!data?.id) throw new Error("Pagamento criado sem id retornado");
-  const pagamentoId = data.id as string;
-  console.info("[recibos-debug] criarPagamentoAutomatico pagamentoId=", pagamentoId);
-  return pagamentoId;
+  return data.id as string;
 }
 
 /** Pagamento aberto mais recente (EM_PREPARACAO tem prioridade sobre GERADO). */
@@ -83,13 +81,8 @@ async function resolverOuCriarPagamentoAberto(
   userId: string,
 ): Promise<string> {
   const existente = await obterPagamentoAbertoReutilizavel(supabase);
-  if (existente) {
-    console.info("[recibos-debug] resolverOuCriarPagamentoAberto pagamentoId=", existente);
-    return existente;
-  }
-  const pagamentoId = await criarPagamentoAutomatico(supabase, userId);
-  console.info("[recibos-debug] resolverOuCriarPagamentoAberto pagamentoId=", pagamentoId);
-  return pagamentoId;
+  if (existente) return existente;
+  return criarPagamentoAutomatico(supabase, userId);
 }
 
 /**
@@ -307,7 +300,6 @@ async function executarGeracaoRecibos(
   userId: string,
   pagamentoId: string,
 ) {
-    console.info("[recibos-debug] executarGeracaoRecibos pagamentoId=", pagamentoId);
     if (!pagamentoId) throw new Error("pagamento_id obrigatório para gerar recibos");
 
     await sanearExtrasOrfasPagamentosAbertos(supabase);
@@ -376,17 +368,14 @@ async function executarGeracaoRecibos(
           reciboId = existente.id;
         } else {
           const semanaRef = minSemanaRef(extrasColab);
-          const payload = {
+          const { data: rec, error: e1 } = await supabase.from("recibos").insert({
             colaborador_id: colabId,
             pagamento_id: pagamentoId,
             semana_ref: semanaRef,
             gerado_por: userId,
             data_pagamento: pag.data_pagamento,
             valor_total: 0,
-          };
-          console.info("[recibos-debug] payload.insert=", JSON.stringify(payload));
-          const { data: rec, error: e1 } = await supabase.from("recibos").insert(payload).select("id").single();
-          console.info("[recibos-debug] rec.data=", JSON.stringify(rec));
+          }).select("id").single();
           if (e1) { erros.push(`Falha ao criar recibo (${colabId}): ${e1.message}`); continue; }
 
           const { error: e2 } = await supabase

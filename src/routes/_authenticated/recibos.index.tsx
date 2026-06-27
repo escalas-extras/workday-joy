@@ -68,7 +68,8 @@ function Page() {
     reciboIds: string[];
     reciboIdsCriados: string[];
     reciboIdsComplementados: string[];
-  }>({ reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
+    valorTotal: number | null;
+  }>({ reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [], valorTotal: null });
 
   const [reDe, setReDe] = useState(primeiroDoMes);
   const [reAte, setReAte] = useState(hojeISO);
@@ -210,16 +211,25 @@ function Page() {
 
   const mGerar = useMutation({
     mutationFn: () => gerar({ data: {} }),
-    onSuccess: (r: GeracaoRecibosResult) => {
+    onSuccess: async (r: GeracaoRecibosResult) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["preview-extras-pendentes"] });
       qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
       if (r.reciboIds.length) {
+        let valorTotal: number | null = null;
+        const { data: totais, error: eTotais } = await supabase
+          .from("recibos")
+          .select("valor_total")
+          .in("id", r.reciboIds);
+        if (!eTotais && totais?.length) {
+          valorTotal = totais.reduce((acc, row) => acc + Number(row.valor_total), 0);
+        }
         setUltimaGeracao({
           reciboIds: r.reciboIds,
           reciboIdsCriados: r.reciboIdsCriados,
           reciboIdsComplementados: r.reciboIdsComplementados,
+          valorTotal,
         });
         const sel: Record<string, boolean> = {};
         for (const id of r.reciboIds) sel[id] = true;
@@ -236,6 +246,7 @@ function Page() {
   const recibosRecemGerados = ultimaGeracao.reciboIds;
   const qtdCriadosUltima = ultimaGeracao.reciboIdsCriados.length;
   const qtdComplementadosUltima = ultimaGeracao.reciboIdsComplementados.length;
+  const valorTotalUltima = ultimaGeracao.valorTotal;
 
   const mExcluir = useMutation({
     mutationFn: () => excluir({ data: { reciboId: excluirId! } }),
@@ -387,7 +398,8 @@ function Page() {
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 mb-3 text-xs">
           <div className="font-semibold mb-1">Última geração</div>
           <p className="text-muted-foreground mb-2">
-            {qtdCriadosUltima} recibo(s) criado(s), {qtdComplementadosUltima} complementado(s), {recibosRecemGerados.length} afetado(s) no total.
+            {qtdCriadosUltima} recibo(s) criado(s), {qtdComplementadosUltima} complementado(s), {recibosRecemGerados.length} afetado(s) no total
+            {valorTotalUltima != null && <> — valor total {formatBRL(valorTotalUltima)}</>}.
             {qtdComplementadosUltima > 0 && (
               <> Recibos complementados serão impressos/baixados <strong>completos</strong>, incluindo itens anteriores.</>
             )}
