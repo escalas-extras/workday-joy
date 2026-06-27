@@ -15,6 +15,38 @@ async function assertFinanceiro(
   if (!isAdm && !isFin) throw new Error("Sem permissão");
 }
 
+async function assertEmissorRecibos(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+) {
+  const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  const { data: isOp } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_operacional" });
+  // Papéis separados: gestor_financeiro libera pagamento, não emite recibo (salvo se também for admin/op).
+  if (!isAdm && !isOp) throw new Error("Sem permissão para emitir recibos");
+}
+
+async function criarPagamentoAutomatico(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+): Promise<string> {
+  const dataPagamento = new Date().toISOString().slice(0, 10);
+  const ts = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const { data, error } = await supabase
+    .from("pagamentos")
+    .insert({
+      referencia: `Emissão ${ts}`,
+      data_pagamento: dataPagamento,
+      status: "EM_PREPARACAO",
+      criado_por: userId,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Falha ao criar pagamento interno: ${error.message}`);
+  return data.id as string;
+}
+
 type ExtraElegivel = { id: string; colaborador_id: string; semana_ref: string; valor: number; data?: string };
 
 export type PreviewPagamentoGrupo = {
@@ -70,6 +102,7 @@ export type GeracaoRecibosResult = {
   reciboIds: string[];
   reciboIdsCriados: string[];
   reciboIdsComplementados: string[];
+  pagamentoId?: string;
   mensagem?: string;
 };
 
@@ -273,15 +306,24 @@ export const gerarRecibosPagamento = createServerFn({ method: "POST" })
   .inputValidator((d: { pagamento_id: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await assertFinanceiro(supabase, userId);
+    await assertEmissorRecibos(supabase, userId);
     return executarGeracaoRecibos(supabase, userId, data.pagamento_id);
   });
 
-/** @deprecated Use gerarRecibosPagamento. Mantido para compatibilidade de import. */
-export const gerarRecibosSemana = gerarRecibosPagamento;
+/** Cria pagamento interno e gera recibos das extras pendentes (sem seleção manual). */
+export const gerarRecibosPendentes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(() => ({}))
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await assertEmissorRecibos(supabase, userId);
+    const pagamentoId = await criarPagamentoAutomatico(supabase, userId);
+    const result = await executarGeracaoRecibos(supabase, userId, pagamentoId);
+    return { ...result, pagamentoId };
+  });
 
-/** @deprecated Use gerarRecibosPagamento. */
-export const gerarRecibosPendentes = gerarRecibosPagamento;
+/** @deprecated Use gerarRecibosPendentes. Mantido para compatibilidade de import. */
+export const gerarRecibosSemana = gerarRecibosPendentes;
 
 export const auditarInconsistencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -335,6 +377,7 @@ export const arquivarRecibos = createServerFn({ method: "POST" })
   .inputValidator((d: { ids: string[] }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await assertEmissorRecibos(supabase, userId);
     if (!data.ids?.length) return { arquivados: 0 };
     const { error, count } = await supabase
       .from("recibos")
@@ -358,13 +401,57 @@ export const desarquivarRecibo = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Prévia read-only das extras elegíveis pendentes de recibo (novo pagamento). */
+export const previewExtrasPendentes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(() => ({}))
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    await assertEmissorRecibos(supabase, userId);
+
+    const pagamentoId = crypto.randomUUID();
+    const elegiveis = await buscarExtrasElegiveis(supabase, pagamentoId);
+    if (!elegiveis.length) return { grupos: [] as PreviewPagamentoGrupo[] };
+
+    const { data: nomes } = await supabase
+      .from("colaboradores")
+      .select("id, nome")
+      .in("id", [...new Set(elegiveis.map((e) => e.colaborador_id))]);
+
+    const nomeMap = new Map((nomes ?? []).map((c: { id: string; nome: string }) => [c.id, c.nome]));
+
+    const grupos = new Map<string, { colaborador_id: string; nome: string; qtd: number; total: number; extras: ExtraElegivel[] }>();
+    for (const e of elegiveis) {
+      const g = grupos.get(e.colaborador_id) ?? {
+        colaborador_id: e.colaborador_id,
+        nome: nomeMap.get(e.colaborador_id) ?? "—",
+        qtd: 0,
+        total: 0,
+        extras: [],
+      };
+      g.qtd++;
+      g.total += Number(e.valor);
+      g.extras.push(e);
+      grupos.set(e.colaborador_id, g);
+    }
+
+    return {
+      grupos: [...grupos.values()]
+        .map((g) => ({
+          ...g,
+          extras: g.extras.sort((a, b) => a.semana_ref.localeCompare(b.semana_ref) || a.id.localeCompare(b.id)),
+        }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })),
+    };
+  });
+
 /** Prévia read-only das extras elegíveis para um pagamento. */
 export const previewExtrasPagamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { pagamento_id: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await assertFinanceiro(supabase, userId);
+    await assertEmissorRecibos(supabase, userId);
 
     const elegiveis = await buscarExtrasElegiveis(supabase, data.pagamento_id);
     if (!elegiveis.length) return { grupos: [] as PreviewPagamentoGrupo[] };

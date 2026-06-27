@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -13,15 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/app-shell";
 import {
-  criarPagamento, gerarRecibosPagamento, fecharPagamento, reabrirPagamento,
-  excluirRecibo, arquivarRecibos, previewExtrasPagamento,
+  gerarRecibosPendentes, excluirRecibo, arquivarRecibos, previewExtrasPendentes,
   type PreviewPagamentoGrupo,
   type GeracaoRecibosResult,
 } from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
-import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
+import { ReciboA4 } from "@/components/recibos/ReciboA4";
 import { loadReciboViews } from "@/lib/recibos-views";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { formatBRL } from "@/lib/extenso";
@@ -29,18 +27,11 @@ import { extrairRecibadasSet, type ReciboItemRow } from "@/lib/recibos-filter";
 
 export const Route = createFileRoute("/_authenticated/recibos/")({ component: Page });
 
-type PagamentoStatus = "EM_PREPARACAO" | "GERADO" | "FECHADO" | "CANCELADO";
-
-type PagamentoRow = {
-  id: string; referencia: string | null; data_pagamento: string;
-  status: PagamentoStatus; criado_em: string;
-};
-
 type ReciboRow = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
   valor_total: number; ativo: boolean; colaborador_id: string; pagamento_id: string;
   arquivado_em?: string | null;
-  pagamentos?: { referencia: string | null; status: PagamentoStatus; data_pagamento: string } | null;
+  pagamentos?: { referencia: string | null; data_pagamento: string } | null;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
     empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
 };
@@ -59,83 +50,45 @@ type ExtraPagaSemReciboRow = {
   empresas?: { nome: string } | null;
 };
 
-const STATUS_PAGAMENTO: Record<PagamentoStatus, string> = {
-  EM_PREPARACAO: "Em preparação",
-  GERADO: "Gerado",
-  FECHADO: "Fechado",
-  CANCELADO: "Cancelado",
-};
-
 function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const gerar = useServerFn(gerarRecibosPagamento);
-  const criarPag = useServerFn(criarPagamento);
-  const fecharPag = useServerFn(fecharPagamento);
-  const reabrirPag = useServerFn(reabrirPagamento);
-  const previewPag = useServerFn(previewExtrasPagamento);
+  const gerar = useServerFn(gerarRecibosPendentes);
+  const previewPag = useServerFn(previewExtrasPendentes);
   const excluir = useServerFn(excluirRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
   const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
-  const [pagamentoId, setPagamentoId] = useState<string>("");
-  const [pagReferencia, setPagReferencia] = useState("");
-  const [pagData, setPagData] = useState(hojeISO);
-  const [reabrirMotivo, setReabrirMotivo] = useState("");
-  const [showReabrir, setShowReabrir] = useState(false);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [ultimaGeracao, setUltimaGeracao] = useState<{
-    pagamentoId: string;
     reciboIds: string[];
     reciboIdsCriados: string[];
     reciboIdsComplementados: string[];
-  }>({ pagamentoId: "", reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
+  }>({ reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
 
-  // Reimpressão por período de geração (inclui arquivados)
   const [reDe, setReDe] = useState(primeiroDoMes);
   const [reAte, setReAte] = useState(hojeISO);
 
-
-  // Filtros
   const [fColab, setFColab] = useState<string>("");
   const [fCliente, setFCliente] = useState<string>("");
   const [fEmpresa, setFEmpresa] = useState<string>("");
   const [fVisibilidade, setFVisibilidade] = useState<VisibilidadeRecibos>("pendentes");
-  const [fStatus] = useState<string>("");
-
-  const pagamentos = useQuery({
-    queryKey: ["pagamentos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pagamentos")
-        .select("id, referencia, data_pagamento, status, criado_em")
-        .neq("status", "CANCELADO")
-        .order("criado_em", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as PagamentoRow[];
-    },
-  });
-
-  const pagamentoAtual = pagamentos.data?.find((p) => p.id === pagamentoId);
 
   const list = useQuery({
-    queryKey: ["recibos", pagamentoId, fVisibilidade],
-    enabled: !!pagamentoId,
+    queryKey: ["recibos", fVisibilidade],
     queryFn: async () => {
       let query = supabase
         .from("recibos")
-        .select("*, pagamentos(referencia,status,data_pagamento), colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
-        .eq("pagamento_id", pagamentoId)
+        .select("*, pagamentos(referencia,data_pagamento), colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
         .eq("ativo", true);
       if (fVisibilidade === "pendentes") query = query.is("arquivado_em", null);
       if (fVisibilidade === "arquivados") query = query.not("arquivado_em", "is", null);
       const { data, error } = await query;
       if (error) throw error;
-      // Ordenação alfabética por nome do colaborador (pt-BR, ignora caixa/acentos)
       return ((data ?? []) as ReciboRow[]).sort((a, b) =>
         (a.colaboradores?.nome ?? "").localeCompare(
           b.colaboradores?.nome ?? "",
@@ -146,7 +99,6 @@ function Page() {
     },
   });
 
-  // Auxiliares para os selects de filtro
   const colabs = useQuery({
     queryKey: ["filter-colab"],
     queryFn: async () => (await supabase.from("colaboradores").select("id,nome").order("nome")).data ?? [],
@@ -160,7 +112,6 @@ function Page() {
     queryFn: async () => (await supabase.from("clientes").select("id,nome_fantasia").order("nome_fantasia")).data ?? [],
   });
 
-  // Recibos x cliente: derivado via tabela recibos_itens -> extras. Carregamos um mapa por demanda.
   const recibosClientesMap = useQuery({
     queryKey: ["recibos-clientes-map", (list.data ?? []).map((r) => r.id)],
     enabled: !!list.data?.length,
@@ -212,14 +163,13 @@ function Page() {
     return rows.filter((r) => {
       if (fColab && r.colaborador_id !== fColab) return false;
       if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
-      // recibos cancelados são excluídos definitivamente; lista contém apenas ativos
       if (fCliente) {
         const set = recibosClientesMap.data?.[r.id];
         if (!set || !set.has(fCliente)) return false;
       }
       return true;
     });
-  }, [list.data, fColab, fEmpresa, fStatus, fCliente, recibosClientesMap.data]);
+  }, [list.data, fColab, fEmpresa, fCliente, recibosClientesMap.data]);
 
   const extrasPagasSemReciboFiltradas = useMemo(() => {
     const rows = extrasPagasSemRecibo.data ?? [];
@@ -244,34 +194,29 @@ function Page() {
     enabled: !!detalheId,
   });
 
-  // Carrega views completas para impressão (lista de IDs)
   const recibosViewsQuery = useQuery({
     queryKey: ["recibos-preview", previewIds],
     enabled: !!previewIds?.length,
     queryFn: async () => loadReciboViews(previewIds ?? []),
   });
 
-  const mCriarPag = useMutation({
-    mutationFn: () => criarPag({ data: { data_pagamento: pagData, referencia: pagReferencia || undefined } }),
-    onSuccess: (r) => {
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      setPagamentoId(r.id);
-      toast.success("Pagamento criado — em preparação");
-    },
-    onError: (e: Error) => toast.error(e.message),
+  const previewPendentesQuery = useQuery({
+    queryKey: ["preview-extras-pendentes"],
+    queryFn: () => previewPag({ data: {} }),
   });
 
+  const pendentesGrupos = (previewPendentesQuery.data?.grupos ?? []) as PreviewPagamentoGrupo[];
+  const qtdExtrasPendentes = pendentesGrupos.reduce((a, g) => a + g.qtd, 0);
+
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { pagamento_id: pagamentoId } }),
+    mutationFn: () => gerar({ data: {} }),
     onSuccess: (r: GeracaoRecibosResult) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
+      qc.invalidateQueries({ queryKey: ["preview-extras-pendentes"] });
       qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
       if (r.reciboIds.length) {
         setUltimaGeracao({
-          pagamentoId,
           reciboIds: r.reciboIds,
           reciboIdsCriados: r.reciboIdsCriados,
           reciboIdsComplementados: r.reciboIdsComplementados,
@@ -288,51 +233,16 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const mFecharPag = useMutation({
-    mutationFn: () => fecharPag({ data: { pagamento_id: pagamentoId } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      toast.success("Pagamento fechado");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const mReabrirPag = useMutation({
-    mutationFn: () => reabrirPag({ data: { pagamento_id: pagamentoId, motivo: reabrirMotivo } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["pagamentos"] });
-      setShowReabrir(false);
-      setReabrirMotivo("");
-      toast.success("Pagamento reaberto — em preparação");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const previewPagamentoQuery = useQuery({
-    queryKey: ["preview-pagamento", pagamentoId],
-    enabled: !!pagamentoId,
-    queryFn: () => previewPag({ data: { pagamento_id: pagamentoId } }),
-  });
-
-  const pendentesGrupos = (previewPagamentoQuery.data?.grupos ?? []) as PreviewPagamentoGrupo[];
-  const podeGerar = pagamentoAtual && (pagamentoAtual.status === "EM_PREPARACAO" || pagamentoAtual.status === "GERADO");
-
-  const recibosRecemGerados =
-    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIds : [];
-  const qtdCriadosUltima =
-    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIdsCriados.length : 0;
-  const qtdComplementadosUltima =
-    ultimaGeracao.pagamentoId === pagamentoId ? ultimaGeracao.reciboIdsComplementados.length : 0;
-
-
-
+  const recibosRecemGerados = ultimaGeracao.reciboIds;
+  const qtdCriadosUltima = ultimaGeracao.reciboIdsCriados.length;
+  const qtdComplementadosUltima = ultimaGeracao.reciboIdsComplementados.length;
 
   const mExcluir = useMutation({
     mutationFn: () => excluir({ data: { reciboId: excluirId! } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
-      qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
+      qc.invalidateQueries({ queryKey: ["preview-extras-pendentes"] });
       toast.success("Recibo excluído");
       setExcluirId(null);
     },
@@ -342,13 +252,11 @@ function Page() {
   const selectedIds = Object.keys(selected).filter((k) => selected[k]);
   const todosVisiveisSelecionados = filtrados.length > 0 && filtrados.every((r) => selected[r.id]);
 
-  // Impressão: NÃO arquiva automaticamente. O recibo só sai da tela quando
-  // o usuário confirmar via "Arquivar selecionados" (após a impressão real).
   const handleImprimir = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } });
   };
-  // PDF: o download confirma a geração — arquiva apenas após gerarPdfRecibos resolver.
+
   const handlePdf = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
@@ -361,6 +269,7 @@ function Page() {
       toast.error((e as Error).message);
     }
   };
+
   const handleArquivar = async (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
     try {
@@ -374,73 +283,30 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Recibos" description="Recibos pendentes. Imprima e depois clique em 'Arquivar Selecionados' para arquivar. Geração de PDF arquiva automaticamente após o download." />
+      <PageHeader
+        title="Recibos"
+        description="Extras liberadas pelo financeiro ficam disponíveis aqui. Gere os recibos pendentes, imprima e arquive. A emissão do recibo representa o pagamento."
+      />
 
-      {/* Pagamento + geração de recibos */}
       <div className="rounded-md border p-3 bg-card mb-4">
-        <div className="text-sm font-semibold mb-2">Pagamento</div>
+        <div className="text-sm font-semibold mb-2">Emissão</div>
         <div className="text-xs text-muted-foreground mb-3">
-          O financeiro <strong>cria o pagamento</strong> (Em preparação) e depois <strong>gera os recibos</strong>.
-          Um recibo por colaborador por pagamento, incluindo extras retroativas aprovadas/pagas sem recibo ativo.
+          Inclui extras retroativas aprovadas e pagas sem recibo ativo.
           A <strong>semana_ref</strong> de cada extra é preservada no item do recibo.
         </div>
 
-        <div className="flex gap-2 items-end flex-wrap mb-3">
-          <div>
-            <Label className="text-xs">Pagamento</Label>
-            <Select value={pagamentoId || "_none"} onValueChange={(v) => {
-              const next = v === "_none" ? "" : v;
-              setPagamentoId(next);
-              setUltimaGeracao({ pagamentoId: "", reciboIds: [], reciboIdsCriados: [], reciboIdsComplementados: [] });
-              setSelected({});
-            }}>
-              <SelectTrigger className="w-[280px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_none">— Selecione —</SelectItem>
-                {(pagamentos.data ?? []).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.referencia || p.data_pagamento} — {STATUS_PAGAMENTO[p.status]} ({p.data_pagamento})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {pagamentoAtual && (
-            <Badge variant={pagamentoAtual.status === "FECHADO" ? "secondary" : "default"}>
-              {STATUS_PAGAMENTO[pagamentoAtual.status]}
-            </Badge>
-          )}
-        </div>
+        <Button
+          onClick={() => mGerar.mutate()}
+          disabled={mGerar.isPending || !qtdExtrasPendentes}
+        >
+          <FilePlus className="h-4 w-4 mr-1" />
+          Gerar recibos pendentes
+          {qtdExtrasPendentes ? ` (${qtdExtrasPendentes} extra(s), ${pendentesGrupos.length} colaborador(es))` : ""}
+        </Button>
 
-        <div className="flex gap-2 items-end flex-wrap mb-3 border-t pt-3">
-          <div><Label className="text-xs">Novo pagamento — referência</Label><Input value={pagReferencia} onChange={(e) => setPagReferencia(e.target.value)} placeholder="Ex.: Pagamento jun/2026" /></div>
-          <div><Label className="text-xs">Data pagamento</Label><Input type="date" value={pagData} onChange={(e) => setPagData(e.target.value)} /></div>
-          <Button variant="outline" onClick={() => mCriarPag.mutate()} disabled={!pagData || mCriarPag.isPending}>
-            <FilePlus className="h-4 w-4 mr-1" />Criar pagamento
-          </Button>
-        </div>
-
-        {pagamentoId && (
-          <div className="flex gap-2 items-end flex-wrap mb-3">
-            <Button
-              onClick={() => mGerar.mutate()}
-              disabled={!podeGerar || mGerar.isPending || !pendentesGrupos.length}
-            >
-              <FilePlus className="h-4 w-4 mr-1" />
-              Gerar recibos {pendentesGrupos.length ? `(${pendentesGrupos.reduce((a, g) => a + g.qtd, 0)} extra(s), ${pendentesGrupos.length} colaborador(es))` : ""}
-            </Button>
-            {pagamentoAtual?.status === "GERADO" && (
-              <Button variant="outline" onClick={() => mFecharPag.mutate()} disabled={mFecharPag.isPending}>Fechar pagamento</Button>
-            )}
-            {pagamentoAtual?.status === "FECHADO" && (
-              <Button variant="outline" onClick={() => setShowReabrir(true)}>Reabrir pagamento</Button>
-            )}
-          </div>
-        )}
-
-        {!!pendentesGrupos.length && pagamentoId && (
+        {!!pendentesGrupos.length && (
           <div className="mt-2 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras elegíveis para este pagamento</div>
+            <div className="font-semibold mb-1">Prévia — extras elegíveis</div>
             {pendentesGrupos.map((g) => (
               <div key={g.colaborador_id} className="mb-1">
                 <div className="font-medium">
@@ -459,25 +325,10 @@ function Page() {
             ))}
           </div>
         )}
-        {pagamentoId && !previewPagamentoQuery.isLoading && !pendentesGrupos.length && podeGerar && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível pendente para este pagamento.</div>
+        {!previewPendentesQuery.isLoading && !pendentesGrupos.length && (
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível pendente de recibo.</div>
         )}
       </div>
-
-      {/* Reabrir pagamento */}
-      <Dialog open={showReabrir} onOpenChange={setShowReabrir}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reabrir pagamento</DialogTitle>
-            <DialogDescription>Informe o motivo. O pagamento voltará para Em preparação e novas extras poderão ser incluídas.</DialogDescription>
-          </DialogHeader>
-          <Textarea value={reabrirMotivo} onChange={(e) => setReabrirMotivo(e.target.value)} placeholder="Motivo da reabertura..." />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReabrir(false)}>Cancelar</Button>
-            <Button onClick={() => mReabrirPag.mutate()} disabled={!reabrirMotivo.trim() || mReabrirPag.isPending}>Reabrir</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <ReimpressaoPorGeracao
         reDe={reDe} reAte={reAte} setReDe={setReDe} setReAte={setReAte}
@@ -488,10 +339,6 @@ function Page() {
         }}
       />
 
-
-
-
-      {/* Filtros */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3 rounded-md border p-3 bg-card">
         <div>
           <Label className="text-xs">Colaborador</Label>
@@ -536,7 +383,6 @@ function Page() {
         </div>
       </div>
 
-      {/* Ações em lote */}
       {!!recibosRecemGerados.length && (
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 mb-3 text-xs">
           <div className="font-semibold mb-1">Última geração</div>
@@ -698,7 +544,6 @@ function Page() {
         </Table>
       </div>
 
-      {/* Excluir */}
       <Dialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -712,7 +557,6 @@ function Page() {
         </DialogContent>
       </Dialog>
 
-      {/* Itens */}
       <Dialog open={!!detalheId} onOpenChange={(o) => !o && setDetalheId(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -737,7 +581,6 @@ function Page() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview A4 */}
       <Dialog open={!!previewIds} onOpenChange={(o) => !o && setPreviewIds(null)}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -814,5 +657,3 @@ function ReimpressaoPorGeracao({
     </div>
   );
 }
-
-
