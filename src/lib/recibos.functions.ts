@@ -168,7 +168,6 @@ async function executarGeracaoRecibos(
     let anexados = 0;
     let emAndamento = 0;
     const erros: string[] = [];
-    const reciboIds: string[] = [];
     const reciboIdsCriados: string[] = [];
     const reciboIdsComplementados: string[] = [];
 
@@ -204,7 +203,6 @@ async function executarGeracaoRecibos(
           reciboId = existente.id;
           anexados++;
           reciboIdsComplementados.push(reciboId);
-          reciboIds.push(reciboId);
         } else {
           const semanaRef = minSemanaRef(extrasColab);
           const { data: rec, error: e1 } = await supabase.from("recibos").insert({
@@ -231,7 +229,6 @@ async function executarGeracaoRecibos(
           reciboId = rec!.id;
           criados++;
           reciboIdsCriados.push(reciboId);
-          reciboIds.push(reciboId);
         }
 
         const { error: eExtra } = await supabase
@@ -255,7 +252,19 @@ async function executarGeracaoRecibos(
         .in("status", ["EM_PREPARACAO", "GERADO"]);
     }
 
-    return { criados, anexados, emAndamento, erros, reciboIds, reciboIdsCriados, reciboIdsComplementados };
+    const reciboIdsCriadosUnicos = [...new Set(reciboIdsCriados)];
+    const reciboIdsComplementadosUnicos = [...new Set(reciboIdsComplementados)];
+    const reciboIds = [...new Set([...reciboIdsCriadosUnicos, ...reciboIdsComplementadosUnicos])];
+
+    return {
+      criados,
+      anexados,
+      emAndamento,
+      erros,
+      reciboIds,
+      reciboIdsCriados: reciboIdsCriadosUnicos,
+      reciboIdsComplementados: reciboIdsComplementadosUnicos,
+    };
 }
 
 /** Gera ou complementa recibos de um pagamento existente (1 recibo/colaborador). */

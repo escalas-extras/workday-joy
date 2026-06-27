@@ -25,6 +25,7 @@ import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { loadReciboViews } from "@/lib/recibos-views";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { formatBRL } from "@/lib/extenso";
+import { extrairRecibadasSet, type ReciboItemRow } from "@/lib/recibos-filter";
 
 export const Route = createFileRoute("/_authenticated/recibos/")({ component: Page });
 
@@ -42,6 +43,20 @@ type ReciboRow = {
   pagamentos?: { referencia: string | null; status: PagamentoStatus; data_pagamento: string } | null;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
     empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
+};
+
+type VisibilidadeRecibos = "pendentes" | "arquivados" | "todos";
+
+type ExtraPagaSemReciboRow = {
+  id: string;
+  data: string;
+  valor: number;
+  colaborador_id: string;
+  cliente_id: string;
+  empresa_id: string | null;
+  colaboradores?: { nome: string } | null;
+  clientes?: { nome_fantasia: string } | null;
+  empresas?: { nome: string } | null;
 };
 
 const STATUS_PAGAMENTO: Record<PagamentoStatus, string> = {
@@ -89,6 +104,7 @@ function Page() {
   const [fColab, setFColab] = useState<string>("");
   const [fCliente, setFCliente] = useState<string>("");
   const [fEmpresa, setFEmpresa] = useState<string>("");
+  const [fVisibilidade, setFVisibilidade] = useState<VisibilidadeRecibos>("pendentes");
   const [fStatus] = useState<string>("");
 
   const pagamentos = useQuery({
@@ -107,14 +123,18 @@ function Page() {
   const pagamentoAtual = pagamentos.data?.find((p) => p.id === pagamentoId);
 
   const list = useQuery({
-    queryKey: ["recibos", pagamentoId],
+    queryKey: ["recibos", pagamentoId, fVisibilidade],
     enabled: !!pagamentoId,
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("recibos")
         .select("*, pagamentos(referencia,status,data_pagamento), colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
         .eq("pagamento_id", pagamentoId)
-        .is("arquivado_em", null);
+        .eq("ativo", true);
+      if (fVisibilidade === "pendentes") query = query.is("arquivado_em", null);
+      if (fVisibilidade === "arquivados") query = query.not("arquivado_em", "is", null);
+      const { data, error } = await query;
+      if (error) throw error;
       // Ordenação alfabética por nome do colaborador (pt-BR, ignora caixa/acentos)
       return ((data ?? []) as ReciboRow[]).sort((a, b) =>
         (a.colaboradores?.nome ?? "").localeCompare(
@@ -156,6 +176,37 @@ function Page() {
     },
   });
 
+  const extrasPagasSemRecibo = useQuery({
+    queryKey: ["extras-pagas-sem-recibo"],
+    queryFn: async () => {
+      const { data: extras, error } = await supabase
+        .from("extras")
+        .select("id,data,valor,colaborador_id,cliente_id,empresa_id,colaboradores!colaborador_id(nome),clientes(nome_fantasia),empresas(nome)")
+        .eq("status", "aprovado_financeiro")
+        .eq("situacao_financeira", "pago")
+        .order("data", { ascending: false });
+      if (error) throw error;
+
+      const rows = (extras ?? []) as unknown as ExtraPagaSemReciboRow[];
+      if (!rows.length) return [];
+
+      const recibadasSet = new Set<string>();
+      const lote = 500;
+      for (let i = 0; i < rows.length; i += lote) {
+        const ids = rows.slice(i, i + lote).map((extra) => extra.id);
+        const { data: recibadas, error: eRecibadas } = await supabase
+          .from("recibos_itens")
+          .select("extra_id, recibos!inner(ativo)")
+          .in("extra_id", ids)
+          .eq("recibos.ativo", true);
+        if (eRecibadas) throw eRecibadas;
+        for (const id of extrairRecibadasSet((recibadas ?? []) as ReciboItemRow[])) recibadasSet.add(id);
+      }
+
+      return rows.filter((extra) => !recibadasSet.has(extra.id));
+    },
+  });
+
   const filtrados = useMemo(() => {
     const rows = list.data ?? [];
     return rows.filter((r) => {
@@ -169,6 +220,21 @@ function Page() {
       return true;
     });
   }, [list.data, fColab, fEmpresa, fStatus, fCliente, recibosClientesMap.data]);
+
+  const extrasPagasSemReciboFiltradas = useMemo(() => {
+    const rows = extrasPagasSemRecibo.data ?? [];
+    return rows.filter((extra) => {
+      if (fColab && extra.colaborador_id !== fColab) return false;
+      if (fCliente && extra.cliente_id !== fCliente) return false;
+      if (fEmpresa && extra.empresa_id !== fEmpresa) return false;
+      return true;
+    });
+  }, [extrasPagasSemRecibo.data, fColab, fCliente, fEmpresa]);
+
+  const totalExtrasPagasSemRecibo = extrasPagasSemReciboFiltradas.reduce(
+    (total, extra) => total + Number(extra.valor),
+    0,
+  );
 
   const itens = useQuery({
     queryKey: ["recibo_itens", detalheId],
@@ -201,6 +267,7 @@ function Page() {
       qc.invalidateQueries({ queryKey: ["recibos"] });
       qc.invalidateQueries({ queryKey: ["pagamentos"] });
       qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
+      qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
       if (r.reciboIds.length) {
         setUltimaGeracao({
@@ -262,7 +329,13 @@ function Page() {
 
   const mExcluir = useMutation({
     mutationFn: () => excluir({ data: { reciboId: excluirId! } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["recibos"] }); toast.success("Recibo excluído"); setExcluirId(null); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recibos"] });
+      qc.invalidateQueries({ queryKey: ["extras-pagas-sem-recibo"] });
+      qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
+      toast.success("Recibo excluído");
+      setExcluirId(null);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -447,22 +520,40 @@ function Page() {
             </SelectContent>
           </Select>
         </div>
-        <div className="hidden" />
+        <div>
+          <Label className="text-xs">Visibilidade</Label>
+          <Select value={fVisibilidade} onValueChange={(v) => setFVisibilidade(v as VisibilidadeRecibos)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pendentes">Pendentes</SelectItem>
+              <SelectItem value="arquivados">Arquivados</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex items-end gap-1">
-          <Button size="sm" variant="outline" onClick={() => { setFColab(""); setFCliente(""); setFEmpresa(""); }}>Limpar</Button>
+          <Button size="sm" variant="outline" onClick={() => { setFColab(""); setFCliente(""); setFEmpresa(""); setFVisibilidade("pendentes"); }}>Limpar</Button>
         </div>
       </div>
 
       {/* Ações em lote */}
       {!!recibosRecemGerados.length && (
         <div className="rounded-md border border-primary/30 bg-primary/5 p-3 mb-3 text-xs">
-          <div className="font-semibold mb-1">Última geração neste pagamento</div>
-          <p className="text-muted-foreground">
-            {qtdCriadosUltima} recibo(s) criado(s), {qtdComplementadosUltima} complementado(s).
+          <div className="font-semibold mb-1">Última geração</div>
+          <p className="text-muted-foreground mb-2">
+            {qtdCriadosUltima} recibo(s) criado(s), {qtdComplementadosUltima} complementado(s), {recibosRecemGerados.length} afetado(s) no total.
             {qtdComplementadosUltima > 0 && (
               <> Recibos complementados serão impressos/baixados <strong>completos</strong>, incluindo itens anteriores.</>
             )}
           </p>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => handleImprimir(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
+              <Printer className="h-4 w-4 mr-1" />Imprimir última geração ({recibosRecemGerados.length})
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handlePdf(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
+              <FileDown className="h-4 w-4 mr-1" />Baixar PDF última geração ({recibosRecemGerados.length})
+            </Button>
+          </div>
         </div>
       )}
 
@@ -539,7 +630,11 @@ function Page() {
                 <TableCell>{r.colaboradores?.empresas?.nome}</TableCell>
                 <TableCell>{r.data_pagamento}</TableCell>
                 <TableCell>{formatBRL(r.valor_total)}</TableCell>
-                <TableCell><Badge variant="default">Ativo</Badge></TableCell>
+                <TableCell>
+                  <Badge variant={r.arquivado_em ? "secondary" : "default"}>
+                    {r.arquivado_em ? "Arquivado" : "Pendente"}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => setPreviewIds([r.id])} title="Visualizar"><Eye className="h-3 w-3" /></Button>
@@ -552,6 +647,53 @@ function Page() {
               </TableRow>
             ))}
             {filtrados.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum recibo</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="rounded-md border bg-card overflow-x-auto mt-4">
+        <div className="flex items-center justify-between gap-2 p-3 border-b">
+          <div>
+            <div className="text-sm font-semibold">Extras pagas sem recibo</div>
+            <div className="text-xs text-muted-foreground">
+              {extrasPagasSemReciboFiltradas.length} extra(s), total {formatBRL(totalExtrasPagasSemRecibo)}
+            </div>
+          </div>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Colaborador</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Empresa</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {extrasPagasSemReciboFiltradas.map((extra) => (
+              <TableRow key={extra.id}>
+                <TableCell>{extra.colaboradores?.nome ?? "—"}</TableCell>
+                <TableCell>{extra.data}</TableCell>
+                <TableCell>{extra.clientes?.nome_fantasia ?? "—"}</TableCell>
+                <TableCell>{extra.empresas?.nome ?? "—"}</TableCell>
+                <TableCell className="text-right">{formatBRL(extra.valor)}</TableCell>
+              </TableRow>
+            ))}
+            {!extrasPagasSemRecibo.isLoading && extrasPagasSemReciboFiltradas.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                  Nenhuma extra paga sem recibo ativo
+                </TableCell>
+              </TableRow>
+            )}
+            {extrasPagasSemRecibo.isLoading && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                  Carregando...
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
