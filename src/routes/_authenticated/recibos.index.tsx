@@ -63,6 +63,8 @@ function Page() {
   const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [confirmGerarOpen, setConfirmGerarOpen] = useState(false);
+  const [confirmArquivarIds, setConfirmArquivarIds] = useState<string[] | null>(null);
+  const [arquivando, setArquivando] = useState(false);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
@@ -298,23 +300,35 @@ function Page() {
     try {
       const views = await loadReciboViews(ids);
       await gerarPdfRecibos(views, `recibos-${new Date().toISOString().slice(0, 10)}.pdf`);
-      const r = await arquivar({ data: { ids } });
-      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
-      qc.invalidateQueries({ queryKey: ["recibos"] });
+      toast.success(`PDF baixado — ${views.length} recibo(s). PDF não arquiva automaticamente.`);
     } catch (e) {
       toast.error((e as Error).message);
     }
   };
 
-  const handleArquivar = async (ids: string[]) => {
+  const solicitarArquivar = (ids: string[]) => {
     if (!ids.length) return toast.error("Selecione ao menos um recibo");
+    setConfirmArquivarIds(ids);
+  };
+
+  const executarArquivar = async () => {
+    if (!confirmArquivarIds?.length) return;
+    setArquivando(true);
     try {
-      const r = await arquivar({ data: { ids } });
-      if (r.arquivados) toast.success(`${r.arquivados} recibo(s) arquivado(s)`);
-      else toast.info("Nenhum recibo foi arquivado");
+      const r = await arquivar({ data: { ids: confirmArquivarIds } });
+      if (r.arquivados) {
+        toast.success(`${r.arquivados} recibo(s) arquivado(s) — disponíveis em Relatórios › Recibos`);
+      } else {
+        toast.info("Nenhum recibo foi arquivado");
+      }
       qc.invalidateQueries({ queryKey: ["recibos"] });
       setSelected({});
-    } catch (e) { toast.error((e as Error).message); }
+      setConfirmArquivarIds(null);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setArquivando(false);
+    }
   };
 
   return (
@@ -483,9 +497,16 @@ function Page() {
             <Button size="sm" variant="outline" onClick={() => handlePdf(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
               <FileDown className="h-4 w-4 mr-1" />Baixar PDF última geração ({recibosRecemGerados.length})
             </Button>
+            <Button size="sm" variant="default" onClick={() => solicitarArquivar(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
+              Arquivar recibos última geração ({recibosRecemGerados.length})
+            </Button>
           </div>
         </div>
       )}
+
+      <p className="text-xs text-muted-foreground mb-2">
+        <strong>PDF não arquiva automaticamente.</strong> Use &quot;Baixar PDF&quot; para exportar e &quot;Arquivar recibos&quot; após conferir impressão ou entrega.
+      </p>
 
       <div className="flex gap-2 mb-3 flex-wrap">
         <Button size="sm" variant="outline" onClick={() => handleImprimir(recibosRecemGerados)} disabled={!recibosRecemGerados.length}>
@@ -496,30 +517,30 @@ function Page() {
         </Button>
         <div className="w-px bg-border mx-1" />
         <Button size="sm" variant="outline" onClick={() => handleImprimir(selectedIds)} disabled={!selectedIds.length}>
-          <Printer className="h-4 w-4 mr-1" />Imprimir Selecionados ({selectedIds.length})
+          <Printer className="h-4 w-4 mr-1" />Imprimir selecionados ({selectedIds.length})
         </Button>
         <Button size="sm" variant="outline" onClick={() => handlePdf(selectedIds)} disabled={!selectedIds.length}>
-          <FileDown className="h-4 w-4 mr-1" />PDF Selecionados
+          <FileDown className="h-4 w-4 mr-1" />Baixar PDF selecionados ({selectedIds.length})
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setPreviewIds(selectedIds)} disabled={!selectedIds.length}>
-          <Eye className="h-4 w-4 mr-1" />Visualizar Selecionados
+          <Eye className="h-4 w-4 mr-1" />Visualizar selecionados
         </Button>
-        <Button size="sm" variant="default" onClick={() => handleArquivar(selectedIds)} disabled={!selectedIds.length} title="Marcar como arquivados (após impressão confirmada)">
-          Arquivar Selecionados ({selectedIds.length})
+        <Button size="sm" variant="default" onClick={() => solicitarArquivar(selectedIds)} disabled={!selectedIds.length}>
+          Arquivar recibos selecionados ({selectedIds.length})
         </Button>
         <div className="w-px bg-border mx-1" />
         <Button size="sm" onClick={() => handleImprimir(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
-          <Printer className="h-4 w-4 mr-1" />Imprimir Filtrados ({filtrados.length})
+          <Printer className="h-4 w-4 mr-1" />Imprimir filtrados ({filtrados.length})
         </Button>
         <Button size="sm" onClick={() => handlePdf(filtrados.map((r) => r.id))} disabled={!filtrados.length}>
-          <FileDown className="h-4 w-4 mr-1" />PDF Filtrados
+          <FileDown className="h-4 w-4 mr-1" />Baixar PDF filtrados ({filtrados.length})
         </Button>
         <div className="w-px bg-border mx-1" />
         <Button size="sm" variant="secondary" onClick={() => handleImprimir((list.data ?? []).map((r) => r.id))} disabled={!list.data?.length}>
-          <Printer className="h-4 w-4 mr-1" />Imprimir Todos ({list.data?.length ?? 0})
+          <Printer className="h-4 w-4 mr-1" />Imprimir todos ({list.data?.length ?? 0})
         </Button>
         <Button size="sm" variant="secondary" onClick={() => handlePdf((list.data ?? []).map((r) => r.id))} disabled={!list.data?.length}>
-          <FileDown className="h-4 w-4 mr-1" />PDF Todos
+          <FileDown className="h-4 w-4 mr-1" />Baixar PDF todos ({list.data?.length ?? 0})
         </Button>
       </div>
 
@@ -569,7 +590,7 @@ function Page() {
                   <div className="flex gap-1 justify-end">
                     <Button size="sm" variant="outline" onClick={() => setPreviewIds([r.id])} title="Visualizar"><Eye className="h-3 w-3" /></Button>
                     <Button size="sm" variant="outline" onClick={() => handleImprimir([r.id])} title="Imprimir"><Printer className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="PDF"><FileDown className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="outline" onClick={() => handlePdf([r.id])} title="Baixar PDF"><FileDown className="h-3 w-3" /></Button>
                     <Button size="sm" variant="ghost" onClick={() => setDetalheId(r.id)}>Itens</Button>
                     <Button size="sm" variant="destructive" onClick={() => setExcluirId(r.id)} title="Excluir (admin)"><Ban className="h-3 w-3" /></Button>
                   </div>
@@ -628,6 +649,27 @@ function Page() {
         </Table>
       </div>
 
+      <Dialog open={!!confirmArquivarIds} onOpenChange={(o) => !o && !arquivando && setConfirmArquivarIds(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Arquivar recibos</DialogTitle>
+            <DialogDescription>
+              Confirme o arquivamento de {confirmArquivarIds?.length ?? 0} recibo(s).
+              {" "}Eles sairão da lista de pendentes e ficarão disponíveis em Relatórios › Recibos.
+              {" "}Esta ação é independente de baixar PDF — arquive somente após conferir impressão ou entrega ao colaborador.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmArquivarIds(null)} disabled={arquivando}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void executarArquivar()} disabled={arquivando}>
+              {arquivando ? "Arquivando..." : "Arquivar recibos"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!excluirId} onOpenChange={(o) => !o && setExcluirId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -676,7 +718,7 @@ function Page() {
               <Printer className="h-4 w-4 mr-1" />Imprimir
             </Button>
             <Button size="sm" variant="outline" onClick={() => previewIds && handlePdf(previewIds)}>
-              <FileDown className="h-4 w-4 mr-1" />PDF
+              <FileDown className="h-4 w-4 mr-1" />Baixar PDF
             </Button>
           </div>
           <div className="bg-gray-100 p-4">
@@ -732,7 +774,7 @@ function ReimpressaoPorGeracao({
           <Printer className="h-4 w-4 mr-1" />Imprimir ({ids.length})
         </Button>
         <Button size="sm" variant="outline" onClick={() => onPdf(ids)} disabled={!ids.length}>
-          <FileDown className="h-4 w-4 mr-1" />PDF
+          <FileDown className="h-4 w-4 mr-1" />Baixar PDF ({ids.length})
         </Button>
         {!!ids.length && (
           <span className="text-xs text-muted-foreground">Total: {formatBRL(totalValor)}</span>
