@@ -2,6 +2,7 @@ import { valorPorExtenso, formatBRL } from "@/lib/extenso";
 
 export interface ReciboItemView {
   data: string; // YYYY-MM-DD
+  semana_ref?: string; // YYYY-MM-DD
   cliente: string;
   empresa?: string;
   valor: number;
@@ -12,8 +13,9 @@ export interface ReciboView {
   id: string;
   numero: number | string;
   colaborador: string;
-  semana_ref: string; // YYYY-MM-DD
-  data_pagamento: string; // YYYY-MM-DD
+  semana_ref: string; // legado — referência mínima do recibo
+  data_pagamento: string;
+  pagamento_referencia?: string;
   valor_total: number;
   ativo: boolean;
   itens: ReciboItemView[];
@@ -26,36 +28,11 @@ function fmtDate(d: string): string {
   return `${day}/${m}/${y}`;
 }
 
-const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-const ORDINAIS = ["1ª", "2ª", "3ª", "4ª", "5ª"];
-
-function addDays(d: string, n: number): string {
-  const [y, m, day] = d.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, day + n));
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
-}
-
-function semanaDoMes(semana_ref: string): { label: string; periodo: string } {
-  if (!semana_ref) return { label: "", periodo: "" };
-  // semana_ref é a sexta-feira de início; quarta de referência = sexta + 5 dias
-  const quartaReferencia = addDays(semana_ref, 5);
-  const [y, m, d] = quartaReferencia.split("-").map(Number);
-  const wed = new Date(Date.UTC(y, m - 1, d));
-  const wDay = wed.getUTCDate();
-  const wMonth = wed.getUTCMonth();
-  const wYear = wed.getUTCFullYear();
-  const ord = ORDINAIS[Math.min(Math.ceil(wDay / 7), 5) - 1] ?? `${Math.ceil(wDay / 7)}ª`;
-  const label = `${ord} Semana de ${MESES[wMonth]}/${wYear}`;
-  // Período: sexta a quinta da semana seguinte (7 dias)
-  const fim = addDays(semana_ref, 6);
-  return { label, periodo: `${fmtDate(semana_ref)} a ${fmtDate(fim)}` };
-}
-
 function ReciboBloco({ r }: { r: ReciboView }) {
   return (
     <div
       className="relative grid grid-cols-2 gap-0 border-2 border-[#060B5A] rounded-lg overflow-hidden bg-white text-black"
-      style={{ height: "50mm", pageBreakInside: "avoid", breakInside: "avoid" }}
+      style={{ minHeight: "50mm", pageBreakInside: "avoid", breakInside: "avoid" }}
     >
       {!r.ativo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -79,28 +56,13 @@ function ReciboBloco({ r }: { r: ReciboView }) {
             ({valorPorExtenso(r.valor_total)})
           </p>
           <div className="mt-1 space-y-0.5 text-[9px]">
-            {(() => {
-              const s = semanaDoMes(r.semana_ref);
-              return (
-                <>
-                  <p>
-                    <span className="font-semibold">Semana Ref.: </span>
-                    {s.label}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Período: </span>
-                    {s.periodo}
-                  </p>
-                </>
-              );
-            })()}
             <p className="truncate">
               <span className="font-semibold">Colaborador: </span>
               {r.colaborador}
             </p>
             <p>
               <span className="font-semibold">Pagamento: </span>
-              {fmtDate(r.data_pagamento)}
+              {r.pagamento_referencia ? `${r.pagamento_referencia} — ` : ""}{fmtDate(r.data_pagamento)}
             </p>
           </div>
         </div>
@@ -117,15 +79,17 @@ function ReciboBloco({ r }: { r: ReciboView }) {
           <thead>
             <tr className="border-b border-[#060B5A]">
               <th className="text-left py-0.5">DATA</th>
+              <th className="text-left py-0.5">SEM.</th>
               <th className="text-left py-0.5">CLIENTE</th>
               <th className="text-left py-0.5">LANÇADO POR</th>
               <th className="text-right py-0.5">VALOR</th>
             </tr>
           </thead>
           <tbody>
-            {r.itens.slice(0, 4).map((it, i) => (
+            {r.itens.map((it, i) => (
               <tr key={i} className="border-b border-[#060B5A]/15">
                 <td className="py-0.5 align-top">{fmtDate(it.data)}</td>
+                <td className="py-0.5 align-top">{fmtDate(it.semana_ref ?? "")}</td>
                 <td className="py-0.5 max-w-[80px]">
                   <div className="truncate">{it.cliente}</div>
                   {it.empresa && <div className="truncate text-[8px] text-gray-600">{it.empresa}</div>}
@@ -136,17 +100,10 @@ function ReciboBloco({ r }: { r: ReciboView }) {
                 <td className="py-0.5 text-right align-top">{formatBRL(it.valor)}</td>
               </tr>
             ))}
-            {r.itens.length > 4 && (
-              <tr>
-                <td colSpan={4} className="text-[8px] text-gray-500 italic py-0.5">
-                  + {r.itens.length - 4} item(ns) ocultado(s)
-                </td>
-              </tr>
-            )}
           </tbody>
           <tfoot>
             <tr className="border-t border-[#060B5A] font-bold">
-              <td colSpan={3} className="py-0.5 text-right">TOTAL</td>
+              <td colSpan={4} className="py-0.5 text-right">TOTAL</td>
               <td className="py-0.5 text-right">{formatBRL(r.valor_total)}</td>
             </tr>
           </tfoot>

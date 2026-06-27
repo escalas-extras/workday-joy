@@ -19,7 +19,7 @@ import { formatBRL } from "@/lib/extenso";
 import { ReciboA4, type ReciboView } from "@/components/recibos/ReciboA4";
 import { gerarPdfRecibos } from "@/lib/recibos-export";
 import { loadReciboViews } from "@/lib/recibos-views";
-import { desarquivarRecibo, gerarRecibosPendentes, auditarInconsistencias } from "@/lib/recibos.functions";
+import { desarquivarRecibo, auditarInconsistencias } from "@/lib/recibos.functions";
 import { exportarExcel, exportarPdf, type ColunaRelatorio } from "@/lib/relatorios-export";
 import { extrairRecibadasSet, filtrarNaoRecibadas, type ReciboItemRow } from "@/lib/recibos-filter";
 
@@ -36,10 +36,7 @@ function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const desarquivar = useServerFn(desarquivarRecibo);
-  const gerarPendentes = useServerFn(gerarRecibosPendentes);
   const auditar = useServerFn(auditarInconsistencias);
-  const [gerando, setGerando] = useState(false);
-  const [dataPagPend, setDataPagPend] = useState(new Date().toISOString().slice(0, 10));
 
   // Auditoria read-only (não modifica nada)
   const auditoria = useQuery({
@@ -47,17 +44,6 @@ function Page() {
     queryFn: () => auditar(),
     staleTime: 60000,
   });
-
-  const handleGerarPendentes = async () => {
-    if (!confirm("Gerar recibos para TODAS as extras aprovadas/pagas ainda sem recibo? Para semanas com recibo ativo, os itens faltantes serão anexados.")) return;
-    setGerando(true);
-    try {
-      const res = await gerarPendentes({ data: { data_pagamento: dataPagPend } });
-      toast.success(`${res.criados} recibo(s) criado(s), ${res.anexados ?? 0} anexado(s). ${res.erros?.length ? "Erros: " + res.erros.length : ""}`);
-      qc.invalidateQueries();
-    } catch (e) { toast.error((e as Error).message); }
-    finally { setGerando(false); }
-  };
 
   const hoje = new Date().toISOString().slice(0, 10);
   const [mesRef, setMesRef] = useState(hoje.slice(0, 7)); // YYYY-MM
@@ -408,13 +394,13 @@ function Page() {
                     <Label htmlFor="naorec" className="text-xs cursor-pointer">Somente extras ainda não recibadas</Label>
                   </div>
                   <div className="ml-auto flex items-end gap-2">
-                    <div>
-                      <Label className="text-xs">Data de pagamento</Label>
-                      <Input type="date" value={dataPagPend} onChange={(e) => setDataPagPend(e.target.value)} />
-                    </div>
-                    <Button size="sm" onClick={handleGerarPendentes} disabled={gerando}>
-                      {gerando ? "Gerando..." : "Gerar recibos pendentes"}
-                    </Button>
+                    <p className="text-xs text-muted-foreground max-w-xs">
+                      Para gerar recibos, crie um pagamento em{" "}
+                      <button type="button" className="underline" onClick={() => navigate({ to: "/recibos" })}>
+                        Recibos
+                      </button>
+                      .
+                    </p>
                   </div>
                 </div>
                 <div className="rounded-md border bg-card overflow-x-auto">

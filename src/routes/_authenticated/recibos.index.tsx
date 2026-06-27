@@ -12,7 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/app-shell";
-import { gerarRecibosSemana, excluirRecibo, arquivarRecibos } from "@/lib/recibos.functions";
+import {
+  criarPagamento, gerarRecibosPagamento, fecharPagamento, reabrirPagamento,
+  excluirRecibo, arquivarRecibos, previewExtrasPagamento,
+  type PreviewPagamentoGrupo,
+} from "@/lib/recibos.functions";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Ban, FilePlus, Eye, Printer, FileDown } from "lucide-react";
@@ -23,26 +27,47 @@ import { formatBRL } from "@/lib/extenso";
 
 export const Route = createFileRoute("/_authenticated/recibos/")({ component: Page });
 
+type PagamentoStatus = "EM_PREPARACAO" | "GERADO" | "FECHADO" | "CANCELADO";
+
+type PagamentoRow = {
+  id: string; referencia: string | null; data_pagamento: string;
+  status: PagamentoStatus; criado_em: string;
+};
+
 type ReciboRow = {
   id: string; numero: number; semana_ref: string; data_pagamento: string;
-  valor_total: number; ativo: boolean; colaborador_id: string;
+  valor_total: number; ativo: boolean; colaborador_id: string; pagamento_id: string;
   arquivado_em?: string | null;
+  pagamentos?: { referencia: string | null; status: PagamentoStatus; data_pagamento: string } | null;
   colaboradores?: { nome: string; matricula?: string; empresa_id?: string;
     empresas?: { id: string; nome: string }; funcoes?: { nome: string } };
+};
+
+const STATUS_PAGAMENTO: Record<PagamentoStatus, string> = {
+  EM_PREPARACAO: "Em preparação",
+  GERADO: "Gerado",
+  FECHADO: "Fechado",
+  CANCELADO: "Cancelado",
 };
 
 function Page() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const gerar = useServerFn(gerarRecibosSemana);
+  const gerar = useServerFn(gerarRecibosPagamento);
+  const criarPag = useServerFn(criarPagamento);
+  const fecharPag = useServerFn(fecharPagamento);
+  const reabrirPag = useServerFn(reabrirPagamento);
+  const previewPag = useServerFn(previewExtrasPagamento);
   const excluir = useServerFn(excluirRecibo);
   const arquivar = useServerFn(arquivarRecibos);
 
   const hojeISO = new Date().toISOString().slice(0, 10);
-  // Período padrão: 1º do mês até hoje
   const primeiroDoMes = `${hojeISO.slice(0, 7)}-01`;
-  const [de, setDe] = useState(primeiroDoMes);
-  const [ate, setAte] = useState(hojeISO);
+  const [pagamentoId, setPagamentoId] = useState<string>("");
+  const [pagReferencia, setPagReferencia] = useState("");
+  const [pagData, setPagData] = useState(hojeISO);
+  const [reabrirMotivo, setReabrirMotivo] = useState("");
+  const [showReabrir, setShowReabrir] = useState(false);
   const [excluirId, setExcluirId] = useState<string | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
   const [previewIds, setPreviewIds] = useState<string[] | null>(null);
@@ -54,18 +79,34 @@ function Page() {
 
 
   // Filtros
-  const [fSemana, setFSemana] = useState("");
   const [fColab, setFColab] = useState<string>("");
   const [fCliente, setFCliente] = useState<string>("");
   const [fEmpresa, setFEmpresa] = useState<string>("");
   const [fStatus] = useState<string>("");
 
+  const pagamentos = useQuery({
+    queryKey: ["pagamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pagamentos")
+        .select("id, referencia, data_pagamento, status, criado_em")
+        .neq("status", "CANCELADO")
+        .order("criado_em", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PagamentoRow[];
+    },
+  });
+
+  const pagamentoAtual = pagamentos.data?.find((p) => p.id === pagamentoId);
+
   const list = useQuery({
-    queryKey: ["recibos"],
+    queryKey: ["recibos", pagamentoId],
+    enabled: !!pagamentoId,
     queryFn: async () => {
       const { data } = await supabase
         .from("recibos")
-        .select("*, colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
+        .select("*, pagamentos(referencia,status,data_pagamento), colaboradores(id,nome,matricula,empresa_id,empresas(id,nome),funcoes(nome))")
+        .eq("pagamento_id", pagamentoId)
         .is("arquivado_em", null);
       // Ordenação alfabética por nome do colaborador (pt-BR, ignora caixa/acentos)
       return ((data ?? []) as ReciboRow[]).sort((a, b) =>
@@ -111,7 +152,6 @@ function Page() {
   const filtrados = useMemo(() => {
     const rows = list.data ?? [];
     return rows.filter((r) => {
-      if (fSemana && r.semana_ref !== fSemana) return false;
       if (fColab && r.colaborador_id !== fColab) return false;
       if (fEmpresa && r.colaboradores?.empresa_id !== fEmpresa) return false;
       // recibos cancelados são excluídos definitivamente; lista contém apenas ativos
@@ -121,30 +161,41 @@ function Page() {
       }
       return true;
     });
-  }, [list.data, fSemana, fColab, fEmpresa, fStatus, fCliente, recibosClientesMap.data]);
+  }, [list.data, fColab, fEmpresa, fStatus, fCliente, recibosClientesMap.data]);
 
   const itens = useQuery({
     queryKey: ["recibo_itens", detalheId],
     queryFn: async () => detalheId
-      ? (await supabase.from("recibos_itens").select("*, extras(data,hora_inicio,hora_termino,valor,cliente_id,clientes(nome_fantasia),empresas(nome))").eq("recibo_id", detalheId)).data ?? []
+      ? (await supabase.from("recibos_itens").select("*, extras(data,semana_ref,hora_inicio,hora_termino,valor,cliente_id,clientes(nome_fantasia),empresas(nome))").eq("recibo_id", detalheId)).data ?? []
       : [],
     enabled: !!detalheId,
   });
 
-  // Carrega views completas para preview (lista de IDs)
-  const previewQuery = useQuery({
+  // Carrega views completas para impressão (lista de IDs)
+  const recibosViewsQuery = useQuery({
     queryKey: ["recibos-preview", previewIds],
     enabled: !!previewIds?.length,
     queryFn: async () => loadReciboViews(previewIds ?? []),
   });
 
+  const mCriarPag = useMutation({
+    mutationFn: () => criarPag({ data: { data_pagamento: pagData, referencia: pagReferencia || undefined } }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      setPagamentoId(r.id);
+      toast.success("Pagamento criado — em preparação");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const mGerar = useMutation({
-    mutationFn: () => gerar({ data: { de, ate, data_pagamento: hojeISO } }),
+    mutationFn: () => gerar({ data: { pagamento_id: pagamentoId } }),
     onSuccess: (r: { criados: number; anexados?: number; emAndamento?: number; erros?: string[]; mensagem?: string }) => {
       qc.invalidateQueries({ queryKey: ["recibos"] });
-      qc.invalidateQueries({ queryKey: ["extras-pendentes-recibo"] });
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      qc.invalidateQueries({ queryKey: ["preview-pagamento"] });
       if (r.emAndamento) toast.info(`${r.emAndamento} recibo(s) já em geração — aguarde a conclusão`);
-      if (r.anexados) toast.info(`${r.anexados} extra(s) anexada(s) a recibo(s) já existente(s)`);
+      if (r.anexados) toast.info(`${r.anexados} recibo(s) complementado(s) com novas extras`);
       if (r.criados > 0) toast.success(`${r.criados} recibo(s) gerado(s)`);
       else if (r.mensagem) toast.info(r.mensagem);
       if (r.erros?.length) toast.error(r.erros.join("; "));
@@ -152,52 +203,34 @@ function Page() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Prévia: extras elegíveis pela DATA DO SERVIÇO no período (extras.data) e
-  // que ainda não foram recibadas (anti-join via recibos_itens ativos).
-  // Não usa created_at — extras retroativas devem aparecer.
-  const pendentesExtras = useQuery({
-    queryKey: ["extras-pendentes-recibo", de, ate],
-    enabled: !!de && !!ate,
-    queryFn: async () => {
-      const { data: extras, error } = await supabase
-        .from("extras")
-        .select("id, data, semana_ref, valor, colaborador_id, colaboradores!colaborador_id(nome)")
-        .gte("data", de).lte("data", ate)
-        .eq("status", "aprovado_financeiro")
-        .eq("situacao_financeira", "pago")
-        .order("data");
-      if (error) throw new Error(`Falha ao carregar prévia: ${error.message}`);
-      const rows = ((extras ?? []) as unknown) as { id: string; data: string; semana_ref: string; valor: number; colaborador_id: string; colaboradores: { nome: string } | null }[];
-      if (!rows.length) return [];
-      const { data: ja } = await supabase
-        .from("recibos_itens")
-        .select("extra_id, recibos!inner(ativo)")
-        .in("extra_id", rows.map((r) => r.id))
-        .eq("recibos.ativo", true);
-      const set = new Set((ja ?? []).map((r) => r.extra_id));
-      return rows.filter((r) => !set.has(r.id));
+  const mFecharPag = useMutation({
+    mutationFn: () => fecharPag({ data: { pagamento_id: pagamentoId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      toast.success("Pagamento fechado");
     },
+    onError: (e: Error) => toast.error(e.message),
   });
 
-  // Agrupa prévia por colaborador → semana_ref.
-  // Deduplica por (colaborador, data) — extras duplicadas no mesmo dia são ignoradas
-  // (não relacionadas) tanto na contagem quanto no total.
-  const pendentesGrupos = useMemo(() => {
-    const out = new Map<string, { colab: string; semanas: Map<string, { qtd: number; total: number; datas: string[] }> }>();
-    const vistos = new Set<string>(); // chave: colaborador_id|data
-    for (const e of pendentesExtras.data ?? []) {
-      const chave = `${e.colaborador_id}|${e.data}`;
-      if (vistos.has(chave)) continue; // duplicado: não relacionar
-      vistos.add(chave);
-      const nome = e.colaboradores?.nome ?? "—";
-      const g = out.get(nome) ?? { colab: nome, semanas: new Map() };
-      const s = g.semanas.get(e.semana_ref) ?? { qtd: 0, total: 0, datas: [] };
-      s.qtd++; s.total += Number(e.valor); s.datas.push(e.data);
-      g.semanas.set(e.semana_ref, s);
-      out.set(nome, g);
-    }
-    return [...out.values()].sort((a, b) => a.colab.localeCompare(b.colab));
-  }, [pendentesExtras.data]);
+  const mReabrirPag = useMutation({
+    mutationFn: () => reabrirPag({ data: { pagamento_id: pagamentoId, motivo: reabrirMotivo } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pagamentos"] });
+      setShowReabrir(false);
+      setReabrirMotivo("");
+      toast.success("Pagamento reaberto — em preparação");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const previewPagamentoQuery = useQuery({
+    queryKey: ["preview-pagamento", pagamentoId],
+    enabled: !!pagamentoId,
+    queryFn: () => previewPag({ data: { pagamento_id: pagamentoId } }),
+  });
+
+  const pendentesGrupos = (previewPagamentoQuery.data?.grupos ?? []) as PreviewPagamentoGrupo[];
+  const podeGerar = pagamentoAtual && (pagamentoAtual.status === "EM_PREPARACAO" || pagamentoAtual.status === "GERADO");
 
 
 
@@ -245,38 +278,77 @@ function Page() {
     <div>
       <PageHeader title="Recibos" description="Recibos pendentes. Imprima e depois clique em 'Arquivar Selecionados' para arquivar. Geração de PDF arquiva automaticamente após o download." />
 
-      {/* Geração — por DATA DO SERVIÇO das extras (extras.data) */}
+      {/* Pagamento + geração de recibos */}
       <div className="rounded-md border p-3 bg-card mb-4">
-        <div className="text-sm font-semibold mb-2">Gerar Recibos</div>
+        <div className="text-sm font-semibold mb-2">Pagamento</div>
         <div className="text-xs text-muted-foreground mb-3">
-          Filtro pela <strong>data do serviço</strong> (extras.data). Extras retroativas continuam elegíveis
-          mesmo se lançadas depois. A <strong>semana_ref</strong> (sex→qui da data trabalhada) é preservada.
-          Se já existir recibo ativo para o colaborador+semana, novas extras são <strong>anexadas</strong> ao recibo existente.
-          <strong> Emitido em: hoje ({hojeISO})</strong>.
+          O financeiro <strong>cria o pagamento</strong> (Em preparação) e depois <strong>gera os recibos</strong>.
+          Um recibo por colaborador por pagamento, incluindo extras retroativas aprovadas/pagas sem recibo ativo.
+          A <strong>semana_ref</strong> de cada extra é preservada no item do recibo.
         </div>
-        <div className="flex gap-2 items-end flex-wrap">
-          <div><Label className="text-xs">Data do serviço — de</Label><Input type="date" value={de} onChange={(e) => setDe(e.target.value)} /></div>
-          <div><Label className="text-xs">até</Label><Input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
-          <Button onClick={() => mGerar.mutate()} disabled={!de || !ate || mGerar.isPending || !pendentesGrupos.length}>
-            <FilePlus className="h-4 w-4 mr-1" />
-            Gerar {pendentesGrupos.length ? `(${pendentesGrupos.reduce((acc, g) => acc + [...g.semanas.values()].reduce((a, s) => a + s.qtd, 0), 0)} extra(s) em ${pendentesGrupos.length} grupo(s))` : ""}
+
+        <div className="flex gap-2 items-end flex-wrap mb-3">
+          <div>
+            <Label className="text-xs">Pagamento</Label>
+            <Select value={pagamentoId || "_none"} onValueChange={(v) => setPagamentoId(v === "_none" ? "" : v)}>
+              <SelectTrigger className="w-[280px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Selecione —</SelectItem>
+                {(pagamentos.data ?? []).map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.referencia || p.data_pagamento} — {STATUS_PAGAMENTO[p.status]} ({p.data_pagamento})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {pagamentoAtual && (
+            <Badge variant={pagamentoAtual.status === "FECHADO" ? "secondary" : "default"}>
+              {STATUS_PAGAMENTO[pagamentoAtual.status]}
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex gap-2 items-end flex-wrap mb-3 border-t pt-3">
+          <div><Label className="text-xs">Novo pagamento — referência</Label><Input value={pagReferencia} onChange={(e) => setPagReferencia(e.target.value)} placeholder="Ex.: Pagamento jun/2026" /></div>
+          <div><Label className="text-xs">Data pagamento</Label><Input type="date" value={pagData} onChange={(e) => setPagData(e.target.value)} /></div>
+          <Button variant="outline" onClick={() => mCriarPag.mutate()} disabled={!pagData || mCriarPag.isPending}>
+            <FilePlus className="h-4 w-4 mr-1" />Criar pagamento
           </Button>
         </div>
-        {!!pendentesGrupos.length && (
-          <div className="mt-3 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
-            <div className="font-semibold mb-1">Prévia — extras com data do serviço no período e ainda não recibadas</div>
+
+        {pagamentoId && (
+          <div className="flex gap-2 items-end flex-wrap mb-3">
+            <Button
+              onClick={() => mGerar.mutate()}
+              disabled={!podeGerar || mGerar.isPending || !pendentesGrupos.length}
+            >
+              <FilePlus className="h-4 w-4 mr-1" />
+              Gerar recibos {pendentesGrupos.length ? `(${pendentesGrupos.reduce((a, g) => a + g.qtd, 0)} extra(s), ${pendentesGrupos.length} colaborador(es))` : ""}
+            </Button>
+            {pagamentoAtual?.status === "GERADO" && (
+              <Button variant="outline" onClick={() => mFecharPag.mutate()} disabled={mFecharPag.isPending}>Fechar pagamento</Button>
+            )}
+            {pagamentoAtual?.status === "FECHADO" && (
+              <Button variant="outline" onClick={() => setShowReabrir(true)}>Reabrir pagamento</Button>
+            )}
+          </div>
+        )}
+
+        {!!pendentesGrupos.length && pagamentoId && (
+          <div className="mt-2 rounded-md border bg-muted/30 p-2 max-h-64 overflow-auto text-xs">
+            <div className="font-semibold mb-1">Prévia — extras elegíveis para este pagamento</div>
             {pendentesGrupos.map((g) => (
-              <div key={g.colab} className="mb-1">
-                <div className="font-medium">{g.colab}</div>
+              <div key={g.colaborador_id} className="mb-1">
+                <div className="font-medium">
+                  {g.nome}
+                  <span className="font-normal text-muted-foreground"> — {g.qtd} extra(s), {formatBRL(g.total)}</span>
+                </div>
                 <ul className="ml-4">
-                  {[...g.semanas.entries()].sort().map(([sem, s]) => (
-                    <li key={sem}>
-                      semana original {sem}: {s.qtd} extra(s) — {formatBRL(s.total)}
-                      {s.datas.length > 1 && (
-                        <div className="ml-2 text-muted-foreground">
-                          dias: {[...s.datas].sort().join(", ")}
-                        </div>
-                      )}
+                  {g.extras.map((extra) => (
+                    <li key={extra.id}>
+                      {extra.data ? `${extra.data}: ` : ""}{formatBRL(extra.valor)}
+                      <span className="text-muted-foreground"> — semana {extra.semana_ref}</span>
                     </li>
                   ))}
                 </ul>
@@ -284,12 +356,26 @@ function Page() {
             ))}
           </div>
         )}
-        {!pendentesExtras.isLoading && !pendentesGrupos.length && (
-          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra com data do serviço no período (não recibada).</div>
+        {pagamentoId && !previewPagamentoQuery.isLoading && !pendentesGrupos.length && podeGerar && (
+          <div className="mt-2 text-xs text-muted-foreground">Nenhuma extra elegível pendente para este pagamento.</div>
         )}
       </div>
 
-      {/* Reimprimir por período de geração (inclui arquivados) */}
+      {/* Reabrir pagamento */}
+      <Dialog open={showReabrir} onOpenChange={setShowReabrir}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reabrir pagamento</DialogTitle>
+            <DialogDescription>Informe o motivo. O pagamento voltará para Em preparação e novas extras poderão ser incluídas.</DialogDescription>
+          </DialogHeader>
+          <Textarea value={reabrirMotivo} onChange={(e) => setReabrirMotivo(e.target.value)} placeholder="Motivo da reabertura..." />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReabrir(false)}>Cancelar</Button>
+            <Button onClick={() => mReabrirPag.mutate()} disabled={!reabrirMotivo.trim() || mReabrirPag.isPending}>Reabrir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ReimpressaoPorGeracao
         reDe={reDe} reAte={reAte} setReDe={setReDe} setReAte={setReAte}
         onImprimir={(ids) => navigate({ to: "/recibos/imprimir", search: { ids: ids.join(","), action: "print" } })}
@@ -303,8 +389,7 @@ function Page() {
 
 
       {/* Filtros */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-3 rounded-md border p-3 bg-card">
-        <div><Label className="text-xs">Semana</Label><Input type="date" value={fSemana} onChange={(e) => setFSemana(e.target.value)} /></div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3 rounded-md border p-3 bg-card">
         <div>
           <Label className="text-xs">Colaborador</Label>
           <Select value={fColab || "_all"} onValueChange={(v) => setFColab(v === "_all" ? "" : v)}>
@@ -334,7 +419,7 @@ function Page() {
         </div>
         <div className="hidden" />
         <div className="flex items-end gap-1">
-          <Button size="sm" variant="outline" onClick={() => { setFSemana(""); setFColab(""); setFCliente(""); setFEmpresa(""); }}>Limpar</Button>
+          <Button size="sm" variant="outline" onClick={() => { setFColab(""); setFCliente(""); setFEmpresa(""); }}>Limpar</Button>
         </div>
       </div>
 
@@ -385,7 +470,6 @@ function Page() {
               <TableHead>Nº</TableHead>
               <TableHead>Colaborador</TableHead>
               <TableHead>Empresa</TableHead>
-              <TableHead>Semana</TableHead>
               <TableHead>Pago em</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Status</TableHead>
@@ -404,7 +488,6 @@ function Page() {
                   <div className="text-xs text-muted-foreground">{r.colaboradores?.matricula} - {r.colaboradores?.funcoes?.nome}</div>
                 </TableCell>
                 <TableCell>{r.colaboradores?.empresas?.nome}</TableCell>
-                <TableCell>{r.semana_ref}</TableCell>
                 <TableCell>{r.data_pagamento}</TableCell>
                 <TableCell>{formatBRL(r.valor_total)}</TableCell>
                 <TableCell><Badge variant="default">Ativo</Badge></TableCell>
@@ -419,7 +502,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {filtrados.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum recibo</TableCell></TableRow>}
+            {filtrados.length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum recibo</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -446,11 +529,12 @@ function Page() {
             <DialogDescription>Extras incluídas neste recibo.</DialogDescription>
           </DialogHeader>
           <Table>
-            <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Horário</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Semana ref.</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Horário</TableHead><TableHead className="text-right">Valor</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome_fantasia?: string }; empresas?: { nome?: string } | null } }) => (
+              {(itens.data ?? []).map((i: { id: string; valor_snapshot: number; extras?: { data?: string; semana_ref?: string; hora_inicio?: string; hora_termino?: string; clientes?: { nome_fantasia?: string }; empresas?: { nome?: string } | null } }) => (
                 <TableRow key={i.id}>
                   <TableCell>{i.extras?.data}</TableCell>
+                  <TableCell>{i.extras?.semana_ref}</TableCell>
                   <TableCell>{i.extras?.clientes?.nome_fantasia}</TableCell>
                   <TableCell>{i.extras?.empresas?.nome ?? "—"}</TableCell>
                   <TableCell>{i.extras?.hora_inicio} → {i.extras?.hora_termino}</TableCell>
@@ -478,7 +562,7 @@ function Page() {
             </Button>
           </div>
           <div className="bg-gray-100 p-4">
-            {previewQuery.data ? <ReciboA4 recibos={previewQuery.data} /> : <p>Carregando...</p>}
+            {recibosViewsQuery.data ? <ReciboA4 recibos={recibosViewsQuery.data} /> : <p>Carregando...</p>}
           </div>
         </DialogContent>
       </Dialog>
@@ -503,10 +587,16 @@ function ReimpressaoPorGeracao({
         .select("id, numero, gerado_em, arquivado_em, valor_total, colaboradores(nome)")
         .gte("gerado_em", `${reDe}T00:00:00`)
         .lte("gerado_em", `${reAte}T23:59:59.999`)
-        .eq("ativo", true)
-        .order("gerado_em", { ascending: false });
+        .eq("ativo", true);
       if (error) throw error;
-      return (data ?? []) as { id: string; numero: number; gerado_em: string; arquivado_em: string | null; valor_total: number }[];
+      type ReciboGerado = { id: string; numero: number; gerado_em: string; arquivado_em: string | null; valor_total: number; colaboradores?: { nome?: string } | null };
+      return ((data ?? []) as ReciboGerado[]).sort((a, b) =>
+        (a.colaboradores?.nome ?? "").localeCompare(
+          b.colaboradores?.nome ?? "",
+          "pt-BR",
+          { sensitivity: "base" },
+        ) || a.gerado_em.localeCompare(b.gerado_em) || a.id.localeCompare(b.id),
+      );
     },
   });
   const ids = (q.data ?? []).map((r) => r.id);

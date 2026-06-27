@@ -1,273 +1,274 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-// Lock em memória do worker para evitar geração paralela do mesmo (colab|semana)
+type PagamentoStatus = "EM_PREPARACAO" | "GERADO" | "FECHADO" | "CANCELADO";
+
 const gerandoEmAndamento = new Set<string>();
 
-// Normaliza qualquer data para a sexta-feira de referência da semana (igual ao backend semana_ref_de)
-function normalizaSemanaRef(input: string): string {
-  const [y, m, d] = input.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  const dow = dt.getUTCDay() === 0 ? 7 : dt.getUTCDay(); // ISO: seg=1..dom=7
-  const diff = (dow - 5 + 7) % 7; // sexta=5
-  dt.setUTCDate(dt.getUTCDate() - diff);
-  return dt.toISOString().slice(0, 10);
+async function assertFinanceiro(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+) {
+  const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
+  if (!isAdm && !isFin) throw new Error("Sem permissão");
 }
 
-// Recalcula valor_total de um recibo somando o `valor` real das extras associadas.
-async function recomputeValorTotal(
-  supabase: { from: (t: string) => any },
-  reciboId: string,
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("recibos_itens")
-    .select("extras!inner(valor)")
-    .eq("recibo_id", reciboId);
-  if (error) throw error;
-  type Row = { extras: { valor: number | string } | { valor: number | string }[] };
-  const total = ((data ?? []) as Row[]).reduce((s, r) => {
-    const ex = Array.isArray(r.extras) ? r.extras[0] : r.extras;
-    return s + Number(ex?.valor ?? 0);
-  }, 0);
-  await supabase.from("recibos").update({ valor_total: total }).eq("id", reciboId);
-  return total;
+type ExtraElegivel = { id: string; colaborador_id: string; semana_ref: string; valor: number; data?: string };
+
+export type PreviewPagamentoGrupo = {
+  colaborador_id: string;
+  nome: string;
+  qtd: number;
+  total: number;
+  extras: ExtraElegivel[];
+};
+
+async function buscarExtrasElegiveis(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  pagamentoId: string,
+): Promise<ExtraElegivel[]> {
+  const { data: extras, error } = await supabase
+    .from("extras")
+    .select("id, colaborador_id, semana_ref, valor, data, pagamento_id")
+    .eq("status", "aprovado_financeiro")
+    .eq("situacao_financeira", "pago");
+  if (error) throw new Error(`Falha ao buscar extras elegíveis: ${error.message}`);
+  if (!extras?.length) return [];
+
+  const rows = extras as (ExtraElegivel & { pagamento_id: string | null })[];
+  const candidatas = rows.filter((e) => e.pagamento_id == null || e.pagamento_id === pagamentoId);
+  if (!candidatas.length) return [];
+
+  const recibadasSet = new Set<string>();
+  const lote = 500;
+  for (let i = 0; i < candidatas.length; i += lote) {
+    const slice = candidatas.slice(i, i + lote).map((e) => e.id);
+    const { data: ja, error: e0 } = await supabase
+      .from("recibos_itens")
+      .select("extra_id, recibos!inner(ativo)")
+      .in("extra_id", slice)
+      .eq("recibos.ativo", true);
+    if (e0) throw new Error(`Falha ao verificar extras já recibadas: ${e0.message}`);
+    for (const r of ja ?? []) recibadasSet.add(r.extra_id as string);
+  }
+
+  return candidatas.filter((e) => !recibadasSet.has(e.id));
 }
 
-// Gera recibos de extras elegíveis dentro de um período (DATA DO SERVIÇO — extras.data).
-// Agrupa por (colaborador_id, semana_ref) mantendo a semana original de cada extra.
-// Idempotente: se já existe recibo ativo para (colab, semana_ref), anexa apenas os
-// itens faltantes (ON CONFLICT DO NOTHING via upsert ignoreDuplicates) e recalcula
-// o valor_total a partir da soma real dos itens. NUNCA exclui recibo existente.
-// Aceita { de, ate } (data do serviço) ou { semana_ref } (retrocompat — semana inteira sex→qui).
-export const gerarRecibosSemana = createServerFn({ method: "POST" })
+function minSemanaRef(extras: ExtraElegivel[]): string {
+  return extras.reduce((min, e) => (e.semana_ref < min ? e.semana_ref : min), extras[0].semana_ref);
+}
+
+/** Cria pagamento manualmente (EM_PREPARACAO). Não gera recibos. */
+export const criarPagamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { de?: string; ate?: string; semana_ref?: string; data_pagamento: string }) => d)
+  .inputValidator((d: {
+    data_pagamento: string;
+    referencia?: string;
+    periodo_de?: string;
+    periodo_ate?: string;
+  }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    await assertFinanceiro(supabase, userId);
 
-    const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
-    if (!isAdm && !isFin) throw new Error("Sem permissão para gerar recibos");
+    const { data: id, error } = await supabase.rpc("criar_pagamento", {
+      p_data_pagamento: data.data_pagamento,
+      p_referencia: data.referencia,
+      p_periodo_de: data.periodo_de,
+      p_periodo_ate: data.periodo_ate,
+    });
+    if (error) throw new Error(error.message);
+    return { id: id as string };
+  });
 
-    // Resolve período. Se vier semana_ref (retrocompat), trata como semana inteira (sex→qui).
-    let de = data.de ?? "";
-    let ate = data.ate ?? "";
-    if (!de && !ate && data.semana_ref) {
-      const sem = normalizaSemanaRef(data.semana_ref);
-      de = sem;
-      const [yy, mm, dd] = sem.split("-").map(Number);
-      const fim = new Date(Date.UTC(yy, mm - 1, dd + 6));
-      ate = fim.toISOString().slice(0, 10);
+export const fecharPagamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { pagamento_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertFinanceiro(supabase, userId);
+    const { error } = await supabase.rpc("fechar_pagamento", { p_id: data.pagamento_id });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const reabrirPagamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { pagamento_id: string; motivo: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertFinanceiro(supabase, userId);
+    const { error } = await supabase.rpc("reabrir_pagamento", {
+      p_id: data.pagamento_id,
+      p_motivo: data.motivo,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
+
+async function executarGeracaoRecibos(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  pagamentoId: string,
+) {
+    const { data: pag, error: ePag } = await supabase
+      .from("pagamentos")
+      .select("id, status, data_pagamento")
+      .eq("id", pagamentoId)
+      .single();
+    if (ePag || !pag) throw new Error("Pagamento não encontrado");
+
+    const status = pag.status as PagamentoStatus;
+    if (status === "FECHADO" || status === "CANCELADO") {
+      throw new Error(`Pagamento ${status} — não é possível gerar recibos`);
     }
-    if (!de || !ate) throw new Error("Informe o período (de/ate) — data do serviço");
 
-    // Filtra pela DATA DO SERVIÇO (extras.data — coluna date, sem fuso horário).
-    const { data: extras, error } = await supabase
-      .from("extras")
-      .select("id, colaborador_id, semana_ref, valor, data")
-      .gte("data", de)
-      .lte("data", ate)
-      .eq("status", "aprovado_financeiro")
-      .eq("situacao_financeira", "pago");
-    if (error) throw new Error(`Falha ao buscar extras elegíveis: ${error.message}`);
-    if (!extras?.length) return { criados: 0, anexados: 0, emAndamento: 0, erros: [] as string[], mensagem: `Nenhuma extra aprovada/paga com data entre ${de} e ${ate}` };
-
-    // Anti-join: extras já vinculadas a algum recibo ATIVO ficam de fora
-    const extraIds = extras.map((e) => e.id);
-    const recibadasSet = new Set<string>();
-    const lote = 500;
-    for (let i = 0; i < extraIds.length; i += lote) {
-      const slice = extraIds.slice(i, i + lote);
-      const { data: ja, error: e0 } = await supabase
-        .from("recibos_itens")
-        .select("extra_id, recibos!inner(ativo)")
-        .in("extra_id", slice)
-        .eq("recibos.ativo", true);
-      if (e0) throw new Error(`Falha ao verificar extras já recibadas: ${e0.message}`);
-      for (const r of ja ?? []) recibadasSet.add(r.extra_id);
+    const elegiveis = await buscarExtrasElegiveis(supabase, pagamentoId);
+    if (!elegiveis.length) {
+      return {
+        criados: 0,
+        anexados: 0,
+        emAndamento: 0,
+        erros: [] as string[],
+        mensagem: "Nenhuma extra elegível pendente de recibo neste pagamento",
+      };
     }
-    const elegiveis = extras.filter((e) => !recibadasSet.has(e.id));
-    if (!elegiveis.length) return { criados: 0, anexados: 0, emAndamento: 0, erros: [] as string[], mensagem: "Todas as extras do período já estão em recibos ativos" };
 
-    // Agrupa por (colaborador_id, semana_ref) — preserva semana original (data trabalhada)
-    const grupos = new Map<string, { colab: string; semana: string; ids: string[]; total: number }>();
+    const grupos = new Map<string, ExtraElegivel[]>();
     for (const e of elegiveis) {
-      const key = `${e.colaborador_id}|${e.semana_ref}`;
-      const g = grupos.get(key) ?? { colab: e.colaborador_id, semana: e.semana_ref, ids: [], total: 0 };
-      g.ids.push(e.id);
-      g.total += Number(e.valor);
-      grupos.set(key, g);
+      const g = grupos.get(e.colaborador_id) ?? [];
+      g.push(e);
+      grupos.set(e.colaborador_id, g);
     }
 
     let criados = 0;
     let anexados = 0;
     let emAndamento = 0;
     const erros: string[] = [];
-    for (const grupo of grupos.values()) {
-      const lockKey = `${grupo.colab}|${grupo.semana}`;
+
+    for (const [colabId, extrasColab] of grupos) {
+      const lockKey = `${pagamentoId}|${colabId}`;
       if (gerandoEmAndamento.has(lockKey)) { emAndamento++; continue; }
       gerandoEmAndamento.add(lockKey);
       try {
-        // Procura recibo ATIVO existente para (colab, semana). NUNCA exclui.
         const { data: existente, error: eExist } = await supabase
-          .from("recibos").select("id")
-          .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
-        if (eExist) { erros.push(`Falha ao verificar recibo existente (${grupo.semana}): ${eExist.message}`); continue; }
+          .from("recibos")
+          .select("id")
+          .eq("colaborador_id", colabId)
+          .eq("pagamento_id", pagamentoId)
+          .eq("ativo", true)
+          .maybeSingle();
+        if (eExist) { erros.push(`Falha ao verificar recibo (${colabId}): ${eExist.message}`); continue; }
 
+        const extraIds = extrasColab.map((e) => e.id);
         let reciboId: string;
+
         if (existente) {
-          // Anexa apenas itens faltantes (ON CONFLICT DO NOTHING via upsert)
           const { error: eUp } = await supabase
             .from("recibos_itens")
             .upsert(
-              grupo.ids.map((extra_id) => ({ recibo_id: existente.id, extra_id, valor_snapshot: null as unknown as number })),
+              extraIds.map((extra_id) => ({
+                recibo_id: existente.id,
+                extra_id,
+                valor_snapshot: null as unknown as number,
+              })),
               { onConflict: "recibo_id,extra_id", ignoreDuplicates: true },
             );
-          if (eUp) { erros.push(`Falha ao anexar itens ao recibo (${grupo.semana}): ${eUp.message}`); continue; }
+          if (eUp) { erros.push(`Falha ao anexar itens (${colabId}): ${eUp.message}`); continue; }
           reciboId = existente.id;
           anexados++;
         } else {
+          const semanaRef = minSemanaRef(extrasColab);
           const { data: rec, error: e1 } = await supabase.from("recibos").insert({
-            colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
-            data_pagamento: data.data_pagamento, valor_total: grupo.total,
+            colaborador_id: colabId,
+            pagamento_id: pagamentoId,
+            semana_ref: semanaRef,
+            gerado_por: userId,
+            data_pagamento: pag.data_pagamento,
+            valor_total: 0,
           }).select("id").single();
-          if (e1) { erros.push(`Falha ao criar recibo (${grupo.semana}): ${e1.message}`); continue; }
+          if (e1) { erros.push(`Falha ao criar recibo (${colabId}): ${e1.message}`); continue; }
+
           const { error: e2 } = await supabase
             .from("recibos_itens")
             .upsert(
-              grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as unknown as number })),
+              extraIds.map((extra_id) => ({
+                recibo_id: rec!.id,
+                extra_id,
+                valor_snapshot: null as unknown as number,
+              })),
               { onConflict: "recibo_id,extra_id", ignoreDuplicates: true },
             );
-          if (e2) { erros.push(`Falha ao inserir itens do recibo (${grupo.semana}): ${e2.message}`); continue; }
+          if (e2) { erros.push(`Falha ao inserir itens (${colabId}): ${e2.message}`); continue; }
           reciboId = rec!.id;
           criados++;
         }
-        // Recalcula valor_total pela soma real dos itens
-        try { await recomputeValorTotal(supabase, reciboId); }
-        catch (e) { erros.push(`Falha ao recalcular total (${grupo.semana}): ${(e as Error).message}`); }
+
+        const { error: eExtra } = await supabase
+          .from("extras")
+          .update({ pagamento_id: pagamentoId })
+          .in("id", extraIds);
+        if (eExtra) erros.push(`Falha ao vincular extras ao pagamento (${colabId}): ${eExtra.message}`);
+
+        const { error: eRecalc } = await supabase.rpc("recalc_recibo_valor_total", { p_recibo_id: reciboId });
+        if (eRecalc) erros.push(`Falha ao recalcular total (${colabId}): ${eRecalc.message}`);
       } finally {
         gerandoEmAndamento.delete(lockKey);
       }
     }
-    return { criados, anexados, emAndamento, erros };
-  });
 
-// Gera recibos para TODAS as extras elegíveis (aprovado_financeiro + pago) que
-// ainda não estejam vinculadas a um recibo ATIVO, independentemente da data
-// de lançamento. Agrupa por (colaborador_id, semana_ref). Idempotente.
-export const gerarRecibosPendentes = createServerFn({ method: "POST" })
+    if (criados > 0 || anexados > 0) {
+      await supabase
+        .from("pagamentos")
+        .update({ status: "GERADO", gerado_em: new Date().toISOString() })
+        .eq("id", pagamentoId)
+        .in("status", ["EM_PREPARACAO", "GERADO"]);
+    }
+
+    return { criados, anexados, emAndamento, erros };
+}
+
+/** Gera ou complementa recibos de um pagamento existente (1 recibo/colaborador). */
+export const gerarRecibosPagamento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { data_pagamento: string }) => d)
+  .inputValidator((d: { pagamento_id: string }) => d)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
-    if (!isAdm && !isFin) throw new Error("Sem permissão para gerar recibos");
-
-    const { data: extras, error } = await supabase
-      .from("extras")
-      .select("id, colaborador_id, semana_ref, valor")
-      .eq("status", "aprovado_financeiro")
-      .eq("situacao_financeira", "pago");
-    if (error) throw new Error(`Falha ao buscar extras: ${error.message}`);
-    if (!extras?.length) return { criados: 0, anexados: 0, emAndamento: 0, erros: [] as string[], mensagem: "Nenhuma extra elegível" };
-
-    const extraIds = extras.map((e) => e.id);
-    const recibadasSet = new Set<string>();
-    const lote = 500;
-    for (let i = 0; i < extraIds.length; i += lote) {
-      const slice = extraIds.slice(i, i + lote);
-      const { data: ja, error: e0 } = await supabase
-        .from("recibos_itens")
-        .select("extra_id, recibos!inner(ativo)")
-        .in("extra_id", slice)
-        .eq("recibos.ativo", true);
-      if (e0) throw new Error(`Falha ao verificar extras já recibadas: ${e0.message}`);
-      for (const r of ja ?? []) recibadasSet.add(r.extra_id);
-    }
-    const elegiveis = extras.filter((e) => !recibadasSet.has(e.id));
-    if (!elegiveis.length) return { criados: 0, anexados: 0, emAndamento: 0, erros: [] as string[], mensagem: "Nenhuma extra pendente de recibo" };
-
-    const grupos = new Map<string, { colab: string; semana: string; ids: string[]; total: number }>();
-    for (const e of elegiveis) {
-      const key = `${e.colaborador_id}|${e.semana_ref}`;
-      const g = grupos.get(key) ?? { colab: e.colaborador_id, semana: e.semana_ref, ids: [], total: 0 };
-      g.ids.push(e.id);
-      g.total += Number(e.valor);
-      grupos.set(key, g);
-    }
-
-    let criados = 0;
-    let anexados = 0;
-    let emAndamento = 0;
-    const erros: string[] = [];
-    for (const grupo of grupos.values()) {
-      const lockKey = `${grupo.colab}|${grupo.semana}`;
-      if (gerandoEmAndamento.has(lockKey)) { emAndamento++; continue; }
-      gerandoEmAndamento.add(lockKey);
-      try {
-        const { data: existente, error: eExist } = await supabase
-          .from("recibos").select("id")
-          .eq("colaborador_id", grupo.colab).eq("semana_ref", grupo.semana).eq("ativo", true).maybeSingle();
-        if (eExist) { erros.push(`Falha ao verificar recibo existente (${grupo.semana}): ${eExist.message}`); continue; }
-
-        let reciboId: string;
-        if (existente) {
-          const { error: e2 } = await supabase
-            .from("recibos_itens")
-            .upsert(
-              grupo.ids.map((extra_id) => ({ recibo_id: existente.id, extra_id, valor_snapshot: null as unknown as number })),
-              { onConflict: "recibo_id,extra_id", ignoreDuplicates: true },
-            );
-          if (e2) { erros.push(`Falha ao anexar itens (${grupo.semana}): ${e2.message}`); continue; }
-          reciboId = existente.id;
-          anexados++;
-        } else {
-          const { data: rec, error: e1 } = await supabase.from("recibos").insert({
-            colaborador_id: grupo.colab, semana_ref: grupo.semana, gerado_por: userId,
-            data_pagamento: data.data_pagamento, valor_total: grupo.total,
-          }).select("id").single();
-          if (e1) { erros.push(`Falha ao criar recibo (${grupo.semana}): ${e1.message}`); continue; }
-          const { error: e2 } = await supabase
-            .from("recibos_itens")
-            .upsert(
-              grupo.ids.map((extra_id) => ({ recibo_id: rec!.id, extra_id, valor_snapshot: null as unknown as number })),
-              { onConflict: "recibo_id,extra_id", ignoreDuplicates: true },
-            );
-          if (e2) { erros.push(`Falha ao inserir itens (${grupo.semana}): ${e2.message}`); continue; }
-          reciboId = rec!.id;
-          criados++;
-        }
-        try { await recomputeValorTotal(supabase, reciboId); }
-        catch (e) { erros.push(`Falha ao recalcular total (${grupo.semana}): ${(e as Error).message}`); }
-      } finally {
-        gerandoEmAndamento.delete(lockKey);
-      }
-    }
-    return { criados, anexados, emAndamento, erros };
+    await assertFinanceiro(supabase, userId);
+    return executarGeracaoRecibos(supabase, userId, data.pagamento_id);
   });
 
-// Relatório read-only de inconsistências: extras vinculadas a recibos ATIVOS
-// mas cujo status/situacao_financeira deixou de ser "aprovado_financeiro/pago".
-// NÃO altera dado nenhum. Útil para auditoria humana.
+/** @deprecated Use gerarRecibosPagamento. Mantido para compatibilidade de import. */
+export const gerarRecibosSemana = gerarRecibosPagamento;
+
+/** @deprecated Use gerarRecibosPagamento. */
+export const gerarRecibosPendentes = gerarRecibosPagamento;
+
 export const auditarInconsistencias = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data: isAdm } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    const { data: isFin } = await supabase.rpc("has_role", { _user_id: userId, _role: "gestor_financeiro" });
-    if (!isAdm && !isFin) throw new Error("Sem permissão");
+    await assertFinanceiro(supabase, userId);
 
     const { data, error } = await supabase
       .from("recibos_itens")
-      .select("extra_id, recibos!inner(id,numero,semana_ref,colaborador_id,ativo,colaboradores(nome)), extras!inner(id,data,status,situacao_financeira,valor)")
+      .select("extra_id, recibos!inner(id,numero,semana_ref,colaborador_id,ativo,pagamento_id,colaboradores(nome)), extras!inner(id,data,status,situacao_financeira,valor,semana_ref)")
       .eq("recibos.ativo", true);
     if (error) throw new Error(error.message);
 
     type Row = {
       extra_id: string;
-      recibos: { id: string; numero: number; semana_ref: string; colaborador_id: string; ativo: boolean; colaboradores: { nome: string } | null };
-      extras: { id: string; data: string; status: string; situacao_financeira: string | null; valor: number };
+      recibos: {
+        id: string; numero: number; semana_ref: string; colaborador_id: string;
+        ativo: boolean; pagamento_id: string;
+        colaboradores: { nome: string } | null;
+      };
+      extras: { id: string; data: string; status: string; situacao_financeira: string | null; valor: number; semana_ref: string };
     };
     const inconsistencias = ((data ?? []) as unknown as Row[])
       .filter((r) => r.extras.status !== "aprovado_financeiro" || r.extras.situacao_financeira !== "pago")
@@ -321,4 +322,47 @@ export const desarquivarRecibo = createServerFn({ method: "POST" })
       .eq("id", data.reciboId);
     if (error) throw error;
     return { ok: true };
+  });
+
+/** Prévia read-only das extras elegíveis para um pagamento. */
+export const previewExtrasPagamento = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { pagamento_id: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await assertFinanceiro(supabase, userId);
+
+    const elegiveis = await buscarExtrasElegiveis(supabase, data.pagamento_id);
+    if (!elegiveis.length) return { grupos: [] as PreviewPagamentoGrupo[] };
+
+    const { data: nomes } = await supabase
+      .from("colaboradores")
+      .select("id, nome")
+      .in("id", [...new Set(elegiveis.map((e) => e.colaborador_id))]);
+
+    const nomeMap = new Map((nomes ?? []).map((c: { id: string; nome: string }) => [c.id, c.nome]));
+
+    const grupos = new Map<string, { colaborador_id: string; nome: string; qtd: number; total: number; extras: ExtraElegivel[] }>();
+    for (const e of elegiveis) {
+      const g = grupos.get(e.colaborador_id) ?? {
+        colaborador_id: e.colaborador_id,
+        nome: nomeMap.get(e.colaborador_id) ?? "—",
+        qtd: 0,
+        total: 0,
+        extras: [],
+      };
+      g.qtd++;
+      g.total += Number(e.valor);
+      g.extras.push(e);
+      grupos.set(e.colaborador_id, g);
+    }
+
+    return {
+      grupos: [...grupos.values()]
+        .map((g) => ({
+          ...g,
+          extras: g.extras.sort((a, b) => a.semana_ref.localeCompare(b.semana_ref) || a.id.localeCompare(b.id)),
+        }))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" })),
+    };
   });
