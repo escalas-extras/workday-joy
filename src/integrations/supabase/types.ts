@@ -1129,11 +1129,12 @@ export type Database = {
           id: string
           justificativa_alteracao: string | null
           justificativa_cancelamento: string | null
-          pagamento_id: string | null
+          lote_pagamento_id: string | null
           motivo: string | null
           motivo_rejeicao_descricao: string | null
           motivo_rejeicao_id: string | null
           observacoes: string | null
+          pagamento_id: string | null
           pago_em: string | null
           pago_por: string | null
           semana_ref: string
@@ -1177,11 +1178,12 @@ export type Database = {
           id?: string
           justificativa_alteracao?: string | null
           justificativa_cancelamento?: string | null
-          pagamento_id?: string | null
+          lote_pagamento_id?: string | null
           motivo?: string | null
           motivo_rejeicao_descricao?: string | null
           motivo_rejeicao_id?: string | null
           observacoes?: string | null
+          pagamento_id?: string | null
           pago_em?: string | null
           pago_por?: string | null
           semana_ref: string
@@ -1225,11 +1227,12 @@ export type Database = {
           id?: string
           justificativa_alteracao?: string | null
           justificativa_cancelamento?: string | null
-          pagamento_id?: string | null
+          lote_pagamento_id?: string | null
           motivo?: string | null
           motivo_rejeicao_descricao?: string | null
           motivo_rejeicao_id?: string | null
           observacoes?: string | null
+          pagamento_id?: string | null
           pago_em?: string | null
           pago_por?: string | null
           semana_ref?: string
@@ -1294,17 +1297,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "extras_pagamento_id_fkey"
-            columns: ["pagamento_id"]
-            isOneToOne: false
-            referencedRelation: "pagamentos"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "extras_motivo_rejeicao_id_fkey"
             columns: ["motivo_rejeicao_id"]
             isOneToOne: false
             referencedRelation: "motivos_rejeicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "extras_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -1494,7 +1497,7 @@ export type Database = {
           cancelado_por: string | null
           created_at: string
           criado_em: string
-          criado_por: string
+          criado_por: string | null
           data_pagamento: string
           fechado_em: string | null
           fechado_por: string | null
@@ -1514,7 +1517,7 @@ export type Database = {
           cancelado_por?: string | null
           created_at?: string
           criado_em?: string
-          criado_por: string
+          criado_por?: string | null
           data_pagamento: string
           fechado_em?: string | null
           fechado_por?: string | null
@@ -1534,7 +1537,7 @@ export type Database = {
           cancelado_por?: string | null
           created_at?: string
           criado_em?: string
-          criado_por?: string
+          criado_por?: string | null
           data_pagamento?: string
           fechado_em?: string | null
           fechado_por?: string | null
@@ -1841,7 +1844,10 @@ export type Database = {
         }
         Returns: string
       }
-      cancelar_pagamento: { Args: { p_id: string }; Returns: undefined }
+      cancelar_pagamento: {
+        Args: { p_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       criar_pagamento: {
         Args: {
           p_data_pagamento: string
@@ -1874,7 +1880,7 @@ export type Database = {
       }
       recalc_recibo_valor_total: {
         Args: { p_recibo_id: string }
-        Returns: undefined
+        Returns: number
       }
       semana_ref_de:
         | { Args: { d: string }; Returns: string }
@@ -1895,11 +1901,7 @@ export type Database = {
         | "rejeitado"
         | "aprovado_financeiro"
       forma_pagamento: "pix" | "dinheiro" | "transferencia" | "conta_corrente"
-      pagamento_status:
-        | "EM_PREPARACAO"
-        | "GERADO"
-        | "FECHADO"
-        | "CANCELADO"
+      pagamento_status: "EM_PREPARACAO" | "GERADO" | "FECHADO" | "CANCELADO"
       situacao_financeira:
         | "pendente_pagamento"
         | "pago"
@@ -2063,12 +2065,7 @@ export const Constants = {
         "aprovado_financeiro",
       ],
       forma_pagamento: ["pix", "dinheiro", "transferencia", "conta_corrente"],
-      pagamento_status: [
-        "EM_PREPARACAO",
-        "GERADO",
-        "FECHADO",
-        "CANCELADO",
-      ],
+      pagamento_status: ["EM_PREPARACAO", "GERADO", "FECHADO", "CANCELADO"],
       situacao_financeira: [
         "pendente_pagamento",
         "pago",
