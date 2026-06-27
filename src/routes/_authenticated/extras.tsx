@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/app-shell";
 import { StatusBadge, SITUACAO_SERVICO_OPTS, SITUACAO_SERVICO_LABEL, SITUACOES_REQUEREM_COBERTO, labelColaboradorCoberto, CLASSIFICACAO_COMERCIAL_OPTS, CLASSIFICACAO_COMERCIAL_LABEL, CancelarExtraDialog } from "@/components/extras-helpers";
+import { ExtraFluxoLegenda, ExtraFluxoPipeline } from "@/components/extra-fluxo-pipeline";
+import { mapReciboFluxoPorExtra } from "@/lib/extra-fluxo-recibo-map";
 import { SearchableSelect } from "@/components/searchable-select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -81,6 +83,30 @@ function Page() {
     );
   });
 
+  const extraIdsFiltrados = useMemo(
+    () => extrasFiltrados.map((e: { id: string }) => e.id),
+    [extrasFiltrados],
+  );
+
+  const reciboFluxoMap = useQuery({
+    queryKey: ["extras-recibo-fluxo", extraIdsFiltrados],
+    enabled: extraIdsFiltrados.length > 0,
+    queryFn: async () => {
+      const map: ReturnType<typeof mapReciboFluxoPorExtra> = {};
+      const lote = 500;
+      for (let i = 0; i < extraIdsFiltrados.length; i += lote) {
+        const slice = extraIdsFiltrados.slice(i, i + lote);
+        const { data, error } = await supabase
+          .from("recibos_itens")
+          .select("extra_id, recibos!inner(ativo, arquivado_em)")
+          .in("extra_id", slice)
+          .eq("recibos.ativo", true);
+        if (error) throw error;
+        Object.assign(map, mapReciboFluxoPorExtra(data));
+      }
+      return map;
+    },
+  });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -200,6 +226,8 @@ function Page() {
         <div className="text-xs text-muted-foreground ml-auto">{extrasFiltrados.length} registro(s)</div>
       </div>
 
+      <ExtraFluxoLegenda />
+
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
@@ -207,7 +235,7 @@ function Page() {
               <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead>
               <TableHead>Class.</TableHead>
               <TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead>
-              <TableHead>Status / Situação</TableHead><TableHead></TableHead>
+              <TableHead>Status / Situação</TableHead><TableHead>Fluxo</TableHead><TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -225,6 +253,15 @@ function Page() {
                 </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
                 <TableCell>
+                  <ExtraFluxoPipeline
+                    extra={{
+                      status: e.status,
+                      situacao_financeira: e.situacao_financeira,
+                      recibo: reciboFluxoMap.data?.[e.id] ?? { reciboEmitido: false, arquivada: false },
+                    }}
+                  />
+                </TableCell>
+                <TableCell>
                   <div className="flex gap-1">
                     {podeEditar(e) && <Button size="icon" variant="ghost" onClick={() => openEdit(e)}><Pencil className="h-3 w-3" /></Button>}
                     {isAdmin && e.situacao_financeira !== "cancelado" && (
@@ -234,7 +271,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {extrasFiltrados.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
+            {extrasFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
