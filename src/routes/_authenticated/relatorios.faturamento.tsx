@@ -151,7 +151,7 @@ function Page() {
         startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY,
         head: [cols.map((c) => c.label)],
         body: g.rows.map((r) => cols.map((c) => String((r as Record<string, unknown>)[c.key] ?? ""))),
-        foot: [["", "", "", "", "Subtotal", formatBRL(g.total), ""]],
+        foot: [["", "", "", "", "Subtotal", formatBRL(g.total), "", ""]],
         styles: { fontSize: 8, cellPadding: 1.5 },
         headStyles: { fillColor: [219, 234, 254], textColor: 0 },
         footStyles: { fillColor: [239, 246, 255], textColor: 0, fontStyle: "bold" },
