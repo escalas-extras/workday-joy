@@ -21,6 +21,7 @@ type Linha = {
   id: string; data: string; valor: number; classificacao: "contrato" | "a_cobrar";
   situacao_financeira: string | null; status: string;
   cliente: string; empresa: string; colaborador: string; coberto: string; motivo_subst: string;
+  lancado_por: string;
 };
 
 function Page() {
@@ -35,7 +36,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_servico,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_servico,situacao_financeira,status,emitente_id,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const isJSP = (n: string) => /\bjsp\b/i.test(n);
@@ -56,7 +57,9 @@ function Page() {
         if (r.colaboradores?.empresas?.nome) return remapAvulso(r.colaboradores.empresas.nome);
         return "—";
       };
-      return (data ?? []).map((r: any): Linha => ({
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as any[]);
+      return enriched.map((r: any): Linha => ({
         id: r.id, data: r.data, valor: Number(r.valor),
         classificacao: r.classificacao_comercial as "contrato" | "a_cobrar",
         situacao_financeira: r.situacao_financeira, status: r.status,
@@ -65,6 +68,7 @@ function Page() {
         colaborador: r.colaboradores?.nome ?? "",
         coberto: r.coberto?.nome ?? "",
         motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "",
+        lancado_por: r.emitente_nome ?? "",
       }));
     },
   });
@@ -97,6 +101,7 @@ function Page() {
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
+    lancado_por: r.lancado_por || "—",
   }));
 
   const cols: ColunaRelatorio[] = [
@@ -109,6 +114,7 @@ function Page() {
     { key: "classificacao", label: "Classificação", width: 22 },
     { key: "status", label: "Status", width: 26 },
     { key: "situacao", label: "Situação Fin.", width: 22 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
   // PDF compacto: remove "Situação Fin." e "Status" para caber na página
@@ -121,7 +127,7 @@ function Page() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead>
-            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
+            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead><TableHead>Lançado por</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -129,10 +135,11 @@ function Page() {
               <TableRow key={i}>
                 <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell><TableCell>{r.motivo_subst}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
+                <TableCell className="text-xs">{r.lancado_por}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

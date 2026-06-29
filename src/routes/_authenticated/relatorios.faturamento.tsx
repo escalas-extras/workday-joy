@@ -24,6 +24,7 @@ type ExtraRow = {
   situacao_financeira: string | null; status: string;
   hora_inicio: string; hora_termino: string;
   cliente_id: string;
+  emitente_id: string | null; emitente_nome?: string;
   clientes?: { id: string; nome_fantasia: string };
   colaboradores?: { id: string; nome: string; empresa_id?: string; empresas?: { id: string; nome: string } };
   funcoes?: { nome: string };
@@ -33,6 +34,7 @@ type Row = {
   data: string; empresa_id: string; empresa: string; cliente_id: string; cliente: string;
   colaborador: string; funcao: string; horario: string;
   valor_faturamento: number; valor_fat_fmt: string; situacao: string;
+  lancado_por: string;
 };
 
 function Page() {
@@ -51,7 +53,7 @@ function Page() {
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
         .select(
-          "id,data,valor,valor_faturamento,situacao_financeira,status,hora_inicio,hora_termino,cliente_id," +
+          "id,data,valor,valor_faturamento,situacao_financeira,status,hora_inicio,hora_termino,cliente_id,emitente_id," +
           "clientes(id,nome_fantasia)," +
           "colaboradores!colaborador_id(id,nome,empresa_id,empresas(id,nome))," +
           "funcoes(nome)"
@@ -59,7 +61,9 @@ function Page() {
         .eq("classificacao_comercial", "a_cobrar")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
-      return (data ?? []) as unknown as ExtraRow[];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as unknown as ExtraRow[]);
+      return enriched as ExtraRow[];
     },
   });
 
@@ -90,6 +94,7 @@ function Page() {
       valor_faturamento: Number(r.valor_faturamento ?? r.valor),
       valor_fat_fmt: formatBRL(r.valor_faturamento ?? r.valor),
       situacao: r.situacao_financeira ?? "—",
+      lancado_por: r.emitente_nome ?? "",
     };
   }), [q.data]);
 
@@ -123,6 +128,7 @@ function Page() {
     { key: "horario", label: "Horário", width: 25 },
     { key: "valor_fat_fmt", label: "Valor Faturamento", align: "right", width: 32 },
     { key: "situacao", label: "Situação", width: 25 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
   ];
   const excelCols: ColunaRelatorio[] = [{ key: "empresa", label: "Empresa", width: 35 }, ...cols];
 
@@ -145,7 +151,7 @@ function Page() {
         startY: (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY,
         head: [cols.map((c) => c.label)],
         body: g.rows.map((r) => cols.map((c) => String((r as Record<string, unknown>)[c.key] ?? ""))),
-        foot: [["", "", "", "", "Subtotal", formatBRL(g.total), ""]],
+        foot: [["", "", "", "", "Subtotal", formatBRL(g.total), "", ""]],
         styles: { fontSize: 8, cellPadding: 1.5 },
         headStyles: { fillColor: [219, 234, 254], textColor: 0 },
         footStyles: { fillColor: [239, 246, 255], textColor: 0, fontStyle: "bold" },
@@ -178,7 +184,7 @@ function Page() {
                 <TableHeader><TableRow>
                   <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Colaborador</TableHead>
                   <TableHead>Função</TableHead><TableHead>Horário</TableHead>
-                  <TableHead className="text-right">Valor Faturamento</TableHead><TableHead>Situação</TableHead>
+                  <TableHead className="text-right">Valor Faturamento</TableHead><TableHead>Situação</TableHead><TableHead>Lançado por</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {g.rows.map((r, i) => (
@@ -186,6 +192,7 @@ function Page() {
                       <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.colaborador}</TableCell>
                       <TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
                       <TableCell className="text-right">{r.valor_fat_fmt}</TableCell><TableCell>{r.situacao}</TableCell>
+                      <TableCell className="text-xs">{r.lancado_por || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

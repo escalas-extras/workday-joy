@@ -15,6 +15,7 @@ const baseColumns: ColunaRelatorio[] = [
   { key: "valor", label: "Valor (R$)", width: 22, align: "right" },
   { key: "situacao_servico", label: "Sit. Serviço", width: 32 },
   { key: "status", label: "Status", width: 32 },
+  { key: "lancado_por", label: "Lançado por", width: 32 },
 ];
 
 const financeiroColumns: ColunaRelatorio[] = [
@@ -34,6 +35,7 @@ function mapRow(e: Row) {
     valor: Number(e.valor ?? 0).toFixed(2),
     situacao_servico: SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l ?? e.situacao_servico ?? "",
     status: e.status ?? "",
+    lancado_por: e.emitente_nome ?? "",
     classificacao: CLASSIFICACAO_COMERCIAL_OPTS.find((o) => o.v === e.classificacao_comercial)?.l ?? e.classificacao_comercial ?? "",
     situacao_financeira: e.situacao_financeira ?? "",
   };

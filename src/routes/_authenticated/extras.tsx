@@ -63,7 +63,8 @@ function Page() {
       if (filtroSituacao !== "todas") q.eq("situacao_servico", filtroSituacao as any);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      return enrichEmitentes(data ?? []);
     },
   });
 
@@ -204,7 +205,7 @@ function Page() {
               <TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead>
               <TableHead>Class.</TableHead>
               <TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead>
-              <TableHead>Status / Situação</TableHead><TableHead></TableHead>
+              <TableHead>Status / Situação</TableHead><TableHead>Lançado por</TableHead><TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -221,6 +222,7 @@ function Page() {
                   {e.coberto && <div className="text-xs text-muted-foreground">Cobre: {e.coberto.nome}</div>}
                 </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
+                <TableCell className="text-xs">{e.emitente_nome || "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {podeEditar(e) && <Button size="icon" variant="ghost" onClick={() => openEdit(e)}><Pencil className="h-3 w-3" /></Button>}
@@ -231,7 +233,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {extrasFiltrados.length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
+            {extrasFiltrados.length === 0 && <TableRow><TableCell colSpan={10} className="text-center py-6 text-muted-foreground">Nenhum extra</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

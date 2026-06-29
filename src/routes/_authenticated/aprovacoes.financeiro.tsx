@@ -52,7 +52,9 @@ function Page() {
       q = applyServerFilters(q, { ...filters, status: undefined });
       const { data, error } = await q;
       if (error) throw error;
-      return applyClientFilters(data ?? [], filters);
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes(data ?? []);
+      return applyClientFilters(enriched, filters);
     },
   });
   const aprovar = useMutation({
@@ -88,7 +90,7 @@ function Page() {
       </div>
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Lançado por</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {(list.data ?? []).map((e: any) => (
               <TableRow key={e.id}>
@@ -104,10 +106,11 @@ function Page() {
                   </Select>
                 </TableCell>
                 <TableCell><StatusBadge status={e.status} sit={e.situacao_financeira} /></TableCell>
+                <TableCell className="text-xs">{e.emitente_nome || "—"}</TableCell>
                 <TableCell><Button size="sm" onClick={() => aprovar.mutate({ id: e.id, classificacao_comercial: e.classificacao_comercial })}><Check className="h-3 w-3 mr-1" />Aprovar Financeiro</Button></TableCell>
               </TableRow>
             ))}
-            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}
+            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhum aguardando aprovação financeira</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

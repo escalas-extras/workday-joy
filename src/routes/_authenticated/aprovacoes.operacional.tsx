@@ -53,7 +53,9 @@ function Page() {
       q = applyServerFilters(q, { ...filters, status: undefined }); // status fixo
       const { data, error } = await q;
       if (error) throw error;
-      return applyClientFilters(data ?? [], filters);
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes(data ?? []);
+      return applyClientFilters(enriched, filters);
     },
   });
   const aprovar = useMutation({
@@ -74,7 +76,7 @@ function Page() {
       </div>
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Colaborador</TableHead><TableHead>Cliente</TableHead><TableHead>Horário</TableHead><TableHead>Valor</TableHead><TableHead>Situação Serv.</TableHead><TableHead>Status</TableHead><TableHead>Lançado por</TableHead><TableHead></TableHead></TableRow></TableHeader>
           <TableBody>
             {(list.data ?? []).map((e: any) => (
               <TableRow key={e.id}>
@@ -85,6 +87,7 @@ function Page() {
                 <TableCell>R$ {Number(e.valor).toFixed(2)}</TableCell>
                 <TableCell>{SITUACAO_SERVICO_OPTS.find((o) => o.v === e.situacao_servico)?.l}</TableCell>
                 <TableCell><StatusBadge status={e.status} /></TableCell>
+                <TableCell className="text-xs">{e.emitente_nome || "—"}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button size="sm" onClick={() => aprovar.mutate(e.id)}><Check className="h-3 w-3 mr-1" />Aprovar</Button>
@@ -93,7 +96,7 @@ function Page() {
                 </TableCell>
               </TableRow>
             ))}
-            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nada pendente</TableCell></TableRow>}
+            {(list.data ?? []).length === 0 && <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nada pendente</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>

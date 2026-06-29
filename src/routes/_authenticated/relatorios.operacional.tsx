@@ -26,6 +26,7 @@ type ExtraRow = {
   valor: number; classificacao_comercial: string; situacao_servico: string;
   status: string; situacao_financeira: string | null;
   cliente_id: string; colaborador_id: string; funcao_id: string; empresa_id: string | null;
+  emitente_id: string | null; emitente_nome?: string;
   clientes?: { nome_fantasia: string; cliente_empresas?: Array<{ situacao: string; empresas?: { id: string; nome: string } | null }> };
   empresas?: { id: string; nome: string } | null;
   colaboradores?: { id: string; nome: string; empresas?: { id: string; nome: string } | null };
@@ -63,7 +64,7 @@ function Page() {
       let qb = supabase.from("extras")
         .select(
           "id,data,semana_ref,created_at,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
-          "cliente_id,colaborador_id,funcao_id,empresa_id," +
+          "cliente_id,colaborador_id,funcao_id,empresa_id,emitente_id," +
           "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
           "colaboradores!colaborador_id(id,nome,empresas(id,nome))," +
@@ -77,7 +78,9 @@ function Page() {
       }
       const { data, error } = await qb;
       if (error) throw error;
-      return (data ?? []) as unknown as ExtraRow[];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as unknown as ExtraRow[]);
+      return enriched as ExtraRow[];
     },
   });
 
@@ -153,6 +156,7 @@ function Page() {
 
   const toRow = (r: ExtraRow) => ({
     lancado_em: r.created_at?.slice(0, 16).replace("T", " ") ?? "",
+    lancado_por: r.emitente_nome ?? "",
     data: r.data,
     semana_ref: r.semana_ref,
     cliente: r.clientes?.nome_fantasia ?? "",
@@ -174,6 +178,7 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "lancado_em", label: "Lançado em", width: 26 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
     { key: "data", label: "Data Serviço", width: 22 },
     { key: "semana_ref", label: "Semana", width: 22 },
     { key: "cliente", label: "Cliente", width: 38 },
@@ -201,7 +206,7 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Lançado em</TableHead><TableHead>Data Serviço</TableHead><TableHead>Semana</TableHead>
+            <TableHead>Lançado em</TableHead><TableHead>Lançado por</TableHead><TableHead>Data Serviço</TableHead><TableHead>Semana</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
             <TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead><TableHead>Cargo</TableHead><TableHead>Horário</TableHead>
             <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead><TableHead>Recibo</TableHead>
@@ -211,6 +216,7 @@ function Page() {
             {rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell className="text-xs">{r.lancado_em}</TableCell>
+                <TableCell className="text-xs">{r.lancado_por || "—"}</TableCell>
                 <TableCell>{r.data}</TableCell><TableCell>{r.semana_ref}</TableCell>
                 <TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
                 <TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto || "—"}</TableCell><TableCell>{r.motivo_subst || "—"}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
@@ -219,7 +225,7 @@ function Page() {
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={16} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={17} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
