@@ -53,7 +53,9 @@ function Page() {
       q = applyServerFilters(q, { ...filters, status: undefined }); // status fixo
       const { data, error } = await q;
       if (error) throw error;
-      return applyClientFilters(data ?? [], filters);
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes(data ?? []);
+      return applyClientFilters(enriched, filters);
     },
   });
   const aprovar = useMutation({
