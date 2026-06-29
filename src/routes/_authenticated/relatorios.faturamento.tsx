@@ -128,6 +128,7 @@ function Page() {
     { key: "horario", label: "Horário", width: 25 },
     { key: "valor_fat_fmt", label: "Valor Faturamento", align: "right", width: 32 },
     { key: "situacao", label: "Situação", width: 25 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
   ];
   const excelCols: ColunaRelatorio[] = [{ key: "empresa", label: "Empresa", width: 35 }, ...cols];
 
