@@ -64,7 +64,7 @@ function Page() {
       let qb = supabase.from("extras")
         .select(
           "id,data,semana_ref,created_at,hora_inicio,hora_termino,valor,classificacao_comercial,situacao_servico,status,situacao_financeira," +
-          "cliente_id,colaborador_id,funcao_id,empresa_id," +
+          "cliente_id,colaborador_id,funcao_id,empresa_id,emitente_id," +
           "clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome)))," +
           "empresas(id,nome)," +
           "colaboradores!colaborador_id(id,nome,empresas(id,nome))," +
@@ -78,7 +78,9 @@ function Page() {
       }
       const { data, error } = await qb;
       if (error) throw error;
-      return (data ?? []) as unknown as ExtraRow[];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as unknown as ExtraRow[]);
+      return enriched as ExtraRow[];
     },
   });
 
