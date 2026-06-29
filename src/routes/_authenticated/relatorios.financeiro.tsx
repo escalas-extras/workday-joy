@@ -21,6 +21,7 @@ type Linha = {
   id: string; data: string; valor: number; classificacao: "contrato" | "a_cobrar";
   situacao_financeira: string | null; status: string;
   cliente: string; empresa: string; colaborador: string; coberto: string; motivo_subst: string;
+  lancado_por: string;
 };
 
 function Page() {
