@@ -24,6 +24,7 @@ type ExtraRow = {
   situacao_financeira: string | null; status: string;
   hora_inicio: string; hora_termino: string;
   cliente_id: string;
+  emitente_id: string | null; emitente_nome?: string;
   clientes?: { id: string; nome_fantasia: string };
   colaboradores?: { id: string; nome: string; empresa_id?: string; empresas?: { id: string; nome: string } };
   funcoes?: { nome: string };
@@ -33,6 +34,7 @@ type Row = {
   data: string; empresa_id: string; empresa: string; cliente_id: string; cliente: string;
   colaborador: string; funcao: string; horario: string;
   valor_faturamento: number; valor_fat_fmt: string; situacao: string;
+  lancado_por: string;
 };
 
 function Page() {
