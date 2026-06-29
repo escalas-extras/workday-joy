@@ -101,6 +101,7 @@ function Page() {
     classificacao: r.classificacao === "a_cobrar" ? "À Cobrar" : "Contrato",
     situacao: r.situacao_financeira ?? "—", status: r.status,
     valor_fmt: formatBRL(r.valor),
+    lancado_por: r.lancado_por || "—",
   }));
 
   const cols: ColunaRelatorio[] = [
@@ -113,6 +114,7 @@ function Page() {
     { key: "classificacao", label: "Classificação", width: 22 },
     { key: "status", label: "Status", width: 26 },
     { key: "situacao", label: "Situação Fin.", width: 22 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
     { key: "valor_fmt", label: "Valor", align: "right", width: 22 },
   ];
   // PDF compacto: remove "Situação Fin." e "Status" para caber na página
@@ -125,7 +127,7 @@ function Page() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead>
-            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead>
+            <TableHead>Classificação</TableHead><TableHead>Status</TableHead><TableHead>Situação Fin.</TableHead><TableHead>Lançado por</TableHead>
             <TableHead className="text-right">Valor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -133,10 +135,11 @@ function Page() {
               <TableRow key={i}>
                 <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell><TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto}</TableCell><TableCell>{r.motivo_subst}</TableCell>
                 <TableCell>{r.classificacao}</TableCell><TableCell>{r.status}</TableCell><TableCell>{r.situacao}</TableCell>
+                <TableCell className="text-xs">{r.lancado_por}</TableCell>
                 <TableCell className="text-right">{r.valor_fmt}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
