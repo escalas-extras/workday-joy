@@ -53,7 +53,7 @@ function Page() {
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
         .select(
-          "id,data,valor,valor_faturamento,situacao_financeira,status,hora_inicio,hora_termino,cliente_id," +
+          "id,data,valor,valor_faturamento,situacao_financeira,status,hora_inicio,hora_termino,cliente_id,emitente_id," +
           "clientes(id,nome_fantasia)," +
           "colaboradores!colaborador_id(id,nome,empresa_id,empresas(id,nome))," +
           "funcoes(nome)"
@@ -61,7 +61,9 @@ function Page() {
         .eq("classificacao_comercial", "a_cobrar")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
-      return (data ?? []) as unknown as ExtraRow[];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as unknown as ExtraRow[]);
+      return enriched as ExtraRow[];
     },
   });
 
