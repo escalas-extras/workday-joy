@@ -36,7 +36,7 @@ function Page() {
     queryKey: ["rel-financeiro", de, ate],
     queryFn: async () => {
       const { data, error } = await supabase.from("extras")
-        .select("id,data,valor,classificacao_comercial,situacao_servico,situacao_financeira,status,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
+        .select("id,data,valor,classificacao_comercial,situacao_servico,situacao_financeira,status,emitente_id,funcoes(nome),clientes(nome_fantasia,cliente_empresas(situacao,empresas(id,nome))),empresas(id,nome),colaboradores!colaborador_id(nome,empresas(id,nome)),coberto:colaboradores!colaborador_coberto_id(nome)")
         .gte("data", de).lte("data", ate).order("data");
       if (error) throw error;
       const isJSP = (n: string) => /\bjsp\b/i.test(n);
@@ -57,7 +57,9 @@ function Page() {
         if (r.colaboradores?.empresas?.nome) return remapAvulso(r.colaboradores.empresas.nome);
         return "—";
       };
-      return (data ?? []).map((r: any): Linha => ({
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      const enriched = await enrichEmitentes((data ?? []) as any[]);
+      return enriched.map((r: any): Linha => ({
         id: r.id, data: r.data, valor: Number(r.valor),
         classificacao: r.classificacao_comercial as "contrato" | "a_cobrar",
         situacao_financeira: r.situacao_financeira, status: r.status,
@@ -66,6 +68,7 @@ function Page() {
         colaborador: r.colaboradores?.nome ?? "",
         coberto: r.coberto?.nome ?? "",
         motivo_subst: r.coberto?.nome ? (SITUACAO_SERVICO_LABEL[r.situacao_servico] ?? r.situacao_servico ?? "") : "",
+        lancado_por: r.emitente_nome ?? "",
       }));
     },
   });
