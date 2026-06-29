@@ -206,7 +206,7 @@ function Page() {
       <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Lançado em</TableHead><TableHead>Data Serviço</TableHead><TableHead>Semana</TableHead>
+            <TableHead>Lançado em</TableHead><TableHead>Lançado por</TableHead><TableHead>Data Serviço</TableHead><TableHead>Semana</TableHead>
             <TableHead>Cliente</TableHead><TableHead>Empresa</TableHead>
             <TableHead>Colaborador</TableHead><TableHead>Substituído</TableHead><TableHead>Motivo Subst.</TableHead><TableHead>Cargo</TableHead><TableHead>Horário</TableHead>
             <TableHead>Tipo</TableHead><TableHead>Status</TableHead><TableHead>Financeiro</TableHead><TableHead>Recibo</TableHead>
@@ -216,6 +216,7 @@ function Page() {
             {rows.map((r, i) => (
               <TableRow key={i}>
                 <TableCell className="text-xs">{r.lancado_em}</TableCell>
+                <TableCell className="text-xs">{r.lancado_por || "—"}</TableCell>
                 <TableCell>{r.data}</TableCell><TableCell>{r.semana_ref}</TableCell>
                 <TableCell>{r.cliente}</TableCell><TableCell>{r.empresa}</TableCell>
                 <TableCell>{r.colaborador}</TableCell><TableCell>{r.coberto || "—"}</TableCell><TableCell>{r.motivo_subst || "—"}</TableCell><TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
@@ -224,7 +225,7 @@ function Page() {
                 <TableCell className="text-right">{r.valor_fmt}</TableCell><TableCell>{r.classificacao}</TableCell>
               </TableRow>
             ))}
-            {!rows.length && <TableRow><TableCell colSpan={16} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
+            {!rows.length && <TableRow><TableCell colSpan={17} className="text-center text-muted-foreground py-6">{emptyMsg}</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
