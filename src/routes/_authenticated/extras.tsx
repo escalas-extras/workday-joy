@@ -63,7 +63,8 @@ function Page() {
       if (filtroSituacao !== "todas") q.eq("situacao_servico", filtroSituacao as any);
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      const { enrichEmitentes } = await import("@/lib/emitentes");
+      return enrichEmitentes(data ?? []);
     },
   });
 
