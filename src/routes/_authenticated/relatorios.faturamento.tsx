@@ -184,7 +184,7 @@ function Page() {
                 <TableHeader><TableRow>
                   <TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Colaborador</TableHead>
                   <TableHead>Função</TableHead><TableHead>Horário</TableHead>
-                  <TableHead className="text-right">Valor Faturamento</TableHead><TableHead>Situação</TableHead>
+                  <TableHead className="text-right">Valor Faturamento</TableHead><TableHead>Situação</TableHead><TableHead>Lançado por</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {g.rows.map((r, i) => (
@@ -192,6 +192,7 @@ function Page() {
                       <TableCell>{r.data}</TableCell><TableCell>{r.cliente}</TableCell><TableCell>{r.colaborador}</TableCell>
                       <TableCell>{r.funcao}</TableCell><TableCell>{r.horario}</TableCell>
                       <TableCell className="text-right">{r.valor_fat_fmt}</TableCell><TableCell>{r.situacao}</TableCell>
+                      <TableCell className="text-xs">{r.lancado_por || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
