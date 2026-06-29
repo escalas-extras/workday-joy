@@ -94,6 +94,7 @@ function Page() {
       valor_faturamento: Number(r.valor_faturamento ?? r.valor),
       valor_fat_fmt: formatBRL(r.valor_faturamento ?? r.valor),
       situacao: r.situacao_financeira ?? "—",
+      lancado_por: r.emitente_nome ?? "",
     };
   }), [q.data]);
 
