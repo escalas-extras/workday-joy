@@ -178,6 +178,7 @@ function Page() {
 
   const cols: ColunaRelatorio[] = [
     { key: "lancado_em", label: "Lançado em", width: 26 },
+    { key: "lancado_por", label: "Lançado por", width: 30 },
     { key: "data", label: "Data Serviço", width: 22 },
     { key: "semana_ref", label: "Semana", width: 22 },
     { key: "cliente", label: "Cliente", width: 38 },
