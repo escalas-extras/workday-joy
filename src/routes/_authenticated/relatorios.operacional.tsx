@@ -156,6 +156,7 @@ function Page() {
 
   const toRow = (r: ExtraRow) => ({
     lancado_em: r.created_at?.slice(0, 16).replace("T", " ") ?? "",
+    lancado_por: r.emitente_nome ?? "",
     data: r.data,
     semana_ref: r.semana_ref,
     cliente: r.clientes?.nome_fantasia ?? "",
